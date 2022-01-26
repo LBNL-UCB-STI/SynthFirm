@@ -1,0 +1,214 @@
+#################################################################################
+rm(list = ls())
+options(scipen = '10')
+list.of.packages <-
+  c("dplyr",
+    "data.table",
+    "sf",
+    "tmap",
+    "tmaptools",
+    "bit64")
+new.packages <-
+  list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+if (length(new.packages))
+  install.packages(new.packages)
+lapply(list.of.packages, require, character = TRUE)
+#################################################################################
+#install_github("f1kidd/fmlogit")
+path2file <-
+  "/Users/srinath/OneDrive - LBNL/Projects/SMART-2.0/Task-3 BAMOS/BayArea_GIS"
+setwd(path2file)
+
+sf_cbg = sf::st_read("SFBay_CBG.geojson")
+
+sf_cbg = sf_cbg %>% mutate(tract_id = substr(blkgrpid, 1,11),
+                           cnty_id = paste0(fipst, fipco))
+
+sf_tract = sf_cbg %>% group_by(tract_id) %>% summarize(count = n())
+sf_tract = sf_tract %>% mutate(cnty_id = substr(tract_id, 1, 5))
+sf_cnty = sf_tract %>% group_by(cnty_id) %>% summarize(count = n())
+print(sf_cnty)
+sf::st_write(sf_tract, "sfbay_tracts.geojson")
+plot(sf_tract)
+
+require(tidycensus)
+
+census_api_key("d49f1c9b81751571b083252dfbb8ac14ae8b63b7", install = TRUE)
+
+male_naics = c(
+  "C24030_004",
+  "C24030_005",
+  "C24030_006",
+  "C24030_007",
+  "C24030_008",
+  "C24030_009",
+  "C24030_011",
+  "C24030_012",
+  "C24030_013",
+  "C24030_015",
+  "C24030_016",
+  "C24030_018",
+  "C24030_019",
+  "C24030_020",
+  "C24030_022",
+  "C24030_023",
+  "C24030_025",
+  "C24030_026",
+  "C24030_027",
+  "C24030_028"
+)
+
+ca_df1 <-
+  get_acs(
+    geography = "block group",
+    year = 2015,
+    variables = male_naics,
+    state = "CA"
+  )
+
+fem_naics = c(
+  "C24030_031",
+  "C24030_032",
+  "C24030_033",
+  "C24030_034",
+  "C24030_035",
+  "C24030_036",
+  "C24030_038",
+  "C24030_039",
+  "C24030_040",
+  "C24030_042",
+  "C24030_043",
+  "C24030_045",
+  "C24030_046",
+  "C24030_047",
+  "C24030_049",
+  "C24030_050",
+  "C24030_052",
+  "C24030_053",
+  "C24030_054",
+  "C24030_055"
+)
+
+ca_df2 <-
+  get_acs(
+    geography = "block group",
+    year = 2015,
+    variables = fem_naics,
+    state = "CA"
+  )
+
+require(reshape2)
+
+ca_acs1 = ca_df1 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
+ca_acs2 = ca_df2 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
+
+naics_m = c(
+  "n11_m",
+  "n21_m",
+  "n23_m",
+  "n3133_m",
+  "n42_m",
+  "n4445_m",
+  "n4849_m",
+  "n22_m",
+  "n51_m",
+  "n52_m",
+  "n53_m",
+  "n54_m",
+  "n55_m",
+  "n56_m",
+  "n61_m",
+  "n62_m",
+  "n71_m",
+  "n72_m",
+  "n81_m",
+  "n92_m"
+)
+naics_f = c(
+  "n11_f",
+  "n21_f",
+  "n23_f",
+  "n3133_f",
+  "n42_f",
+  "n4445_f",
+  "n4849_f",
+  "n22_f",
+  "n51_f",
+  "n52_f",
+  "n53_f",
+  "n54_f",
+  "n55_f",
+  "n56_f",
+  "n61_f",
+  "n62_f",
+  "n71_f",
+  "n72_f",
+  "n81_f",
+  "n92_f"
+)
+naics = c(
+  "n11",
+  "n21",
+  "n23",
+  "n3133",
+  "n42",
+  "n4445",
+  "n4849",
+  "n22",
+  "n51",
+  "n52",
+  "n53",
+  "n54",
+  "n55",
+  "n56",
+  "n61",
+  "n62",
+  "n71",
+  "n72",
+  "n81",
+  "n92"
+)
+
+names(ca_acs1) = c("GEOID", "NAME", naics_m)
+names(ca_acs2) = c("GEOID", "NAME", naics_f)
+
+ca_acs = ca_acs1 %>% left_join(ca_acs2, by = c("GEOID", "NAME")) %>% mutate(
+  n11 = n11_m + n11_f,
+  n21 = n21_m + n21_f,
+  n22 = n22_m + n22_f,
+  n23 = n23_m + n23_f,
+  n3133 = n3133_m + n3133_f,
+  n42 = n42_m + n42_f,
+  n4445 = n4445_m + n4445_f,
+  n4849 = n4849_m + n4849_f,
+  n51 = n51_m + n51_f,
+  n52 = n52_m + n52_f,
+  n53 = n53_m + n53_f,
+  n54 = n54_m + n54_f,
+  n55 = n55_m + n55_f,
+  n56 = n56_m + n56_f,
+  n61 = n61_m + n61_f,
+  n62 = n62_m + n62_f,
+  n71 = n71_m + n71_f,
+  n72 = n72_m + n72_f,
+  n81 = n81_m + n81_f,
+  n92 = n92_m + n92_f
+)
+
+ca_acs = ca_acs %>% select(GEOID, NAME, all_of(naics)) %>% mutate(metalayer_id = substr(GEOID, 1, 8)) %>%
+  select(GEOID, metalayer_id, all_of(naics))
+
+data.table::fwrite(ca_acs, "ca_naics.csv")
+
+ca_df = get_acs(
+  geography = "block group",
+  year = 2019,
+  variables = fem_naics,
+  state = "CA",
+  geometry = TRUE
+)
+sf::st_write(ca_df, "ca_bg.geojson")
+
+
+
+
