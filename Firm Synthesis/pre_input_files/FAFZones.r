@@ -16,7 +16,7 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
-  "/Users/srinath/OneDrive - LBNL/Projects/SMART-2.0/Task-3 BAMOS/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/BayArea_GIS"
 setwd(path2file)
 
 cfs_df = sf::st_read(dsn = "CFS_Areas.geojson")
@@ -61,7 +61,7 @@ faf_all = faf_all %>% mutate(ST_CNTY = paste0(ANSI_ST, ANSI_CNTY))
 
 data.table::fwrite(faf_all, "SFBay_FAFCNTY.csv")
 
-f1 = data.table::fread("cbp12co.txt",
+f1 = data.table::fread("cbp17co.txt",
                        colClasses = list(
                          character = c("fipstate", "fipscty", "naics", "censtate",
                                        "cencty")

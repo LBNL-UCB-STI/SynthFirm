@@ -16,25 +16,29 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
-  "/Users/srinath/OneDrive - LBNL/Projects/SMART-2.0/Task-3 BAMOS/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/BayArea_GIS"
 setwd(path2file)
 
-sf_cbg = sf::st_read("SFBay_CBG.geojson")
 
-sf_cbg = sf_cbg %>% mutate(tract_id = substr(blkgrpid, 1,11),
-                           cnty_id = paste0(fipst, fipco))
+## archived scripts to generate data from external census data file
+# sf_cbg = sf::st_read("SFBay_CBG.geojson")
+# 
+# sf_cbg = sf_cbg %>% mutate(tract_id = substr(blkgrpid, 1,11),
+#                            cnty_id = paste0(fipst, fipco))
+# 
+# sf_tract = sf_cbg %>% group_by(tract_id) %>% summarize(count = n())
+# sf_tract = sf_tract %>% mutate(cnty_id = substr(tract_id, 1, 5))
+# sf_cnty = sf_tract %>% group_by(cnty_id) %>% summarize(count = n())
+# print(sf_cnty)
+# sf::st_write(sf_tract, "sfbay_tracts.geojson")
+# plot(sf_tract)
 
-sf_tract = sf_cbg %>% group_by(tract_id) %>% summarize(count = n())
-sf_tract = sf_tract %>% mutate(cnty_id = substr(tract_id, 1, 5))
-sf_cnty = sf_tract %>% group_by(cnty_id) %>% summarize(count = n())
-print(sf_cnty)
-sf::st_write(sf_tract, "sfbay_tracts.geojson")
-plot(sf_tract)
 
+####### BEGINNING OF CENSUS DATA PROCESSES ######
 require(tidycensus)
 
-census_api_key("d49f1c9b81751571b083252dfbb8ac14ae8b63b7", install = TRUE)
-
+census_api_key("d49f1c9b81751571b083252dfbb8ac14ae8b63b7", install = TRUE, overwrite=TRUE) # using this at the first time of running SynthFirm
+readRenviron("~/.Renviron")
 male_naics = c(
   "C24030_004",
   "C24030_005",
@@ -61,7 +65,7 @@ male_naics = c(
 ca_df1 <-
   get_acs(
     geography = "block group",
-    year = 2015,
+    year = 2015, # ACS 5-year estimate, using later years such as 2018/2019 will cause technical issues
     variables = male_naics,
     state = "CA"
   )

@@ -16,7 +16,7 @@ lapply(list.of.packages, require, character = TRUE)
 #install_github("f1kidd/fmlogit")
 set.seed(0)
 path2file <-
-  "/Users/srinath/OneDrive - LBNL/Projects/SMART-2.0/Task-3 BAMOS/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/BayArea_GIS"
 setwd(path2file)
 
 ca_df = sf::st_read("ca_bg.geojson")

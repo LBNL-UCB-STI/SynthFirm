@@ -7,7 +7,7 @@ options(scipen = '10')
 #Define Model/Scenario Control Variables/Inputs/Packages/Steps
 #---------------------------------------------------------------------
 basedir <-
-  "/Users/srinath/OneDrive - LBNL/Projects/SMART-2.0/Task-3 BAMOS/SynthFirm"
+  "/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis"
 setwd(basedir)
 scenario <- "baseline"
 
