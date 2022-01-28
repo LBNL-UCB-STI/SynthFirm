@@ -16,7 +16,7 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
-  "/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
 cfs_df = sf::st_read(dsn = "CFS_Areas.geojson")
@@ -44,9 +44,9 @@ faf_cnty = faf_cnty %>% mutate(FAFID = as.numeric(FAF))
 
 faf_df = as.data.frame(faf_cnty) %>% select(FAFID, ANSI_ST, ANSI_CNTY)
 
-faf_df1 = faf_df %>% filter(FAFID == 62 |
-                              FAFID == 64 | FAFID == 65 | FAFID == 69)
-faf_df2 = faf_df %>% anti_join(faf_df1, by = c("FAFID")) %>% arrange(FAFID)
+study_area_faf <- c(62, 64, 65, 69)  # need to make this token a global input
+faf_df1 = faf_df %>% filter(FAFID %in% study_area_faf) # select FAF zones within study area
+faf_df2 = faf_df %>% anti_join(faf_df1, by = c("FAFID")) %>% arrange(FAFID) # select FAF zones outside study area
 
 faf_df1 = faf_df1 %>% mutate(CBPZONE = paste0(substr(FAFID, 1, 2), ANSI_CNTY))
 
@@ -59,8 +59,9 @@ faf_internal = faf_df1
 faf_all = bind_rows(faf_internal, faf_external) %>% mutate(CBPZONE1 = as.numeric(CBPZONE))
 faf_all = faf_all %>% mutate(ST_CNTY = paste0(ANSI_ST, ANSI_CNTY))
 
-data.table::fwrite(faf_all, "SFBay_FAFCNTY.csv")
+data.table::fwrite(faf_all, "SFBay_FAFCNTY.csv") # use token to replace 'SFBay'
 
+# load CBP cpmplete county file from Census.gov, example: https://www.census.gov/data/datasets/2017/econ/cbp/2017-cbp.html
 f1 = data.table::fread("cbp17co.txt",
                        colClasses = list(
                          character = c("fipstate", "fipscty", "naics", "censtate",
@@ -140,6 +141,7 @@ f7 = f5 %>% group_by(ST_CNTY, CBPZONE1, FAFID) %>% summarize(
 data.table::fwrite(as_tibble(f7), "data_cbp_lookup.csv")
 
 
+# archived scripts for CBP_EMPRANKINGS.R, use the other file instead
 naics_df = data.table::fread("ca_naics.csv",colClasses = list(character=c("GEOID","metalayer_id")),h=T)
 naics_df1 = naics_df %>% group_by(metalayer_id) %>% 
             summarize(n11=sum(n11),n21=sum(n21),n22=sum(n22),n23=sum(n23),n3133=sum(n3133),n42=sum(n42),

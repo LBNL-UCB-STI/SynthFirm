@@ -16,7 +16,7 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
-  "/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
 
