@@ -19,6 +19,8 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
+selected_state = 'TX'
+
 naics = c(
   "n11",
   "n21",
@@ -70,7 +72,8 @@ rank_vars = c(
 f1 = data.table::fread("SFBay_FAFCNTY.csv",colClasses = list(character=c("ANSI_ST","ANSI_CNTY","ST_CNTY")),
                        h=T)
 
-f2 = data.table::fread("ca_naics.csv",colClasses = list(character=c("GEOID","metalayer_id")),h=T)
+naics_file_name = paste0(selected_state, '_naics.csv')
+f2 = data.table::fread(naics_file_name,colClasses = list(character=c("GEOID","metalayer_id")),h=T)
 f2 = f2 %>% select(-c(metalayer_id))
 
 naics_long = reshape2::melt(f2, id.vars=c("GEOID"))

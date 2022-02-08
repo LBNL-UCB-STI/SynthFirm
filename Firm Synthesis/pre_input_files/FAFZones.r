@@ -19,6 +19,7 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
+# data_to_check <- st_read('sfbay_freight.geojson')
 region_name = 'Austin'
 state_name = 'TX'
 cfs_df = sf::st_read(dsn = "CFS_Areas.geojson")

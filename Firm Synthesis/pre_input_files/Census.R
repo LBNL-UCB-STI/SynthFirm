@@ -19,7 +19,7 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
-selected_state = 'TX'
+selected_state = 'CA'
 selected_year = 2015
 
 ## archived scripts to generate data from external census data file
@@ -210,7 +210,7 @@ data.table::fwrite(state_acs, output_name)
 state_bg_df = get_acs(
   geography = "block group",
   year = 2019,
-  variables = fem_naics,
+  variables = 'B19013_001',
   state = selected_state,
   geometry = TRUE
 )
