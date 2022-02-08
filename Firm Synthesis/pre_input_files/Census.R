@@ -19,6 +19,8 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
+selected_state = 'TX'
+selected_year = 2015
 
 ## archived scripts to generate data from external census data file
 # sf_cbg = sf::st_read("SFBay_CBG.geojson")
@@ -62,12 +64,12 @@ male_naics = c(
   "C24030_028"
 )
 
-ca_df1 <-
+state_df1 <-
   get_acs(
     geography = "block group",
-    year = 2015, # ACS 5-year estimate, using later years such as 2018/2019 will cause technical issues
+    year = selected_year, # ACS 5-year estimate, using later years such as 2018/2019 will cause technical issues
     variables = male_naics,
-    state = "CA"
+    state = selected_state
   )
 
 fem_naics = c(
@@ -93,18 +95,18 @@ fem_naics = c(
   "C24030_055"
 )
 
-ca_df2 <-
+state_df2 <-
   get_acs(
     geography = "block group",
-    year = 2015,
+    year = selected_year,
     variables = fem_naics,
-    state = "CA"
+    state = selected_state
   )
 
 require(reshape2)
 
-ca_acs1 = ca_df1 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
-ca_acs2 = ca_df2 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
+state_acs1 = state_df1 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
+state_acs2 = state_df2 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
 
 naics_m = c(
   "n11_m",
@@ -173,10 +175,10 @@ naics = c(
   "n92"
 )
 
-names(ca_acs1) = c("GEOID", "NAME", naics_m)
-names(ca_acs2) = c("GEOID", "NAME", naics_f)
+names(state_acs1) = c("GEOID", "NAME", naics_m)
+names(state_acs2) = c("GEOID", "NAME", naics_f)
 
-ca_acs = ca_acs1 %>% left_join(ca_acs2, by = c("GEOID", "NAME")) %>% mutate(
+state_acs = state_acs1 %>% left_join(state_acs2, by = c("GEOID", "NAME")) %>% mutate(
   n11 = n11_m + n11_f,
   n21 = n21_m + n21_f,
   n22 = n22_m + n22_f,
@@ -199,19 +201,22 @@ ca_acs = ca_acs1 %>% left_join(ca_acs2, by = c("GEOID", "NAME")) %>% mutate(
   n92 = n92_m + n92_f
 )
 
-ca_acs = ca_acs %>% select(GEOID, NAME, all_of(naics)) %>% mutate(metalayer_id = substr(GEOID, 1, 8)) %>%
+state_acs = state_acs %>% select(GEOID, NAME, all_of(naics)) %>% mutate(metalayer_id = substr(GEOID, 1, 8)) %>%
   select(GEOID, metalayer_id, all_of(naics))
 
-data.table::fwrite(ca_acs, "ca_naics.csv")
+output_name = paste0(selected_state, '_naics.csv')
+data.table::fwrite(state_acs, output_name)
 
-ca_df = get_acs(
+state_bg_df = get_acs(
   geography = "block group",
   year = 2019,
   variables = fem_naics,
-  state = "CA",
+  state = selected_state,
   geometry = TRUE
 )
-sf::st_write(ca_df, "ca_bg.geojson")
+
+bg_name = paste0(selected_state, '_bg.geojson')
+sf::st_write(state_bg_df, bg_name)
 
 
 
