@@ -19,6 +19,8 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
+region_name = 'Austin'
+state_name = 'TX'
 cfs_df = sf::st_read(dsn = "CFS_Areas.geojson")
 cfs_lookup = fread("CFS_FAF_LOOKUP.csv",
                    colClasses = list(character = c("STFIPS", "CFSMA", "FAF")),
@@ -44,11 +46,11 @@ faf_cnty = faf_cnty %>% mutate(FAFID = as.numeric(FAF))
 
 faf_df = as.data.frame(faf_cnty) %>% select(FAFID, ANSI_ST, ANSI_CNTY)
 
-study_area_faf <- c(62, 64, 65, 69)  # need to make this token a global input
+study_area_faf <- c(481, 488, 489)  # need to make this token a global input
 faf_df1 = faf_df %>% filter(FAFID %in% study_area_faf) # select FAF zones within study area
 faf_df2 = faf_df %>% anti_join(faf_df1, by = c("FAFID")) %>% arrange(FAFID) # select FAF zones outside study area
 
-faf_df1 = faf_df1 %>% mutate(CBPZONE = paste0(substr(FAFID, 1, 2), ANSI_CNTY))
+faf_df1 = faf_df1 %>% mutate(CBPZONE = paste0(substr(FAFID, 1, 2), ANSI_CNTY)) # 5-digit fips code
 
 faf_df3 = faf_df2 %>% group_by(FAFID) %>% summarize(count = n()) %>% mutate(CBPZONE = seq(1, length(FAFID)))
 
@@ -59,7 +61,8 @@ faf_internal = faf_df1
 faf_all = bind_rows(faf_internal, faf_external) %>% mutate(CBPZONE1 = as.numeric(CBPZONE))
 faf_all = faf_all %>% mutate(ST_CNTY = paste0(ANSI_ST, ANSI_CNTY))
 
-data.table::fwrite(faf_all, "SFBay_FAFCNTY.csv") # use token to replace 'SFBay'
+file_name = paste0(region_name, '_FAFCNTY.csv')
+data.table::fwrite(faf_all, file_name) # use token to replace 'SFBay'
 
 # load CBP cpmplete county file from Census.gov, example: https://www.census.gov/data/datasets/2017/econ/cbp/2017-cbp.html
 f1 = data.table::fread("cbp17co.txt",
@@ -73,7 +76,7 @@ f1$naics6 = as.numeric(f1$naics)
 
 f2 = f1 %>% filter(!is.na(naics6)) %>% mutate(ST_CNTY = paste0(fipstate, fipscty))
 
-f2$n1_4 = as.numeric(f2$n1_4)
+f2$n1_4 = as.numeric(f2$`n<5`)
 f2$n5_9 = as.numeric(f2$n5_9)
 f2$n10_19 = as.numeric(f2$n10_19)
 f2$n20_49 = as.numeric(f2$n20_49)
@@ -142,90 +145,91 @@ data.table::fwrite(as_tibble(f7), "data_cbp_lookup.csv")
 
 
 # archived scripts for CBP_EMPRANKINGS.R, use the other file instead
-naics_df = data.table::fread("ca_naics.csv",colClasses = list(character=c("GEOID","metalayer_id")),h=T)
-naics_df1 = naics_df %>% group_by(metalayer_id) %>% 
-            summarize(n11=sum(n11),n21=sum(n21),n22=sum(n22),n23=sum(n23),n3133=sum(n3133),n42=sum(n42),
-                      n4445=sum(n4445),n4849=sum(n4849),n51=sum(n51),n52=sum(n52),n53=sum(n53),n54=sum(n54),
-                      n55=sum(n55),n56=sum(n56),n61=sum(n61),n62=sum(n62),n71=sum(n71),n72=sum(n72),n81=sum(n81),
-                      n92=sum(n92))
 
-
-
-naics_long = reshape2::melt(naics_df1, id.vars=c("metalayer_id"))
-
-naics_df2 = naics_long %>% group_by(metalayer_id) %>% summarize(totemp = sum(value))
-
-naics_df3 = naics_long %>% left_join(naics_df2, by=c("metalayer_id")) %>% 
-            mutate(pct = 100*value/totemp) %>% arrange(metalayer_id,desc(pct))
-
-naics_df3 = naics_df3 %>% group_by(metalayer_id) %>% mutate(percrank = floor(10*rank(pct)/length(pct)))
-
-naics_df4 = reshape2::dcast(naics_df3, metalayer_id ~ variable, value.var = "percrank")
-naics_df4[naics_df4==0] <- NA
-
-sfbay_df = sf::st_read("sf_metalayer.geojson")
-
-sfbay_df = sfbay_df %>% rename(metalayer_id = tract_id)
-sfbay_counties = unique(sfbay_df$cnty_id)
-
-naics_df4 = naics_df4 %>% mutate(cnty_id = substr(metalayer_id,1,5))
-naics_df5 = naics_df4 %>% filter(cnty_id %in% sfbay_counties)
-naics_df5$n99 = floor(runif(nrow(naics_df5),1,10))
-naics_df5 = naics_df5 %>% rename(MESOZONE = metalayer_id,
-                                 COUNTY = cnty_id)
-
-naics = c(
-  "n11",
-  "n21",
-  "n23",
-  "n3133",
-  "n42",
-  "n4445",
-  "n4849",
-  "n22",
-  "n51",
-  "n52",
-  "n53",
-  "n54",
-  "n55",
-  "n56",
-  "n61",
-  "n62",
-  "n71",
-  "n72",
-  "n81",
-  "n92",
-  "n99"
-)
-
-rank_vars = c(
-  "rank11",
-  "rank21",
-  "rank23",
-  "rank3133",
-  "rank42",
-  "rank4445",
-  "rank4849",
-  "rank22",
-  "rank51",
-  "rank52",
-  "rank53",
-  "rank54",
-  "rank55",
-  "rank56",
-  "rank61",
-  "rank62",
-  "rank71",
-  "rank72",
-  "rank81",
-  "rank92",
-  "rank99"
-)
-
-naics_df6 = naics_df5 %>% select(COUNTY, MESOZONE, naics)
-names(naics_df6)[3:23] = rank_vars
-naics_df6 = naics_df6 %>% arrange(COUNTY, MESOZONE)
-naics_df6$MAZ = seq(1,nrow(naics_df6),1)
-naics_df7 = naics_df6 %>% select(COUNTY, MAZ, rank_vars) %>% rename(MESOZONE = MAZ)
-
-data.table::fwrite(naics_df7, "data_mesozone_emprankings.csv")
+# naics_df = data.table::fread("ca_naics.csv",colClasses = list(character=c("GEOID","metalayer_id")),h=T)
+# naics_df1 = naics_df %>% group_by(metalayer_id) %>% 
+#             summarize(n11=sum(n11),n21=sum(n21),n22=sum(n22),n23=sum(n23),n3133=sum(n3133),n42=sum(n42),
+#                       n4445=sum(n4445),n4849=sum(n4849),n51=sum(n51),n52=sum(n52),n53=sum(n53),n54=sum(n54),
+#                       n55=sum(n55),n56=sum(n56),n61=sum(n61),n62=sum(n62),n71=sum(n71),n72=sum(n72),n81=sum(n81),
+#                       n92=sum(n92))
+# 
+# 
+# 
+# naics_long = reshape2::melt(naics_df1, id.vars=c("metalayer_id"))
+# 
+# naics_df2 = naics_long %>% group_by(metalayer_id) %>% summarize(totemp = sum(value))
+# 
+# naics_df3 = naics_long %>% left_join(naics_df2, by=c("metalayer_id")) %>% 
+#             mutate(pct = 100*value/totemp) %>% arrange(metalayer_id,desc(pct))
+# 
+# naics_df3 = naics_df3 %>% group_by(metalayer_id) %>% mutate(percrank = floor(10*rank(pct)/length(pct)))
+# 
+# naics_df4 = reshape2::dcast(naics_df3, metalayer_id ~ variable, value.var = "percrank")
+# naics_df4[naics_df4==0] <- NA
+# 
+# sfbay_df = sf::st_read("sf_metalayer.geojson")
+# 
+# sfbay_df = sfbay_df %>% rename(metalayer_id = tract_id)
+# sfbay_counties = unique(sfbay_df$cnty_id)
+# 
+# naics_df4 = naics_df4 %>% mutate(cnty_id = substr(metalayer_id,1,5))
+# naics_df5 = naics_df4 %>% filter(cnty_id %in% sfbay_counties)
+# naics_df5$n99 = floor(runif(nrow(naics_df5),1,10))
+# naics_df5 = naics_df5 %>% rename(MESOZONE = metalayer_id,
+#                                  COUNTY = cnty_id)
+# 
+# naics = c(
+#   "n11",
+#   "n21",
+#   "n23",
+#   "n3133",
+#   "n42",
+#   "n4445",
+#   "n4849",
+#   "n22",
+#   "n51",
+#   "n52",
+#   "n53",
+#   "n54",
+#   "n55",
+#   "n56",
+#   "n61",
+#   "n62",
+#   "n71",
+#   "n72",
+#   "n81",
+#   "n92",
+#   "n99"
+# )
+# 
+# rank_vars = c(
+#   "rank11",
+#   "rank21",
+#   "rank23",
+#   "rank3133",
+#   "rank42",
+#   "rank4445",
+#   "rank4849",
+#   "rank22",
+#   "rank51",
+#   "rank52",
+#   "rank53",
+#   "rank54",
+#   "rank55",
+#   "rank56",
+#   "rank61",
+#   "rank62",
+#   "rank71",
+#   "rank72",
+#   "rank81",
+#   "rank92",
+#   "rank99"
+# )
+# 
+# naics_df6 = naics_df5 %>% select(COUNTY, MESOZONE, naics)
+# names(naics_df6)[3:23] = rank_vars
+# naics_df6 = naics_df6 %>% arrange(COUNTY, MESOZONE)
+# naics_df6$MAZ = seq(1,nrow(naics_df6),1)
+# naics_df7 = naics_df6 %>% select(COUNTY, MAZ, rank_vars) %>% rename(MESOZONE = MAZ)
+# 
+# data.table::fwrite(naics_df7, "data_mesozone_emprankings.csv")
