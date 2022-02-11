@@ -20,6 +20,7 @@ path2file <-
 setwd(path2file)
 
 selected_state = 'TX'
+selected_region = 'Austin'
 
 naics = c(
   "n11",
@@ -68,11 +69,11 @@ rank_vars = c(
   "rank92",
   "rank99"
 )
-
-f1 = data.table::fread("SFBay_FAFCNTY.csv",colClasses = list(character=c("ANSI_ST","ANSI_CNTY","ST_CNTY")),
+selected_file = paste0(selected_region, '_FAFCNTY.csv')
+f1 = data.table::fread(selected_file,colClasses = list(character=c("ANSI_ST","ANSI_CNTY","ST_CNTY")),
                        h=T)
 
-naics_file_name = paste0(selected_state, '_naics.csv')
+naics_file_name = paste0(selected_state, '_naics.csv') # employment data
 f2 = data.table::fread(naics_file_name,colClasses = list(character=c("GEOID","metalayer_id")),h=T)
 f2 = f2 %>% select(-c(metalayer_id))
 
@@ -86,7 +87,7 @@ naics_df3 = naics_df3 %>% group_by(GEOID) %>% mutate(percrank = floor(10*rank(pc
 naics_df4 = reshape2::dcast(naics_df3, GEOID ~ variable, value.var = "percrank")
 naics_df4 = naics_df4 %>% mutate(cnty_id = substr(GEOID, 1, 5))
 
-study_area_faf <- c(62, 64, 65, 69)  # need to make this token a global input
+study_area_faf <- c(481, 488, 489)  # need to make this token a global input
 f3 = f1 %>% filter(FAFID %in% study_area_faf) %>% select(ST_CNTY,CBPZONE1)
 
 naics_df5 = naics_df4 %>% left_join(f3, by=c("cnty_id"="ST_CNTY")) #employment within study area
