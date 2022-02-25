@@ -19,7 +19,7 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
-selected_state = 'CA'
+selected_state = 'TX'
 selected_year = 2015
 
 ## archived scripts to generate data from external census data file
@@ -204,20 +204,25 @@ state_acs = state_acs1 %>% left_join(state_acs2, by = c("GEOID", "NAME")) %>% mu
 state_acs = state_acs %>% select(GEOID, NAME, all_of(naics)) %>% mutate(metalayer_id = substr(GEOID, 1, 8)) %>%
   select(GEOID, metalayer_id, all_of(naics))
 
-output_name = paste0(selected_state, '_naics.csv')
-data.table::fwrite(state_acs, output_name)
+
+
+# v19 <- load_variables(2019, "acs5", cache = TRUE)
+# View(v19)
 
 state_bg_df = get_acs(
   geography = "block group",
   year = 2019,
-  variables = 'B19013_001',
+  variables = c('B01001_001'),
   state = selected_state,
   geometry = TRUE
 )
 
+state_bg_df_filtered <- state_bg_df %>% filter(estimate > 0) # with population
+list_of_geoid <- unique(state_bg_df_filtered$GEOID)
 bg_name = paste0(selected_state, '_bg.geojson')
-sf::st_write(state_bg_df, bg_name)
+sf::st_write(state_bg_df_filtered, bg_name)
 
-
-
+state_acs_filtered <- state_acs %>% filter(GEOID %in% list_of_geoid)
+output_name = paste0(selected_state, '_naics.csv')
+data.table::fwrite(state_acs_filtered, output_name)
 

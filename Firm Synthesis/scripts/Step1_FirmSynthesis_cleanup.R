@@ -4,19 +4,11 @@
 
 
 ################ part 0 ######################
+rm(list = ls())
+path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/scripts/'
+source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
+source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
 
-#progressStart(firmsyn,9)
-packages = c(
-  "dplyr",
-  "dtplyr",
-  "data.table",
-  "bit64",
-  "reshape",
-  "reshape2",
-  "ggplot2",
-  "fastcluster"
-)
-lapply(packages, require, character = TRUE)
 path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm"
 setwd(path2file)
@@ -35,8 +27,9 @@ prefweights <-
 mzemp <-
   data.table::fread("./inputs/data_mesozone_emprankings.csv", h = T)
 
-source('./inputs/scenario/scenario_variables.R')  # load environmental variable
 
+
+# at the end of this step, the script consumes 2.55 gb of memory
 
 ################ part 1 ######################
 #-----------------------------------------------------------------------------------
@@ -91,6 +84,10 @@ cbp <- as.data.table(cbp)
 cbp[, esizecat := as.integer(esizecat)] #convert esizecat to an integer (1:8)
 # cbp[, Emp := c(10L, 60L, 175L, 375L, 750L, 1750L, 3750L, 7500L)[esizecat]] # Estimate the number of employees
 cbp[, Emp := c(3L, 23L, 100L, 250L, 696L, 1750L, 3750L, 7500L)[esizecat]] # employment capped by census total
+
+print('total number of firm is ')
+print(sum(cbp$est))
+
 cbp <-
   cbp[rep(seq_len(cbp[, .N]), est),] #Enumerates the agent businesses using the est variable.
 cbp[, BusID := .I] #Add an ID
@@ -184,24 +181,17 @@ setkey(cbp, BusID)
 setkey(cbpc, BusID)
 cbp[CBPZONE > 999, MESOZONE := cbpc$MESOZONE]
 #Cleanup
-#rm(mzemp,ZeroCand,cbpc)
+rm(mzemp, ZeroCand, cbpc)
 cbp[, c("Industry_NAICS6_CBP", "n2", "n4", "est", "temprand") := NULL] #Revome extra fields,
 
-#sfbay_firms = cbp[MESOZONE<10618]
-#data.table::fwrite(sfbay_firms, "sfbayfirms_all.csv")
-
-#save warehouse list for use in truck touring model
-#NAICS 481 air, 482 rail, 483 water, 493 warehouse and storage
-#warehouses <- cbp[MESOZONE<10618,][substr(Industry_NAICS6_Make,1,2) %in% c(48,49)]
-#warehouses <- cbp[substr(Industry_NAICS6_Make, 1, 2) %in% c(48, 49)]
-#save(warehouses,file=file.path(model$outputdir,"warehouses.Rdata"))
-#data.table::fwrite(warehouses, "./outputs/warehouses.csv")
+# by end of this part, the output variable 'cbp' has 7,071,215 rows and 8 variables, used 7.77gb of memory
 
 ################ part 1 END ######################
 
 
 
 ################ part 2 ######################
+# at the beginning of this part, the input io has 302 rows and 387 variables
 #-----------------------------------------------------------------------------------
 #Create producers/suppliers database
 #-----------------------------------------------------------------------------------
@@ -212,14 +202,15 @@ print("Creating Producers Database")
 # wholesales are dealt with separately below
 producers <-
   cbp[Commodity_SCTG > 0 &
-        substr(Industry_NAICS6_Make, 1, 2) != "42",]
+        substr(Industry_NAICS6_Make, 1, 2) != "42",] # 295,961 rows
 
 # Create a table of production values and employment by NAICS code to calculate production value
 
 #TODO change to use melt.data.table here to simplify
 setnames(io, names(io), sub("X", "", names(io))) # Strip out the leading 'X' in the column names
 io <-
-  data.table(melt(io, id.vars = "Industry_NAICS6_MakeUse")) # Melt into long format and turn back into a data.table
+  data.table(melt(io, id.vars = "Industry_NAICS6_MakeUse")) # Melt into long format and turn back into a data.table 
+# 116,572 rows
 setnames(
   io,
   c("Industry_NAICS6_MakeUse", "variable", "value"),
@@ -230,11 +221,14 @@ io_sum <- copy(io) #keep for summaries
 
 #Wholesalers: grouped into 42000 in IO tables, but 6 digit NAICS codes in employment data
 #Distribute the IO table production and consumption
-towhl <- # commodity goes TO wholesale
+# to_wholesale -- amount of commodity GOES TO wholesale
+
+to_wholesale <- # commodity goes TO wholesale
   io[substr(Industry_NAICS6_Use, 1, 2) == "42" &
        ProVal > 0 &
-       Industry_NAICS6_Make %in% producers$Industry_NAICS6_Make]
-sctgwhl <- data.table(
+       Industry_NAICS6_Make %in% producers$Industry_NAICS6_Make] # 112 rows, 3 variables
+
+whole_sale_by_sctg <- data.table(
   SCTG = 1:40,
   NAICS_whl = c(
     rep("424500", 4),
@@ -263,60 +257,71 @@ sctgwhl <- data.table(
   )
 )  # define wholesale commodity lookup table
 #TODO note that "424900" also SCTG=40
-sctgwhl <-
-  merge(sctgwhl, unique(c_n6_n6io_sctg[, list(SCTG = Commodity_SCTG, Industry_NAICS6_Make, Proportion)]), by =
-          "SCTG")
-sctgwhl <-
-  merge(sctgwhl, towhl[, list(Industry_NAICS6_Make, ProVal)], by = "Industry_NAICS6_Make")
-sctgwhl[, ProVal := ProVal * Proportion]
 
-fromwhl <- io[substr(Industry_NAICS6_Make, 1, 2) == "42" &
-                ProVal > 0] # commodity from wholesale
-setnames(fromwhl, "ProVal", "ProValFromWhl")
-fromwhl <-
-  merge(fromwhl[, list(Industry_NAICS6_Use, ProValFromWhl)],
-        io[ProVal > 0], by = "Industry_NAICS6_Use", all.x = TRUE)
-setnames(fromwhl, "ProVal", "ProValUse")
+naics_by_sctg_fration <- unique(c_n6_n6io_sctg[, list(SCTG = Commodity_SCTG, Industry_NAICS6_Make, Proportion)])
+#proportion of commodity by maker's industry
+whole_sale_by_sctg <-
+  merge(whole_sale_by_sctg, naics_by_sctg_fration, by =
+          "SCTG") # size = 320 * 4
+to_wholsale_by_sctg <-
+  merge(whole_sale_by_sctg, to_wholesale[, list(Industry_NAICS6_Make, ProVal)], by = "Industry_NAICS6_Make") # 145 * 5
+to_wholsale_by_sctg[, ProVal := ProVal * Proportion] 
+
+# at this point, 'to_wholsale_by_sctg' refers to the amount of commodity from various industry TO wholesale, size = 145 * 5
+
+from_wholesale <- io[substr(Industry_NAICS6_Make, 1, 2) == "42" &
+                ProVal > 0] # commodity from wholesale, size = 385 * 3
+setnames(from_wholesale, "ProVal", "ProValFromWhl")
+from_wholesale_to_user <-
+  merge(from_wholesale[, list(Industry_NAICS6_Use, ProValFromWhl)],
+        io[ProVal > 0], by = "Industry_NAICS6_Use", all.x = TRUE) #29282 * 4
+setnames(from_wholesale_to_user, "ProVal", "ProValUse")
+
+# at this point, 'from_wholesale_to_user' refers to the amount of commodity from wholesale to each end users (ProVal), 
+# and the amount of commodity that end user needs (ProValUse)
+
 #which of those commodities can actually be sourced from wholesalers?
 #TODO improve the naming here to be more explicit (e.g., fromwhl not a good name)
-fromwhl <-
-  merge(fromwhl, sctgwhl, by = "Industry_NAICS6_Make", allow.cartesian = TRUE)
-fromwhl[, ProValUse := ProValUse * Proportion]
-fromwhl[, ProValPctUse := ProValUse / sum(ProValUse), by = Industry_NAICS6_Use]
+wholesale_flow <-
+  merge(from_wholesale_to_user, to_wholsale_by_sctg, by = "Industry_NAICS6_Make", allow.cartesian = TRUE) #size = 20340 * 8
+
+# at this point, fromwhl defines amount of commodity from wholesale and to wholesale
+wholesale_flow[, ProValUse := ProValUse * Proportion]
+wholesale_flow[, ProValPctUse := ProValUse / sum(ProValUse), by = Industry_NAICS6_Use]
 
 #allocate out the ProValFromWhl by weighting both input to wholesalers
 #first need to scale production amount to consumption
 whlcons <-
-  sum(unique(fromwhl[, list(Industry_NAICS6_Use, ProValFromWhl)])$ProValFromWhl)
+  sum(unique(wholesale_flow[, list(Industry_NAICS6_Use, ProValFromWhl)])$ProValFromWhl)
 whlprod <-
-  sum(unique(fromwhl[, list(Industry_NAICS6_Make, ProVal)])$ProVal)
-fromwhl[, ProValFact := ProVal * whlcons / whlprod]
+  sum(unique(wholesale_flow[, list(Industry_NAICS6_Make, ProVal)])$ProVal)
+wholesale_flow[, ProValFact := ProVal * whlcons / whlprod]
 
 #matrix of producers to consumers
 #row totals are production amounts
 #column totals are consumption amounts
 #initial cell values are the proportion of consumption that comes from each producers by industry
 #Then need to IPF to adjust cell values such that row and column totals are conserved
-fromwhl[, CellValue := ProValFact * ProValPctUse]
+wholesale_flow[, CellValue := ProValFact * ProValPctUse]
 
 for (i in 1:10) {
-  fromwhl[, ColTotal := sum(CellValue), by = Industry_NAICS6_Use]
-  fromwhl[, ColWeight := ProValFromWhl / ColTotal]
-  fromwhl[, CellValue := CellValue * ColWeight]
-  fromwhl[, RowTotal := sum(CellValue), by = Industry_NAICS6_Make]
-  fromwhl[, RowWeight := ProValFact / RowTotal]
-  fromwhl[, CellValue := CellValue * RowWeight]
+  wholesale_flow[, ColTotal := sum(CellValue), by = Industry_NAICS6_Use]
+  wholesale_flow[, ColWeight := ProValFromWhl / ColTotal]
+  wholesale_flow[, CellValue := CellValue * ColWeight]
+  wholesale_flow[, RowTotal := sum(CellValue), by = Industry_NAICS6_Make]
+  wholesale_flow[, RowWeight := ProValFact / RowTotal]
+  wholesale_flow[, CellValue := CellValue * RowWeight]
 }
 
-fromwhl[, CellValue := round(CellValue)]
-fromwhl <-
-  fromwhl[CellValue > 0, list(Industry_NAICS6_Make,
+wholesale_flow[, CellValue := round(CellValue)]
+wholesale_flow <-
+  wholesale_flow[CellValue > 0, list(Industry_NAICS6_Make,
                               Industry_NAICS6_Use,
                               SCTG,
                               NAICS_whl,
                               ProValWhl = CellValue)]
 iowhl <-
-  fromwhl[, list(ProValWhl = sum(ProValWhl)), by = list(Industry_NAICS6_Make, Industry_NAICS6_Use)]
+  wholesale_flow[, list(ProValWhl = sum(ProValWhl)), by = list(Industry_NAICS6_Make, Industry_NAICS6_Use)]
 
 #remove wholesale records from io table
 io <-
@@ -340,7 +345,7 @@ io[, ProValWhl := NULL]
 #add the wholesales with the correct capacities in value and tons
 #to both producer and consumer tables
 wholesalers <- cbp[substr(Industry_NAICS6_Make, 1, 2) == "42",]
-whlval <- fromwhl[, list(ProVal = sum(ProValWhl)), by = NAICS_whl]
+whlval <- wholesale_flow[, list(ProVal = sum(ProValWhl)), by = NAICS_whl]
 setnames(whlval, "NAICS_whl", "Industry_NAICS6_Make")
 whlval <-
   merge(whlval, wholesalers[, list(Emp = sum(Emp)), by = Industry_NAICS6_Make], "Industry_NAICS6_Make")
@@ -354,19 +359,26 @@ wholesalers[, ProdVal := Emp * ValEmp] #calculate production value for each esta
 #this should be easy for the consumer side, check possible for the producers side
 
 prodval <-
-  merge(io[, list(ProVal = sum(ProVal)), by = Industry_NAICS6_Make], producers[, list(Emp =
-                                                                                        sum(Emp)), by = Industry_NAICS6_Make], "Industry_NAICS6_Make")
+  merge(io[, list(ProVal = sum(ProVal)), by = Industry_NAICS6_Make], 
+        producers[, list(Emp = sum(Emp)), by = Industry_NAICS6_Make], "Industry_NAICS6_Make")
 prodval[, ValEmp := ProVal / Emp] #production value per employee (in Million of Dollars)
+# write.csv(prodval, 'production_value_per_emp.csv')
 producers <-
   merge(prodval[, list(Industry_NAICS6_Make, ValEmp)], producers, "Industry_NAICS6_Make") #merge the value per employee back on to producers
 producers[, ProdVal := Emp * ValEmp] #calculate production value for each establishment (in Million of Dollars)
 
 # Add foreign producers - one agent per country per commodity
 # add in the NAICS_Make code, group, and calculate employment requirements to support that production
-setnames(for_prod, "Commodity_NAICS6", "Industry_NAICS6_CBP")
+################ part 2 END######################
+
+
+################ part 3 ######################
+
+
+setnames(for_prod, "Commodity_NAICS6", "Industry_NAICS6_CBP") # 28470 * 6 
 for_prod <-
   merge(for_prod, c_n6_n6io_sctg[, list(Industry_NAICS6_CBP, Industry_NAICS6_Make, Commodity_SCTG)], by =
-          "Industry_NAICS6_CBP") #Merge in the I/O NAICS codes and SCTG codes
+          "Industry_NAICS6_CBP") #Merge in the I/O NAICS codes and SCTG codes, size = 27786 * 8
 for_prod <-
   for_prod[Commodity_SCTG > 0, list(ProdVal = sum(USImpVal) / 1000000), by =
              list(Industry_NAICS6_Make, CBPZONE, FAFZONE, Commodity_SCTG)]
@@ -396,11 +408,11 @@ for_prod[est > 1, ProdCap := ProdCap / est]								## update ProdCap for multipl
 for_prod <-
   for_prod[rep(seq_len(for_prod[, .N]), est),]				## Enumerates the foreign producers using the est variable.
 for_prod[, est := NULL]
-### -------------------------------------------------------------------------------------
 
-# calculate other fields required in producers tables
 for_prod[, MESOZONE := CBPZONE + 30000L]
-for_prod[, BusID := max(cbp$BusID) + .I]
+for_prod[, BusID := max(cbp$BusID) + .I] # size = 20424 * 11
+### -------------------------------------------------------------------------------------
+# calculate other fields required in producers tables
 
 # Calculate producers' output in POUNDS (units costs converted to pounds)
 producers <- merge(producers, unitcost, "Commodity_SCTG")
@@ -437,7 +449,7 @@ setnames(
     "NonTransportUnitCost"
   )
 )
-producers[, OutputCommodity := NAICS]
+producers[, OutputCommodity := NAICS] # size = 316275 * 12
 
 #Add in wholesalers to producers
 wholesalers[, c("FAFZONE", "CBPZONE", "esizecat", "ProdVal", "ValEmp") :=
@@ -466,7 +478,7 @@ setnames(
 #each wholesale firm is identified with a specific NAICS and SCTG
 #need probabilities for the match with NAICS commodity
 whlnaics <-
-  fromwhl[, list(ProValWhl = sum(ProValWhl)), by = list(Industry_NAICS6_Make, SCTG, NAICS =
+  wholesale_flow[, list(ProValWhl = sum(ProValWhl)), by = list(Industry_NAICS6_Make, SCTG, NAICS =
                                                           NAICS_whl)]
 whlnaics[, ProbProValWhl := ProValWhl / sum(ProValWhl), by = list(SCTG, NAICS)]
 setkey(whlnaics, NAICS, SCTG)
@@ -485,13 +497,13 @@ for (i in 1:nrow(whlnaicscombs)) {
 wholesalers[, temprand := NULL]
 wholesalers <- wholesalers[!is.na(OutputCommodity)]
 
-producers <- rbind(producers, wholesalers)
+producers <- rbind(producers, wholesalers) # size = 622764 * 8
 setkey(producers, OutputCommodity)
 #writing out done below once sampling identified
-################ part 2 END######################
+################ part 3 END######################
 
 
-################ part 3 ######################
+################ part 4 ######################
 #-----------------------------------------------------------------------------------
 #Create consumers database
 #-----------------------------------------------------------------------------------
@@ -513,7 +525,8 @@ io[, ValEmp := ProVal / Emp]
 
 #Merge top k% suppliers with establishment list to create a consumers\buyers dataset
 consumers <-
-  merge(io[, list(Industry_NAICS6_Use, Industry_NAICS6_Make, ValEmp)], cbp[, list(MESOZONE, Industry_NAICS6_Use, Commodity_SCTG, BusID, Emp)], "Industry_NAICS6_Use", allow.cartesian = TRUE)
+  merge(io[, list(Industry_NAICS6_Use, Industry_NAICS6_Make, ValEmp)], 
+        cbp[, list(MESOZONE, Industry_NAICS6_Use, Commodity_SCTG, BusID, Emp)], "Industry_NAICS6_Use", allow.cartesian = TRUE)
 setnames(consumers, "Commodity_SCTG", "Buyer.SCTG")
 consumers <-
   merge(c_n6_n6io_sctg[!duplicated(Industry_NAICS6_Make), list(Industry_NAICS6_Make, Commodity_SCTG)], consumers, "Industry_NAICS6_Make") #merge in the first matching SCTG code
@@ -633,7 +646,7 @@ setnames(
 consumers[, OutputCommodity := NAICS]
 
 #Add wholesalers to the consumers
-wholesalers[, ConVal := OutputCapacityTons * NonTransportUnitCost / model$scenvars$wholesalecostfactor]
+wholesalers[, ConVal := OutputCapacityTons * NonTransportUnitCost / wholesalecostfactor]
 wholesalers[, NonTransportUnitCost := NULL]
 wholesalers <-
   merge(wholesalers, prefweights[, list(Commodity_SCTG,
@@ -658,7 +671,7 @@ setnames(
   )
 )
 wholesalers[, Buyer.SCTG := Commodity_SCTG]
-wholesalers[, OutputCommodity := InputCommodity]
+wholesalers[, OutputCommodity := InputCommodity] #size = 306489 * 11
 consumers <- rbind(consumers, wholesalers, use.names = TRUE)
 
 setkey(consumers, InputCommodity)
@@ -667,10 +680,10 @@ data.table::fwrite(producers, "./outputs/producers_all.csv")
 data.table::fwrite(consumers, "./outputs/consumers_all.csv")
 
 
-################ part 3 end  ######################
+################ part 4 end  ######################
 
 
-################ part 2 ######################
+################ part 5 ######################
 #-----------------------------------------------------------------------------------
 # Output Summaries of Consumers and Producers Databases
 #-----------------------------------------------------------------------------------
@@ -716,7 +729,7 @@ producers_domfor <-
     Employment = sum(Size),
     OutputCapacity = sum(OutputCapacityTons)
   ), by = Zone]
-producers_domfor[, DomFor := ifelse(Zone <= 273, "Domestic", "Foreign")]
+producers_domfor[, DomFor := ifelse(Zone < 30000, "Domestic", "Foreign")]
 producers_domfor <-
   producers_domfor[, list(
     Producers = sum(Producers),
@@ -728,7 +741,7 @@ firms_sum[["producersdomfor"]] <- producers_domfor
 #consumers
 firms_sum[["consumers"]] <- length(unique(consumers$BuyerID))
 firms_sum[["consumption_pairs"]] <- nrow(consumers)
-firms_sum[["threshold"]] <- model$scenvars$provalthreshold
+firms_sum[["threshold"]] <- provalthreshold
 firms_sum[["consumer_inputs"]] <- sum(consumers$PurchaseAmountTons)
 consumers_summary <-
   merge(sctgcat, consumers[, list(Consumers = .N,
@@ -742,7 +755,7 @@ consumers_domfor <-
     ConsumptionValue = sum(ConVal),
     InputRequirements = sum(PurchaseAmountTons)
   ), by = Zone]
-consumers_domfor[, DomFor := ifelse(Zone <= 273, "Domestic", "Foreign")]
+consumers_domfor[, DomFor := ifelse(Zone < 30000, "Domestic", "Foreign")]
 consumers_domfor <-
   consumers_domfor[, list(
     Consumers = sum(Consumers),
@@ -825,81 +838,84 @@ firms_sum[["io_sum_make_sctg"]] <-
   data.frame(io_sum_make[order(Commodity_SCTG)])
 
 #output
-capture.output(print(firms_sum), file = file.path(model$outputdir, "firm_syn.txt"))
+capture.output(print(firms_sum), file = file.path("./outputs/firm_syn.txt"))
 
 #------------------------------------------------------------------------------------------------------
-# Define sample sizes for procurement markets to be run in the next step
+# Define sample sizes for procurement markets to be run in the next step --- XXu: this part failed due to some bugs
 #------------------------------------------------------------------------------------------------------
-print("Sample sizes for procurement markets")
 
-#Get number of (none NA) matches by NAICS, and check for imbalance in producers and consumers
-naics_set <-
-  firms_sum$matches_naics[!is.na(firms_sum$matches_naics[, "Possible_Matches"]), c("NAICS", "Producers", "Consumers", "Possible_Matches")]
-naics_set$ConsProd_Ratio <-
-  naics_set$Consumers / naics_set$Producers
-naics_set$Split_Prod <-
-  ifelse(naics_set$ConsProd_Ratio < model$scenvars$consprodratiolimit,
-         TRUE,
-         FALSE)
 
-#calculate group sizes for each commodity so that all groups are less than threshold
-#Either cut both consumers and producers or just consumers (with all producers in each group)
-calcSampleGroups <- function(ncons, nprod, cthresh, sprod, cprl) {
-  ngroups <- 1L
-  nconst <- as.numeric(ncons)
-  nprodt <- as.numeric(nprod)
-  if (sprod) {
-    while (nconst * nprodt > cthresh) {
-      ngroups <- ngroups + 1L
-      nconst <- as.numeric(ceiling(as.numeric(ncons) / ngroups))
-      nprodt <- as.numeric(ceiling(as.numeric(nprod) / ngroups))
-    }
-  } else {
-    while ((nconst * nprodt > cthresh) | (nconst / nprodt > cprl)) {
-      ngroups <- ngroups + 1L
-      nconst <- as.numeric(ceiling(as.numeric(ncons) / ngroups))
-    }
-  }
-  return(c(nprodt, nconst, nconst * nprodt, nconst / nprodt, ngroups))
-}
-
-naics_set[, c("nProducers",
-              "nConsumers",
-              "nMatches",
-              "rev_CPRatio",
-              "groups")] <-
-  do.call(rbind, lapply(naics_set$NAICS, function(x)
-    calcSampleGroups(
-      naics_set$Consumers[naics_set$NAICS == x],
-      naics_set$Producers[naics_set$NAICS == x],
-      model$scenvars$combinationthreshold,
-      naics_set$Split_Prod[naics_set$NAICS == x],
-      model$scenvars$consprodratiolimit
-    )))
-save(naics_set, file = file.path(model$outputdir, "naics_set.Rdata"))
+# print("Sample sizes for procurement markets")
+# 
+# #Get number of (none NA) matches by NAICS, and check for imbalance in producers and consumers
+# naics_set <-
+#   firms_sum$matches_naics[!is.na(firms_sum$matches_naics[, "Possible_Matches"]), c("NAICS", "Producers", "Consumers", "Possible_Matches")]
+# naics_set$ConsProd_Ratio <-
+#   naics_set$Consumers / naics_set$Producers
+# naics_set$Split_Prod <-
+#   ifelse(naics_set$ConsProd_Ratio < model$scenvars$consprodratiolimit,
+#          TRUE,
+#          FALSE)
+# 
+# #calculate group sizes for each commodity so that all groups are less than threshold
+# #Either cut both consumers and producers or just consumers (with all producers in each group)
+# calcSampleGroups <- function(ncons, nprod, cthresh, sprod, cprl) {
+#   ngroups <- 1L
+#   nconst <- as.numeric(ncons)
+#   nprodt <- as.numeric(nprod)
+#   if (sprod) {
+#     while (nconst * nprodt > cthresh) {
+#       ngroups <- ngroups + 1L
+#       nconst <- as.numeric(ceiling(as.numeric(ncons) / ngroups))
+#       nprodt <- as.numeric(ceiling(as.numeric(nprod) / ngroups))
+#     }
+#   } else {
+#     while ((nconst * nprodt > cthresh) | (nconst / nprodt > cprl)) {
+#       ngroups <- ngroups + 1L
+#       nconst <- as.numeric(ceiling(as.numeric(ncons) / ngroups))
+#     }
+#   }
+#   return(c(nprodt, nconst, nconst * nprodt, nconst / nprodt, ngroups))
+# }
+# 
+# naics_set[, c("nProducers",
+#               "nConsumers",
+#               "nMatches",
+#               "rev_CPRatio",
+#               "groups")] <-
+#   do.call(rbind, lapply(naics_set$NAICS, function(x) 
+#     calcSampleGroups(
+#       naics_set$Consumers[naics_set$NAICS == x],
+#       naics_set$Producers[naics_set$NAICS == x],
+#       combinationthreshold,
+#       naics_set$Split_Prod[naics_set$NAICS == x],
+#       consprodratiolimit
+#     ))) 
+# save(naics_set, file = file.path(model$outputdir, "naics_set.Rdata"))
 
 #----------------------------------------------------------------------------------
 # Write out the individual NAICS market producer and consumer files
 #----------------------------------------------------------------------------------
-print("Creating producer and consumers lists")
-
-#key the tables for faster subsetting on naics codes
-setkey(consumers, InputCommodity)
-setkey(producers, OutputCommodity)
-
-for (naics in naics_set$NAICS) {
-  # Construct data.tables for just the current commodity
-  consc <- consumers[naics,]
-  prodc <- producers[naics,]
-  #write the tables to an R data file
-  save(consc, prodc, file = file.path(model$outputdir, paste0(naics, ".Rdata")))
-}
+# print("Creating producer and consumers lists")
+# 
+# #key the tables for faster subsetting on naics codes
+# setkey(consumers, InputCommodity)
+# setkey(producers, OutputCommodity)
+# 
+# for (naics in naics_set$NAICS) {
+#   # Construct data.tables for just the current commodity
+#   consc <- consumers[naics,]
+#   prodc <- producers[naics,]
+#   #write the tables to an R data file
+#   save(consc, prodc, file = file.path(model$outputdir, paste0(naics, ".Rdata")))
+# }
 
 ### Simulated Firm Vehicle Fleet Distribution ###
 cbp = cbp %>% mutate(md_veh = round(rpois(nrow(cbp), 4), 0),
                      hd_veh = round(rpois(nrow(cbp), 8), 0)) %>% as_tibble()
 data.table::fwrite(cbp, "./outputs/synthfirms_all.csv")
 
+setnames(cbp, "Industry_NAICS6_Use", "Industry_NAICS6_Make") 
 cbp = as.data.table(cbp)
 warehouses <- cbp[substr(Industry_NAICS6_Make, 1, 2) %in% c(48, 49)]
 data.table::fwrite(warehouses, "./outputs/warehouses.csv")

@@ -66,18 +66,18 @@ file_name = paste0(region_name, '_FAFCNTY.csv')
 data.table::fwrite(faf_all, file_name) # use token to replace 'SFBay'
 
 # load CBP cpmplete county file from Census.gov, example: https://www.census.gov/data/datasets/2017/econ/cbp/2017-cbp.html
-f1 = data.table::fread("cbp17co.txt",
+f1 = data.table::fread("cbp16co.txt",
                        colClasses = list(
                          character = c("fipstate", "fipscty", "naics", "censtate",
                                        "cencty")
                        ),
-                       h = T)
+                       h = T) # the 2017 cbp data has some unmatching total issues
 
 f1$naics6 = as.numeric(f1$naics)
 
-f2 = f1 %>% filter(!is.na(naics6)) %>% mutate(ST_CNTY = paste0(fipstate, fipscty))
+f2 = f1 %>% filter(!is.na(naics6)) %>% mutate(ST_CNTY = paste0(fipstate, fipscty)) %>% as_tibble()
 
-f2$n1_4 = as.numeric(f2$`n<5`)
+f2$n1_4 = as.numeric(f2$n1_4)
 f2$n5_9 = as.numeric(f2$n5_9)
 f2$n10_19 = as.numeric(f2$n10_19)
 f2$n20_49 = as.numeric(f2$n20_49)
@@ -93,18 +93,19 @@ f2$n1000_4 = as.numeric(f2$n1000_4)
 
 f2[is.na(f2)] <- 0
 
+#1 = '1-19',2 = '20-99',3 ='100-499',4 = '500-999',5 = '1,000-2,499',6 = '2,500-4,999',7 = 'Over 5,000'
+
 f2 = f2 %>% mutate(
   e1 =  n1_4 + n5_9 + n10_19,
   e2 = n20_49 + n50_99,
-  e3 = n100_249,
-  e4 = n250_499,
-  e5 = n500_999,
-  e6 = n1000 + n1000_1 + n1000_2,
-  e7 = n1000_3,
-  e8 = n1000_4
+  e3 = n100_249 + n250_499,
+  e4 = n500_999,
+  e5 = n1000_1 + n1000_2,
+  e6 = n1000_3,
+  e7 = n1000_4
 )
 
-f3 = f2 %>% select(naics6, ST_CNTY, empflag, emp, est, e1, e2, e3, e4, e5, e6, e7, e8)
+f3 = f2 %>% select(naics6, ST_CNTY, empflag, emp, est, e1, e2, e3, e4, e5, e6, e7)
 
 f4 = f3 %>% left_join(faf_all, by = c("ST_CNTY"))
 f5 = f4 %>% select(ST_CNTY,
@@ -119,8 +120,7 @@ f5 = f4 %>% select(ST_CNTY,
                    e4,
                    e5,
                    e6,
-                   e7,
-                   e8)
+                   e7)
 f5 = f5 %>% na.exclude()
 
 f6 = f5 %>% group_by(naics6, FAFID, CBPZONE1) %>% summarize(
@@ -132,15 +132,17 @@ f6 = f5 %>% group_by(naics6, FAFID, CBPZONE1) %>% summarize(
   e4 = sum(e4),
   e5 = sum(e5),
   e6 = sum(e6),
-  e7 = sum(e7),
-  e8 = sum(e8)
+  e7 = sum(e7)
 )
 
+colnames(f6) <- c('Industry_NAICS6_CBP', 'FAFZONE',	'CBPZONE',
+                  'employment',	'establishment',	'e1',	'e2',	'e3',	'e4',	'e5',	'e6',	'e7')
 data.table::fwrite(f6, "data_emp_cbp.csv")
 
 f7 = f5 %>% group_by(ST_CNTY, CBPZONE1, FAFID) %>% summarize(
   count=n()
 )
+
 
 data.table::fwrite(as_tibble(f7), "data_cbp_lookup.csv")
 
