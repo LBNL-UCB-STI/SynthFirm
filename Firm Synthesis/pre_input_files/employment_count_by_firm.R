@@ -20,6 +20,7 @@ path2file <-
 setwd(path2file)
 
 # link: https://www2.census.gov/programs-surveys/susb/datasets/2016/us_state_naics_detailedsizes_2016.txt
+# info: https://www.census.gov/programs-surveys/susb.html
 
 employment_by_firm_size = data.table::fread("us_state_naics_detailedsizes_2016.txt", h = T)
 employment_by_firm_size <- employment_by_firm_size %>% filter(NAICS != '--')
