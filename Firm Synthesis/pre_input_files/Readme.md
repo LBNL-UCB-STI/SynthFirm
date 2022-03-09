@@ -26,7 +26,7 @@ CBP_EMPRANKS.R
 
 FreightGIS.R
 
-	- Not really needed
+	- generate shapefile of the study area and rest of the U.S.
 
 DistMat.R
 

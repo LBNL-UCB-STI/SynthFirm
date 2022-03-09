@@ -19,20 +19,26 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
-ca_df = sf::st_read("CA_bg.geojson")
+state_name = 'TX'
+region_name = 'Austin'
+file_name = paste0(state_name, '_bg.geojson')
+state_df = sf::st_read(file_name)
 
-sf_bg = data.table::fread("MESOZONE_GEOID_LOOKUP.csv", colClasses = list(character=c("GEOID")))
+region_bg = data.table::fread("MESOZONE_GEOID_LOOKUP.csv", colClasses = list(character=c("GEOID")))
 
-ca_bg = ca_df %>% left_join(sf_bg, by=c("GEOID"))
-ca_bg = ca_bg %>% select(GEOID, CBPZONE1,MESOZONE) %>% na.exclude()
+region_bg = state_df %>% left_join(region_bg, by=c("GEOID"))
+region_bg = region_bg %>% select(GEOID, CBPZONE1,MESOZONE) %>% na.exclude()
 
 #ca_bg1 = ca_bg %>% group_by(GEOID,CBPZONE1,MESOZONE) %>% summarize()
-sf::st_write(ca_bg1, "sfbay1_cbg.geojson")
+out_file_name = paste0(region_name, "_cbg.geojson")
+sf::st_write(region_bg, out_file_name)
 
 
 faf1 = sf::st_read("FAF4Zones.geojson")
-faf_lookup = data.table::fread("SFBay_FAFCNTY.csv",h=T)
-study_area_faf <- c(62, 64, 65, 69)  # need to make this token a global input
+lookup_file = paste0(region_name, '_FAFCNTY.csv')
+faf_lookup = data.table::fread(lookup_file,h=T)
+
+study_area_faf <- c(481, 488, 489)  # need to make this token a global input
 faf_lookup <- faf_lookup %>% filter(! FAFID %in% study_area_faf) %>% as_tibble()
 
 faf_lookup <- faf_lookup %>% select(FAFID, CBPZONE1)
@@ -47,9 +53,10 @@ faf2 <- faf2 %>% left_join(faf_lookup_unique, by=c("FAF"))
 
 faf2 = faf2 %>% rename(GEOID = FAF)
 
-ca_bg = ca_bg %>% rename(CBPZONE = CBPZONE1)
+region_bg = region_bg %>% rename(CBPZONE = CBPZONE1)
 faf2 <- faf2 %>% mutate(GEOID = as.character(GEOID))
-bg_df = bind_rows(ca_bg,faf2)
+bg_df = bind_rows(region_bg,faf2)
 plot(st_geometry(bg_df))
-sf::st_write(bg_df, "sfbay_freight.geojson")
+region_map_out <- paste0(region_name, '_freight.geojson')
+sf::st_write(bg_df, region_map_out)
 

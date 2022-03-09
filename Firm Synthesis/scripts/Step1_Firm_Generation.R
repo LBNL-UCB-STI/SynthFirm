@@ -74,13 +74,13 @@ cbp_by_industry <-
 cbp_by_industry[, c("n2", "n4") := list(substr(Industry_NAICS6_CBP, 1, 2),
                                   substr(Industry_NAICS6_CBP, 1, 4))] #add 2 and 4 digit NAICS
 cbp_long <-
-  melt(
+  data.table::melt(
     cbp_by_industry,
     measure.vars = paste0("e", 1:7),
     variable.name = "esizecat",
     value.name = "est"
   ) #Melt to create separate rows for each firm size category
-
+cbp_long <- as.data.table(cbp_long)
 cbp_long[, esizecat := as.integer(esizecat)] #convert esizecat to an integer (1:8)
 cbp_long <- cbp_long %>% filter(est > 0) %>% as_tibble()
 
@@ -200,7 +200,7 @@ firms[CBPZONE > 999, MESOZONE := firms_in_boundary$MESOZONE]
 rm(mzemp, ZeroCand, firms_in_boundary)
 firms[, c("Industry_NAICS6_CBP", "n2", "n4", "est", "temprand") := NULL] #Revome extra fields,
 setnames(firms, "emp_per_est", "Emp")
-write.csv(firms, './outputs/synthetic_firms.csv')
+write.csv(firms, './outputs/synthetic_firms.csv', row.names=FALSE)
 # by end of this part, the output variable 'cbp' has 7,071,215 rows and 8 variables, used 7.77gb of memory
 
 

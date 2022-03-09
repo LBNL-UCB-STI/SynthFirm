@@ -45,7 +45,7 @@ setnames(
   c("Industry_NAICS6_Make", "Industry_NAICS6_Use", "ProVal") #make = from, use = to, use similar definition below
 )
 io[, Industry_NAICS6_Use := as.character(Industry_NAICS6_Use)]
-write.csv(io, './outputs/io_summary.csv')
+write.csv(io, './outputs/io_summary.csv', row.names=FALSE)
 # io_sum <- copy(io) #keep for summaries
 
 #Wholesalers: grouped into 42000 in IO tables, but 6 digit NAICS codes in employment data
@@ -274,7 +274,7 @@ wholesalers_with_value[, UnitCost := UnitCost * wholesalecostfactor]
 wholesalers_with_value[, ProdCap := ProdVal * 1000000 / UnitCost] # ProdVal was in $M
 
 # combine domestic and foreign producers
-producers[, c("V1") := NULL] 
+#producers[, c("V1") := NULL] 
 producers <- rbind(producers, for_prod, use.names = TRUE) # 885,604 PRODUCERS
 rm(for_prod)
 
@@ -296,7 +296,7 @@ setnames(
     "Zone",
     "NAICS",
     "Size",
-    "OutputCapacityTons",
+    "OutputCapacitylb",
     "NonTransportUnitCost"
   )
 )
@@ -320,7 +320,7 @@ setnames(
     "Zone",
     "NAICS",
     "Size",
-    "OutputCapacityTons",
+    "OutputCapacitylb",
     "NonTransportUnitCost"
   )
 )
@@ -347,10 +347,12 @@ for (i in 1:nrow(whlnaicscombs)) {
 #TODO - clean up correspondences to avoid no matches here
 wholesalers_with_value[, temprand := NULL]
 wholesalers_with_value <- wholesalers_with_value[!is.na(OutputCommodity)]
-wholesalers_with_value[, c("V1") := NULL] 
+# wholesalers_with_value[, c("V1") := NULL] 
 producers <- rbind(producers, wholesalers_with_value) # size = 622764 * 8
 setkey(producers, OutputCommodity)
 
-write.csv(producers, './outputs/synthetic_producers.csv')
+write.csv(wholesalers_with_value, './outputs/synthetic_wholesaler.csv', row.names=FALSE)
+write.csv(producers, './outputs/synthetic_producers.csv', row.names=FALSE)
+write.csv(io_no_wholesale, './outputs/data_2017io_filtered.csv', row.names=FALSE)
 #writing out done below once sampling identified
 ################ part 3 END######################

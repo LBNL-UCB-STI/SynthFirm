@@ -13,6 +13,8 @@ new.packages <-
 if (length(new.packages))
   install.packages(new.packages)
 lapply(list.of.packages, require, character = TRUE)
+require(tidycensus)
+require(reshape2)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
@@ -37,7 +39,7 @@ selected_year = 2015
 
 
 ####### BEGINNING OF CENSUS DATA PROCESSES ######
-require(tidycensus)
+
 
 census_api_key("d49f1c9b81751571b083252dfbb8ac14ae8b63b7", install = TRUE, overwrite=TRUE) # using this at the first time of running SynthFirm
 readRenviron("~/.Renviron")
@@ -103,7 +105,7 @@ state_df2 <-
     state = selected_state
   )
 
-require(reshape2)
+
 
 state_acs1 = state_df1 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
 state_acs2 = state_df2 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
@@ -205,19 +207,18 @@ state_acs = state_acs %>% select(GEOID, NAME, all_of(naics)) %>% mutate(metalaye
   select(GEOID, metalayer_id, all_of(naics))
 
 
-
-# v19 <- load_variables(2019, "acs5", cache = TRUE)
-# View(v19)
+v19 <- load_variables(2019, "acs5", cache = TRUE)
+View(v19)
 
 state_bg_df = get_acs(
   geography = "block group",
   year = 2019,
-  variables = c('B01001_001'),
+  variables = c('B01003_001'),
   state = selected_state,
   geometry = TRUE
 )
 
-state_bg_df_filtered <- state_bg_df %>% filter(estimate > 0) # with population
+state_bg_df_filtered <- state_bg_df %>% filter(! grepl('Block Group 0', NAME)) # with population
 list_of_geoid <- unique(state_bg_df_filtered$GEOID)
 bg_name = paste0(selected_state, '_bg.geojson')
 sf::st_write(state_bg_df_filtered, bg_name)
