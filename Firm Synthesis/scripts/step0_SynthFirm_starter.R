@@ -8,6 +8,7 @@ packages = c(
   "reshape",
   "reshape2",
   "ggplot2",
-  "fastcluster"
+  "fastcluster",
+  "sf"
 )
 lapply(packages, require, character = TRUE)

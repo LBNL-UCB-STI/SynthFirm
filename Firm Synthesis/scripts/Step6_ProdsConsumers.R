@@ -15,17 +15,18 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 basedir <-
-  "/Users/srinath/OneDrive - LBNL/Projects/SMART-2.0/Task-3 BAMOS/SynthFirm"
+  "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 setwd(basedir)
 
-firms_all = data.table::fread("./outputs/synthfirms_all.csv", h = T)
-sup_df = data.table::fread("./outputs/producers_all.csv", h = T)
-buyer_df = data.table::fread("./outputs/consumers_all.csv", h = T)
-sctg_lookup = data.table::fread("./inputs/sctg_groups.csv", h = T)
+firms_all = data.table::fread("./outputs/synthetic_firms_with_location.csv", h = T)
+sup_df = data.table::fread("./outputs/synthetic_producers.csv", h = T)
+buyer_df = data.table::fread("./outputs/synthetic_consumers.csv", h = T)
+sctg_lookup = data.table::fread("./inputs/SCTG_Groups_revised.csv", h = T)
 
-sup_df = sup_df %>% left_join(sctg_lookup, by = c("Commodity_SCTG" = "SCTG_Code"))
+sctg_lookup <- sctg_lookup %>% select(SCTG_Code, SCTG_Group, SCTG_Name) %>% as_tibble()
+sup_df = sup_df %>% left_join(sctg_lookup, by = c("Commodity_SCTG" = "SCTG_Code")) %>% as_tibble()
 buyer_df = buyer_df %>% left_join(sctg_lookup, by = c("Commodity_SCTG" =
-                                                        "SCTG_Code"))
+                                                        "SCTG_Code")) %>% as_tibble()
 gc()
 
 ### SCTG 5 Groups Processed ###
@@ -39,7 +40,7 @@ for (i in 1:5) {
     Zone,
     NAICS,
     OutputCommodity,
-    OutputCapacityTons
+    OutputCapacitylb
   ) %>% as_tibble()
   
   g1_consm = buyer_df %>% filter(SCTG_Group == i) %>% select(
@@ -49,7 +50,7 @@ for (i in 1:5) {
     Zone,
     NAICS,
     InputCommodity,
-    PurchaseAmountTons,
+    PurchaseAmountlb,
     SingleSourceMaxFraction
   ) %>% as_tibble()
   

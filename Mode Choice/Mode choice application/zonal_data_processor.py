@@ -10,6 +10,9 @@ from pandas import read_csv
 import constants as c
 import pandas as pd
 import geopandas as gps
+import os
+
+os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync/mode_choice')
 
 # load mesozone id and FAF zone reference tables
 # mesozone_id_lookup = read_csv(c.param_dir + c.mesozone_geoid_lookup_file, sep = ',')
@@ -18,7 +21,7 @@ FAF_county_lookup = read_csv(c.param_dir + c.FAF_county_lookup_file, sep = ',')
 freight_model_geojson = gps.read_file(c.input_dir + c.freight_model_zonal_map)
 
 # fill FAF zone id
-bay_area_FAF_and_county = FAF_county_lookup.loc[FAF_county_lookup['FAFID'].isin(c.bay_area_region_code)]
+study_area_FAF_and_county = FAF_county_lookup.loc[FAF_county_lookup['FAFID'].isin(c.region_code)]
 # list_of_cbpzone_in_bay_area = bay_area_FAF_and_county['CBPZONE'].tolist()
 FAF_county_lookup = FAF_county_lookup.loc[:, ['FAFID', 'CBPZONE']]
 FAF_county_lookup = FAF_county_lookup.drop_duplicates()

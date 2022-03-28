@@ -16,7 +16,7 @@ lapply(list.of.packages, require, character = TRUE)
 #install_github("f1kidd/fmlogit")
 set.seed(0)
 path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS"
 setwd(path2file)
 
 state_name = 'TX'
@@ -53,10 +53,23 @@ faf2 <- faf2 %>% left_join(faf_lookup_unique, by=c("FAF"))
 
 faf2 = faf2 %>% rename(GEOID = FAF)
 
+# generate mesozone shapefile
 region_bg = region_bg %>% rename(CBPZONE = CBPZONE1)
+faf2 = faf2 %>% rename(CBPZONE = CBPZONE1)
 faf2 <- faf2 %>% mutate(GEOID = as.character(GEOID))
 bg_df = bind_rows(region_bg,faf2)
+
+
+box = c(xmin = -179.23109, ymin = 10, xmax = -66.96466, ymax = 71.365162)
+bg_df <- st_crop(bg_df, box)
 plot(st_geometry(bg_df))
 region_map_out <- paste0(region_name, '_freight.geojson')
 sf::st_write(bg_df, region_map_out)
 
+# generate centroid file
+
+
+freight_centroid <- st_centroid(bg_df)
+plot(st_geometry(freight_centroid))
+centroid_map_out <- paste0(region_name, '_freight_centroids.geojson')
+sf::st_write(freight_centroid, centroid_map_out)

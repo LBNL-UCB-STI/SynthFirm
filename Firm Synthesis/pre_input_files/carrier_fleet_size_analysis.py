@@ -10,8 +10,9 @@ import os
 from pandas import read_csv
 import pandas as pd
 import numpy as np
+from sklearn.manifold import TSNE
 
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS')
+os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS')
 
 carrier_census_data = read_csv('CENSUS_20220109_all.csv', sep = ',', encoding='latin1')
 # carrier_census_data.to_csv('FMCSA_CENSUS1_2022Jan.csv', index = False)
@@ -54,17 +55,21 @@ truck_per_carrier.loc[:, 'size_group'] = pd.cut(truck_per_carrier['TOT_TRUCKS'],
 
 # <codecell>
 truck_count_by_size = truck_per_carrier.groupby('size_group').agg({'DOT_NUMBER': 'count',
-                                                                   'TOT_TRUCKS': 'sum',
+                                                                   'TOT_TRUCKS': ['sum','std'],
                                                                    'single_truck': 'sum',
                                                                    'comb_truck': 'sum'})
 truck_count_by_size = truck_count_by_size.reset_index()
-truck_count_by_size.columns = ['fleet_size', 'total_carriers', 'total_trucks', 
+print(truck_count_by_size.head(5))
+
+# <codecell>
+truck_count_by_size.columns = ['fleet_size', 'total_carriers', 'total_trucks', 'total_truck_std',
                                'total_single_trucks', 'total_combination_trucks']
 
 truck_count_by_size.loc[:, 'avg_truck_per_carrier'] = truck_count_by_size.loc[:, 'total_trucks'] / truck_count_by_size.loc[:, 'total_carriers']
 truck_count_by_size.loc[:, 'avg_sut_per_carrier'] = truck_count_by_size.loc[:, 'total_single_trucks'] / truck_count_by_size.loc[:, 'total_carriers']
 truck_count_by_size.loc[:, 'avg_ct_per_carrier'] = truck_count_by_size.loc[:, 'total_combination_trucks'] / truck_count_by_size.loc[:, 'total_carriers']
 truck_count_by_size.loc[:, 'fraction_of_carrier'] = truck_count_by_size.loc[:, 'total_carriers'] / truck_count_by_size.loc[:, 'total_carriers'].sum()
+truck_count_by_size.loc[:, 'percent_sut'] = truck_count_by_size.loc[:, 'total_single_trucks'] / truck_count_by_size.loc[:, 'total_trucks']
 truck_count_by_size.to_csv('fmcsa_census_fleet_size_distribution.csv', index = False, sep = ',')
 # truck_per_carrier.loc[:, 'MCS150MILEAGEYEAR'] = truck_per_carrier.loc[:, 'MCS150MILEAGEYEAR'].astype(int)
 #truck_per_carrier = truck_per_carrier.loc[truck_per_carrier['MCS150MILEAGEYEAR'] == 2019]

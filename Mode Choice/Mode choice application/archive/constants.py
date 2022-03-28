@@ -12,7 +12,7 @@ input_dir = 'Input/'
 output_dir = 'Output/'
 cfs_dir = 'CFS2017/'
 
-freight_model_zonal_map =  'Austin_freight.geojson'
+freight_model_zonal_map =  'sfbay_freight.geojson'
 
 # input file
 faf_version_4_file = 'FAF4.5.1.csv'
@@ -27,7 +27,7 @@ modeled_file = 'processed_b2b_flow_summary.csv'
 mesozone_id_lookup_file = 'zonal_id_lookup_final.csv'
 mesozone_geoid_lookup_file = 'MESOZONE_GEOID_LOOKUP.csv'
 CFS_FAF_lookup_file = 'CFS_FAF_LOOKUP.csv'
-FAF_county_lookup_file = 'Austin_FAFCNTY.csv'
+FAF_county_lookup_file = 'SFBay_FAFCNTY.csv'
 sctg_group_lookup_file = 'SCTG_Groups.csv'
 sctg_definition_file = 'SCTG_definition.csv'
 sctg_unit_cost_file = 'data_unitcost.csv'
@@ -35,7 +35,7 @@ value_density_file = 'value_density_by_SCTG_group.csv' # dollar per lb by sctg g
 distance_travel_skim_file = 'combined_travel_time_skim.csv'
 
 # other parameters
-region_code = [481, 488, 489] 
+bay_area_region_code = [64, 62, 65, 69] 
 default_truck_fraction = 0.9 # use previous assumption from from PMG.R
 truck_mode_id = 1 # mode ==> truck
 trade_type_id = 1 # domestic only
