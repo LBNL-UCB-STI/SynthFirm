@@ -73,3 +73,8 @@ truck_count_by_size.loc[:, 'percent_sut'] = truck_count_by_size.loc[:, 'total_si
 truck_count_by_size.to_csv('fmcsa_census_fleet_size_distribution.csv', index = False, sep = ',')
 # truck_per_carrier.loc[:, 'MCS150MILEAGEYEAR'] = truck_per_carrier.loc[:, 'MCS150MILEAGEYEAR'].astype(int)
 #truck_per_carrier = truck_per_carrier.loc[truck_per_carrier['MCS150MILEAGEYEAR'] == 2019]
+
+# <codecell>
+
+carrier_census_data_ca = domestic_carrier_filtered.loc[domestic_carrier_filtered['PHY_ST'] == 'CA']
+print(carrier_census_data_ca['TOT_TRUCKS'].sum())
