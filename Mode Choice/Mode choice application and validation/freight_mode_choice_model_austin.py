@@ -93,8 +93,8 @@ def choice_model_variable_generator(data):     # generate variables for mode cho
     
     ###### assign mode availability ######
     data.loc[:, 'mode_available'] = 1
-    data.loc[(data['Alternative'] == 'Air') & (data['TruckLoad'] > 550), 'mode_available'] = 0 
-    data.loc[(data['Alternative'] == 'Parcel') & (data['TruckLoad'] > 0.075), 'mode_available'] = 0  
+    # data.loc[(data['Alternative'] == 'Air') & (data['TruckLoad'] > 550), 'mode_available'] = 0 
+    # data.loc[(data['Alternative'] == 'Parcel') & (data['TruckLoad'] > 0.075), 'mode_available'] = 0  
     data.loc[(data['Alternative'] == 'Private Truck') & (data['Distance'] > 500), 'mode_available'] = 0 
     data.loc[(data['Distance'].isna()) | (data['Travel_time'].isna()), 'mode_available'] = 0         
     return(data)        

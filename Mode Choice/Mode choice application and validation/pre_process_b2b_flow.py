@@ -44,6 +44,7 @@ domestic_zones = mesozone_lookup['MESOZONE'].unique()
 chunk_size = 10 ** 6
 for sctg in c.list_of_sctg_group:
     print(sctg)
+    capacity_per_shipment = c.capacity_lookup[sctg]
     max_ton_per_shipment = c.max_ton_lookup[sctg]
     filelist = [file for file in os.listdir(output_dir) if file.startswith(sctg)]
     combined_csv = pd.concat([read_csv(output_dir + f, low_memory=False) for f in filelist ])
@@ -52,6 +53,7 @@ for sctg in c.list_of_sctg_group:
     combined_csv = model_od_processor(combined_csv, mesozone_lookup)
     
     combined_csv.loc[:, "TruckLoad"] *= c.lb_to_ton
+    combined_csv.loc[combined_csv["TruckLoad"] >= capacity_per_shipment, "TruckLoad"] = capacity_per_shipment
     combined_csv.loc[:, "ship_count"] = combined_csv.loc[:, "TruckLoad"] / max_ton_per_shipment
     combined_csv.loc[:, "ship_count"] = np.round(combined_csv.loc[:, "ship_count"], 0)
     combined_csv.loc[combined_csv["ship_count"] < 1, "ship_count"] = 1
