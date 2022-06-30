@@ -18,12 +18,12 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS"
 setwd(path2file)
 
 region_name = 'Austin'
 naics_code <-
-  data.table::fread('corresp_naics6_n6io_sctg.csv', h = T)
+  data.table::fread('corresp_naics6_n6io_sctg_revised.csv', h = T)
 cbp_data <-
   data.table::fread("data_emp_cbp.csv", h = T)
 region_file_name = paste0(region_name, '_FAFCNTY.csv')
@@ -94,9 +94,9 @@ industry_code_added <- unique(cbp_filled_out$Industry_NAICS6_CBP)
 #                                                                                floor(Industry_NAICS6_CBP/10)))  %>% as_tibble()
 
 naics_code_to_fill_remaining <- naics_code_to_fill[(! naics_code_to_fill$Industry_NAICS6_CBP %in% industry_code_added),]
-list_of_naics_to_add_5digit <- unique(naics_code_to_fill_remaining$processed_industry)
+# list_of_naics_to_add_5digit <- unique(naics_code_to_fill_remaining$processed_industry)
 # qcew_files_remaining <- qcew_files_sep %>% filter(! s2 %in% industry_code_added) %>% as_tibble()
-qcew_files_to_add_5digit <- qcew_files_sep %>% filter(s2 %in% list_of_naics_to_add_5digit) %>% as_tibble() # match with 6 digit
+# qcew_files_to_add_5digit <- qcew_files_sep %>% filter(s2 %in% list_of_naics_to_add_5digit) %>% as_tibble() # match with 6 digit
 
 additional_cbp_filled_out <- NULL
 list_of_naics_with_data <- unique(as.numeric(qcew_files_sep$s2))

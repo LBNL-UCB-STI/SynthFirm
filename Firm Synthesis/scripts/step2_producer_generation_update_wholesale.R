@@ -56,63 +56,31 @@ to_wholesale <- # commodity flow goes TO wholesale
   io[substr(Industry_NAICS6_Use, 1, 2) == "42" &
        ProVal > 0 ] # 1383 rows, 3 variables
 
-# wholesale_by_sctg <- data.table(
-#   SCTG = 1:40,
-#   NAICS_whl = c(
-#     rep("424500", 4),
-#     rep("424400", 3),
-#     "424800",
-#     "424400",
-#     rep("423300", 3),
-#     rep("423500", 2),
-#     "423700",
-#     rep("424700", 4),
-#     "424600",
-#     "424200",
-#     rep("424600", 2),
-#     "423400",
-#     rep("423300", 2),
-#     rep("424100", 3),
-#     "424300",
-#     rep("423500", 2),
-#     "423700",
-#     "423800",
-#     "425100",
-#     rep("423100", 2),
-#     "425100",
-#     "423200",
-#     "423900"
-#   )
-# )  # define wholesale commodity lookup table
-#TODO note that "424900" also SCTG=40
-
-# based on CFS 2017, essentially need to update this table
-# wholesale_by_sctg <- rbind(wholesale_by_sctg, list(35, "423600"))
-# 
-# wholesale_by_sctg <- rbind(wholesale_by_sctg, list(3, "424900"), list(4, "424900"), list(9, "424900"), list(22, "424900"), 
-#                            list(23, "424900"), list(29, "424900"), list(40, "424900"))
-
 naics_by_sctg_fration <- unique(c_n6_n6io_sctg[, list(SCTG = Commodity_SCTG, Industry_NAICS6_Make, Proportion)])
+naics_by_sctg_fration <-
+  naics_by_sctg_fration[SCTG > 0,] # 423,944 producers, exclude wholesale
 #proportion of commodity by maker's industry
-wholesale_by_sctg <-
-  naics_by_sctg_fration[substr(Industry_NAICS6_Make, 1, 2) == "42" & SCTG > 0] # size = 395 * 4
+# wholesale_by_sctg <-
+#   naics_by_sctg_fration[substr(Industry_NAICS6_Make, 1, 2) == "42" & SCTG > 0] # size = 395 * 4
 
-wholesale_by_sctg[, Proportion := Proportion / sum(Proportion), by = Industry_NAICS6_Make] 
+naics_by_sctg_fration[, Proportion := Proportion / sum(Proportion), by = Industry_NAICS6_Make] 
+# setnames(wholesale_by_sctg, "Industry_NAICS6_Make", "Industry_NAICS6_Use")
 # Re-distribution total production by wholesale segment and commodity
 
 to_wholsale_by_sctg <-
-  merge(wholesale_by_sctg, to_wholesale[, list(Industry_NAICS6_Use, ProVal)], by = "Industry_NAICS6_Make") # 227 * 5
+  merge(naics_by_sctg_fration, to_wholesale, by = "Industry_NAICS6_Make") # 227 * 5
 to_wholsale_by_sctg[, ProVal := ProVal * Proportion] 
+
 
 # at this point, 'to_wholsale_by_sctg' refers to the amount of commodity from various industry TO wholesale, size = 178 * 5
 
 from_wholesale <- io[substr(Industry_NAICS6_Make, 1, 2) == "42" &
                        ProVal > 0] # 859 rows
 setnames(from_wholesale, "ProVal", "ProValFromWhl")
-from_wholesale_to_user <-
-  merge(from_wholesale[, list(Industry_NAICS6_Use, ProValFromWhl)],
-        io[ProVal > 0], by = "Industry_NAICS6_Use", all.x = TRUE) #29282 * 4
-setnames(from_wholesale_to_user, "ProVal", "ProValUse")
+# from_wholesale_to_user <-
+#   merge(from_wholesale, naics_by_sctg_fration, by = "Industry_NAICS6_Make", allow.cartesian=TRUE) #29282 * 4
+# from_wholesale_to_user[, ProValFromWhl := ProValFromWhl * Proportion] 
+#setnames(from_wholesale_to_user, "ProVal", "ProValUse")
 
 # at this point, 'from_wholesale_to_user' refers to the amount of commodity from wholesale to each end users (ProVal), 
 # and the amount of commodity that end user needs (ProValUse)
@@ -120,20 +88,24 @@ setnames(from_wholesale_to_user, "ProVal", "ProValUse")
 #which of those commodities can actually be sourced from wholesalers?
 #TODO improve the naming here to be more explicit (e.g., fromwhl not a good name)
 wholesale_flow <-
-  merge(from_wholesale_to_user, to_wholsale_by_sctg, by = "Industry_NAICS6_Make", allow.cartesian = TRUE) #size = 30843 * 8
+  merge(from_wholesale, to_wholsale_by_sctg, 
+        by.x = 'Industry_NAICS6_Make', 
+        by.y = 'Industry_NAICS6_Use', allow.cartesian = TRUE) #size = 30843 * 8
 
 # at this point, fromwhl defines amount of commodity from wholesale and to wholesale
-wholesale_flow[, ProValUse := ProValUse * Proportion]
-wholesale_flow[, ProValPctUse := ProValUse / sum(ProValUse), by = Industry_NAICS6_Use]
+#wholesale_flow[, ProValUse := ProValFromWhl * Proportion]
+
+wholesale_flow[, ProValPctUse := ProVal / sum(ProVal), by = c('Industry_NAICS6_Make', 'Industry_NAICS6_Use')]
 
 #allocate out the ProValFromWhl by weighting both input to wholesalers
 #first need to scale production amount to consumption
-whlcons <-
-  sum(unique(wholesale_flow[, list(Industry_NAICS6_Use, ProValFromWhl)])$ProValFromWhl)
+
+wholesale_flow[, CellValue := ProValFromWhl * ProValPctUse]
 whlprod <-
-  sum(unique(wholesale_flow[, list(Industry_NAICS6_Make, ProVal)])$ProVal)
-wholesale_flow[, ProValFact := ProVal * whlcons / whlprod]
-wholesale_flow[, CellValue := ProValFact * ProValPctUse]
+  sum(unique(wholesale_flow[, list(Industry_NAICS6_Use, ProValFromWhl)])$ProValFromWhl)
+whlcons <-
+  sum(wholesale_flow$CellValue)
+#wholesale_flow[, CellValue := CellValue * whlprod / whlcons]
 
 #matrix of producers to consumers
 #row totals are production amounts
@@ -142,21 +114,21 @@ wholesale_flow[, CellValue := ProValFact * ProValPctUse]
 #Then need to IPF to adjust cell values such that row and column totals are conserved
 
 
-for (i in 1:10) {
-  wholesale_flow[, ColTotal := sum(CellValue), by = Industry_NAICS6_Use]
-  wholesale_flow[, ColWeight := ProValFromWhl / ColTotal]
-  wholesale_flow[, CellValue := CellValue * ColWeight]
-  wholesale_flow[, RowTotal := sum(CellValue), by = Industry_NAICS6_Make]
-  wholesale_flow[, RowWeight := ProValFact / RowTotal]
-  wholesale_flow[, CellValue := CellValue * RowWeight]
-}
+# for (i in 1:10) {
+#   wholesale_flow[, ColTotal := sum(CellValue), by = Industry_NAICS6_Make]
+#   wholesale_flow[, ColWeight := ProValFact / ColTotal]
+#   wholesale_flow[, CellValue := CellValue * ColWeight]
+#   wholesale_flow[, RowTotal := sum(CellValue), by = Industry_NAICS6_Use]
+#   wholesale_flow[, RowWeight :=  ProValFromWhl/ RowTotal]
+#   wholesale_flow[, CellValue := CellValue * RowWeight]
+# }
 
 wholesale_flow[, CellValue := round(CellValue)]
 wholesale_flow <-
-  wholesale_flow[CellValue > 0, list(Industry_NAICS6_Make,
+  wholesale_flow[CellValue > 0, list(Industry_NAICS6_Make = Industry_NAICS6_Make.y,
                                      Industry_NAICS6_Use,
                                      SCTG,
-                                     NAICS_whl,
+                                     NAICS_whl = Industry_NAICS6_Make,
                                      ProValWhl = CellValue)]
 iowhl <-
   wholesale_flow[, list(ProValWhl = sum(ProValWhl)), by = list(Industry_NAICS6_Make, Industry_NAICS6_Use)]
@@ -192,8 +164,8 @@ whlval[, ValEmp := ProVal / Emp] #production value per employee
 wholesalers_with_value <-
   merge(whlval[, list(Industry_NAICS6_Make, ValEmp)], wholesalers, "Industry_NAICS6_Make") #merge the value per employee back on to businesses
 
-
-wholesalers_with_value[, ProdVal := Emp * ValEmp] #calculate production value for each establishment
+wholesalers_with_value[, ProdVal := Emp * ValEmp] #calculate production value for each establishment, 
+# some firms are removed as there is no I-O data + SCTG information for that NAICS code
 
 
 
@@ -215,13 +187,13 @@ producers <-
 producers[, ProdVal := Emp * ValEmp] #calculate production value for each establishment (in Million of Dollars)
 
 
-# Add foreign producers - one agent per country per commodity
-# add in the NAICS_Make code, group, and calculate employment requirements to support that production
+
 ################ part 2 END######################
 
 
 ################ part 3 ######################
-
+# Add foreign producers - one agent per country per commodity
+# add in the NAICS_Make code, group, and calculate employment requirements to support that production
 
 setnames(for_prod, "Commodity_NAICS6", "Industry_NAICS6_CBP") # 28470 * 6 
 for_prod <-
@@ -346,11 +318,11 @@ for (i in 1:nrow(whlnaicscombs)) {
 wholesalers_with_value[, temprand := NULL]
 wholesalers_with_value <- wholesalers_with_value[!is.na(OutputCommodity)]
 # wholesalers_with_value[, c("V1") := NULL] 
-producers <- rbind(producers, wholesalers_with_value) # size = 622764 * 8
+producers <- rbind(producers, wholesalers_with_value) # size = 691198 * 8
 setkey(producers, OutputCommodity)
 
-write.csv(wholesalers_with_value, './outputs/synthetic_wholesaler.csv', row.names=FALSE)
-write.csv(producers, './outputs/synthetic_producers.csv', row.names=FALSE)
-write.csv(io_no_wholesale, './outputs/data_2017io_filtered.csv', row.names=FALSE)
+write.csv(wholesalers_with_value, './outputs/synthetic_wholesaler_V2.csv', row.names=FALSE)
+write.csv(producers, './outputs/synthetic_producers_V2.csv', row.names=FALSE)
+write.csv(io_no_wholesale, './outputs/data_2017io_filtered_V2.csv', row.names=FALSE)
 #writing out done below once sampling identified
 ################ part 3 END######################

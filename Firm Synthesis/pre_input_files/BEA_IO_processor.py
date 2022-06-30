@@ -14,8 +14,8 @@ from pandas import read_csv
 data_dir = '/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS/'
 os.chdir(data_dir)
 
-io_2012 = read_csv('BEA_IO/BEA_IO_2012_6digit.csv')
-io_2017 = read_csv('BEA_IO/BEA_IO_2017.csv')
+io_2012 = read_csv('BEA_IO/BEA_IO_2012_6digit_USE.csv')
+io_2017 = read_csv('BEA_IO/BEA_IO_2017_USE.csv')
 
 naics_lookup = read_csv('BEA_IO/NAICS_reference_table_final.csv')
 synthfirm_naics = read_csv('BEA_IO/corresp_naics6_n6io_sctg_revised.csv')
@@ -26,10 +26,10 @@ synthfirm_naics = read_csv('BEA_IO/corresp_naics6_n6io_sctg_revised.csv')
 io_2012 = io_2012.fillna(0)
 io_2017 = io_2017.replace('---', 0)
 
-io_2012_long = pd.melt(io_2012, id_vars = ['Code', 'Industry Description'], 
+io_2012_long = pd.melt(io_2012, id_vars = ['Code', '﻿Industry Description'], 
                                   var_name = 'use', value_name = 'value')
 
-io_2017_long = pd.melt(io_2017, id_vars = ['INDEX', 'Industries/Commodities'], 
+io_2017_long = pd.melt(io_2017, id_vars = ['Index', 'Commodities/Industries'], 
                                   var_name = 'use', value_name = 'value')
 io_2017_long.loc[:, 'value'] = io_2017_long.loc[:, 'value'].astype(float)
 io_2017_long.columns = ['make_17', 'Description', 'use_17', 'value_17']
@@ -62,7 +62,7 @@ io_2017_col_sum = io_2017_long.groupby(['use_17'])[['value_17']].sum()
 io_2017_col_sum = io_2017_col_sum.reset_index()
 
 
-niter = 3
+niter = 10
 for i in range(niter):
     print('the total error in iteration ' + str(i + 1) + ' is')
 # compute row (make) sum and adjust row value
@@ -139,17 +139,17 @@ io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['333318']), 'make'] = 
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['333517']), 'make'] = '33351B'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['334118']), 'make'] = '33411A'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['33712N']), 'make'] = '33712A'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['4200ID']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423100']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423400']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423600']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423800']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423A00']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['424200']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['424400']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['424700']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['424A00']), 'make'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['425000']), 'make'] = '420000'
+io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['4200ID']), 'make'] = '425000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423100']), 'make'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423400']), 'make'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423600']), 'make'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423800']), 'make'] = '420000'
+io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['423A00']), 'make'] = '423900'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['424200']), 'make'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['424400']), 'make'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['424700']), 'make'] = '420000'
+io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['424A00']), 'make'] = '424900'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['425000']), 'make'] = '420000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['444000']), 'make'] = '4A0000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['446000']), 'make'] = '4A0000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['447000']), 'make'] = '4A0000'
@@ -162,6 +162,7 @@ io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['5241XX']), 'make'] = 
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['531HSO']), 'make'] = '531000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['531HST']), 'make'] = '531000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['531ORE']), 'make'] = '531000'
+io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['331419']), 'make'] = '331410'
 
 
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['230302']), 'use'] = '230301'
@@ -186,17 +187,17 @@ io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['333318']), 'use'] = '3
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['333517']), 'use'] = '33351B'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['334118']), 'use'] = '33411A'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['33712N']), 'use'] = '33712A'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['4200ID']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423100']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423400']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423600']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423800']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423A00']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['424200']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['424400']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['424700']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['424A00']), 'use'] = '420000'
-io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['425000']), 'use'] = '420000'
+io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['4200ID']), 'use'] = '425000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423100']), 'use'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423400']), 'use'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423600']), 'use'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423800']), 'use'] = '420000'
+io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['423A00']), 'use'] = '423900'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['424200']), 'use'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['424400']), 'use'] = '420000'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['424700']), 'use'] = '420000'
+io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['424A00']), 'use'] = '424900'
+# io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['425000']), 'use'] = '420000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['444000']), 'use'] = '4A0000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['446000']), 'use'] = '4A0000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['447000']), 'use'] = '4A0000'
@@ -209,6 +210,8 @@ io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['5241XX']), 'use'] = '5
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['531HSO']), 'use'] = '531000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['531HST']), 'use'] = '531000'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['531ORE']), 'use'] = '531000'
+io_2012_long_to_adj.loc[io_2012_long_to_adj['use'].isin(['331419']), 'use'] = '331410'
+
 
 io_2012_long_filtered = io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(synthfirm_naics_unique)]
 io_2012_long_filtered = io_2012_long_filtered.loc[io_2012_long_filtered['use'].isin(synthfirm_naics_unique)]
@@ -216,5 +219,5 @@ print(io_2012_long_filtered.value_12.sum())
 io_2012_long_filtered.loc[:, 'use'] = 'X' + io_2012_long_filtered.loc[:, 'use']
 io_2012_wide = pd.pivot_table(io_2012_long_filtered, values='value_12', index=['make'],
                     columns=['use'], aggfunc=np.sum)
-io_2012_wide.to_csv('BEA_IO/data_2017io_revised.csv')
+io_2012_wide.to_csv('BEA_IO/data_2017io_revised_USE.csv')
 

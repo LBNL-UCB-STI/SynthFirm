@@ -18,7 +18,7 @@ require(reshape2)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS"
 setwd(path2file)
 
 selected_state = 'TX'
