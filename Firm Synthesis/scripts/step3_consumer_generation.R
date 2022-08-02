@@ -13,15 +13,18 @@ setwd(path2file)
 c_n6_n6io_sctg <-
   data.table::fread("./inputs/corresp_naics6_n6io_sctg_revised.csv", h = T)
 firms <- data.table::fread("./outputs/synthetic_firms.csv", h = T)
-unitcost <- data.table::fread("./inputs/data_unitcost_revised.csv", h = T)
+unitcost <- data.table::fread("./inputs/data_unitcost_cfs2017.csv", h = T)
 for_cons <-
   data.table::fread("./inputs/data_foreign_cons.csv", h = T)
 prefweights <-
   data.table::fread("./inputs/data_firm_pref_weights.csv", h = T)
 
-wholesalers <- data.table::fread('./outputs/synthetic_wholesaler_V2.csv')
-producers <- data.table::fread('./outputs/synthetic_producers_V2.csv')
-io <- data.table::fread('./outputs/data_2017io_filtered_V2.csv')
+wholesalers <- data.table::fread('./outputs/synthetic_wholesaler_V3.csv')
+producers <- data.table::fread('./outputs/synthetic_producers_V3.csv')
+io <- data.table::fread('./outputs/data_2017io_filtered_V3.csv')
+
+consumer_value_fraction_by_location <- data.table::fread("./inputs/consumer_value_fraction_by_faf.csv", h = T)
+mesozone_faf_lookup <- data.table::fread("./inputs/zonal_id_lookup_final.csv", h = T)
 #-----------------------------------------------------------------------------------
 #Create consumers database
 #-----------------------------------------------------------------------------------
@@ -32,7 +35,7 @@ list_of_supply_industry <- unique(producers$NAICS)
 io <-
   io[Industry_NAICS6_Make %in% list_of_supply_industry] #focus on just producers of transported commodities
 setkey(io, Industry_NAICS6_Use, ProVal) #sort on NAICS_USe, ProVal
-io <- io[ProVal >0,]
+#io <- io[ProVal >0,]
 
 # io[, CumPctProVal := cumsum(ProVal) / sum(ProVal), by = Industry_NAICS6_Use] #cumulative pct value of the consumption inputs
 #io <- io[CumPctProVal > 1 - provalthreshold,] #select suppliers including the first above the threshold value
@@ -55,50 +58,40 @@ for (con_naics in list_of_consumer_naics){
   consumers <- rbind(consumers, con_firms)
   # break
 }
+setnames(consumers, "Commodity_SCTG", "Buyer.SCTG") #7,670,012 consumers
 
-emp <- consumers[, list(Emp = sum(Emp)), by = c('Industry_NAICS6_Use', 'Industry_NAICS6_Make')]
-io <- merge(io, emp, by = c("Industry_NAICS6_Use", "Industry_NAICS6_Make"))
-rm(emp)
-io[, ValEmp := ProVal / Emp]
+naics_by_sctg_fration <- unique(c_n6_n6io_sctg[, list(SCTG = Commodity_SCTG, Industry_NAICS6_Make, Proportion)])
+naics_by_sctg_fration <-
+  naics_by_sctg_fration[SCTG > 0,]
+
+# consumers <-
+#   merge(consumers, naics_by_sctg_fration, "Industry_NAICS6_Make", allow.cartesian = TRUE) #merge in the first matching SCTG code
+# consumers[, Proportion := Proportion / sum(Proportion), by = BusID]
+
+emp <- consumers[, list(Emp = sum(Emp)), by = c('Industry_NAICS6_Use', 'Industry_NAICS6_Make', 'FAFZONE')]
+io <- merge(emp, io, by = c("Industry_NAICS6_Use", "Industry_NAICS6_Make"))
+io <- merge(io, naics_by_sctg_fration, "Industry_NAICS6_Make", allow.cartesian = TRUE)
+io[, ProVal := ProVal * Proportion]
+setnames(io, 'SCTG', 'Commodity_SCTG')
+io_with_loc <- merge(io, 
+                     consumer_value_fraction_by_location[, list(FAFZONE = FAF, Commodity_SCTG, value_fraction)], 
+                     by = c("Commodity_SCTG", 'FAFZONE'))
+io_with_loc[, value_fraction := value_fraction / sum(value_fraction), by = c("Industry_NAICS6_Use", 'Industry_NAICS6_Make', 'Commodity_SCTG')] #production value per employee
+io_with_loc[, ProVal := ProVal * value_fraction]
+io_with_loc[, ValEmp := ProVal / Emp] #production value per employee (in Million of Dollars)
+
 
 #Merge top k% suppliers with establishment list to create a consumers\buyers dataset
 consumers <-
-  merge(io[, list(Industry_NAICS6_Use, Industry_NAICS6_Make, ValEmp)], 
-        consumers[, list(MESOZONE, Industry_NAICS6_Use, Industry_NAICS6_Make, Commodity_SCTG, BusID, Emp)],
-        by = c('Industry_NAICS6_Use', 'Industry_NAICS6_Make'))
-setnames(consumers, "Commodity_SCTG", "Buyer.SCTG")
+  merge(io_with_loc[, list(Industry_NAICS6_Use, Industry_NAICS6_Make, Commodity_SCTG, FAFZONE, ValEmp)], 
+        consumers[, list(MESOZONE, Industry_NAICS6_Use, Industry_NAICS6_Make, Buyer.SCTG, FAFZONE, BusID, Emp)],
+        by = c('Industry_NAICS6_Use', 'Industry_NAICS6_Make', 'FAFZONE')) #8,390,414
+
 
 consumers[, ConVal := ValEmp * Emp]
 # print(consumers$ConVal)
 
-consumers <-
-  merge(c_n6_n6io_sctg[!duplicated(Industry_NAICS6_Make), list(Industry_NAICS6_Make, Commodity_SCTG, Proportion)], consumers, "Industry_NAICS6_Make") #merge in the first matching SCTG code
-consumers[, Proportion := Proportion / sum(Proportion), by = BusID]
-consumers[, ConVal := ConVal * Proportion]
-#Some Naics6-Make industries (NAICS6_Make) make more than one SCTG.
-#Account for this by simulating the SCTG commodity supplied by them based on probability thresholds
-# mult_n6make <-
-#   unique(c_n6_n6io_sctg[Commodity_SCTG > 0 &
-#                           Proportion < 1, list(Industry_NAICS6_Make, Commodity_SCTG, Proportion)])
-# setkey(consumers, Industry_NAICS6_Make)
-# n6m_samp <-
-#   consumers[unique(mult_n6make$Industry_NAICS6_Make)][, .N, by = Industry_NAICS6_Make]
-# 
-# assign_mult_sctg <- function(n6m) {
-#   sample(
-#     mult_n6make$Commodity_SCTG[mult_n6make$Industry_NAICS6_Make == n6m],
-#     n6m_samp$N[n6m_samp$Industry_NAICS6_Make == n6m],
-#     replace = TRUE,
-#     prob = mult_n6make$Proportion[mult_n6make$Industry_NAICS6_Make ==
-#                                     n6m]
-#   )
-# }
-# 
-# for (i in 1:nrow(n6m_samp)) {
-#   consumers[n6m_samp$Industry_NAICS6_Make[i], Commodity_SCTG := assign_mult_sctg(n6m_samp$Industry_NAICS6_Make[i])]
-# }
-# 
-# rm(mult_n6make, n6m_samp)
+
 
 # Calculate the purchase amount and convert to tons needed - this is production value
 # consumers[, ConVal := ValEmp * Emp]
@@ -107,7 +100,7 @@ unitcost[, UnitCost := UnitCost / 2000]
 consumers[, UnitCost := unitcost$UnitCost[match(Commodity_SCTG, unitcost$Commodity_SCTG)]]
 consumers[, ConVal := ConVal * 1000000] # Value was in $M
 consumers[, PurchaseAmountlb := ConVal / UnitCost]
-consumers[, c("ValEmp", "UnitCost", "Proportion") := NULL] # Remove extra fields
+consumers[, c("ValEmp", "UnitCost") := NULL] # Remove extra fields
 
 #Add foreign consumers to the domestic consumption
 #In this case we know US Export Value by commodity and country
@@ -115,12 +108,8 @@ consumers[, c("ValEmp", "UnitCost", "Proportion") := NULL] # Remove extra fields
 #Use the IO data to indicate the industry types that consume the exported commodities
 setnames(for_cons, "Commodity_NAICS6", "Industry_NAICS6_CBP")
 for_cons <-
-  merge(for_cons, c_n6_n6io_sctg[, list(Industry_NAICS6_CBP, Industry_NAICS6_Make, Commodity_SCTG, Proportion)], by =
+  merge(for_cons, unique(c_n6_n6io_sctg[, list(Industry_NAICS6_CBP, Industry_NAICS6_Make)]), by =
           "Industry_NAICS6_CBP") #Merge in the I/O NAICS codes and SCTG codes
-
-for_cons <-
-  for_cons[Commodity_SCTG > 0, list(ProdVal = sum(USExpVal) / 1000000), by =
-             list(Industry_NAICS6_Make, CBPZONE, FAFZONE, Commodity_SCTG)]
 
 setnames(for_cons, 'Industry_NAICS6_Make', 'Industry_NAICS6_Use')
 
@@ -140,12 +129,24 @@ for (con_naics in list_of_for_consumer_naics){
   # break
 }
 
+for_consumers <-
+  merge(for_consumers, unique(c_n6_n6io_sctg[, list(Industry_NAICS6_Make, Commodity_SCTG, Proportion)]), by =
+          "Industry_NAICS6_Make", allow.cartesian = TRUE) #Merge in the I/O NAICS codes and SCTG codes
+
+for_consumers[, USExpVal := USExpVal * Proportion]
+
+for_consumers <-
+  for_consumers[Commodity_SCTG > 0, list(ProdVal = sum(USExpVal) / 1000000), by =
+             list(Industry_NAICS6_Make, Industry_NAICS6_Use, CBPZONE, FAFZONE, Commodity_SCTG)]
+
+
 # io[, PctProVal := ProVal / sum(ProVal), by = Industry_NAICS6_Make]
 # setkey(io, Industry_NAICS6_Make)
 # for_cons <-
 #   merge(for_cons, io[, list(Industry_NAICS6_Make, Industry_NAICS6_Use, ProVal, PctProVal)], by =
 #           "Industry_NAICS6_Make", allow.cartesian = TRUE)
 for_consumers[, ConVal := ProdVal]
+
 # Convert purchase value from $M to POUNDS
 
 for_consumers[, UnitCost := unitcost$UnitCost[match(Commodity_SCTG, unitcost$Commodity_SCTG)]]
@@ -161,7 +162,7 @@ for_consumers[est > 1, ConVal := ConVal / est]															## update ConVal fo
 for_consumers[est > 1, PurchaseAmountlb := PurchaseAmountlb / est]									## update PurchaseAmountTons for multiple firms
 for_consumers <-
   for_consumers[rep(seq_len(for_consumers[, .N]), est),]										## Enumerates the foreign producers using the est variable.
-for_consumers[, est := NULL]
+for_consumers[, est := NULL] #32,240 foreign consumers
 ### -------------------------------------------------------------------------------------
 
 # calculate other fields required in producers tables, clean table, and rbind with consumers
@@ -173,7 +174,8 @@ for_consumers[, c("CBPZONE",
              "FAFZONE",
              "ProdVal",
              "UnitCost") := NULL] # Remove extra fields
-consumers <- rbind(consumers, for_consumers, use.names = TRUE)
+consumers[, FAFZONE:= NULL]
+consumers <- rbind(consumers, for_consumers)
 
 # Add preference weights
 setkey(prefweights, Commodity_SCTG)
@@ -235,7 +237,7 @@ setnames(
   )
 )
 wholesalers[, Buyer.SCTG := Commodity_SCTG]
-wholesalers[, OutputCommodity := InputCommodity] #size = 351141 * 12
+wholesalers[, OutputCommodity := InputCommodity] #size = 249,060 * 11
 # wholesalers[, c("V1") := NULL] 
 consumers <- rbind(consumers, wholesalers, use.names = TRUE)
 
@@ -243,5 +245,5 @@ sample_consumers <- consumers %>% filter(BuyerID <= 100) %>% as_tibble()
 setkey(consumers, InputCommodity)
 
 #data.table::fwrite(producers, "./outputs/producers_all.csv")
-data.table::fwrite(consumers, "./outputs/synthetic_consumers_V2.csv", row.names=FALSE)
-data.table::fwrite(sample_consumers, "./outputs/sample_synthetic_consumers_V2.csv", row.names=FALSE)
+data.table::fwrite(consumers, "./outputs/synthetic_consumers_V3.csv", row.names=FALSE)
+data.table::fwrite(sample_consumers, "./outputs/sample_synthetic_consumers_V3.csv", row.names=FALSE)

@@ -11,13 +11,13 @@ path2file <-
 setwd(path2file)
 
 c_n6_n6io_sctg <-
-  data.table::fread("./inputs/corresp_naics6_n6io_sctg.csv", h = T)
+  data.table::fread("./inputs/corresp_naics6_n6io_sctg_revised.csv", h = T)
 firms <- data.table::fread("./outputs/synthetic_firms.csv", h = T)
-producers <- data.table::fread('./outputs/synthetic_producers.csv', h = T)
-consumers <- data.table::fread('./outputs/synthetic_consumers.csv', h = T)
+producers <- data.table::fread('./outputs/synthetic_producers_V3.csv', h = T)
+consumers <- data.table::fread('./outputs/synthetic_consumers_V3.csv', h = T)
 prefweights <-
   data.table::fread("./inputs/data_firm_pref_weights.csv", h = T)
-io_sum <- data.table::fread('./outputs/io_summary.csv', h = T)
+io_sum <- data.table::fread('./outputs/io_summary_revised.csv', h = T)
 
 
 ################ part 5 ######################
@@ -183,7 +183,7 @@ firms_sum[["io_sum_make_sctg"]] <-
   data.frame(io_sum_make[order(Commodity_SCTG)])
 
 #output
-capture.output(print(firms_sum), file = file.path("./outputs/firm_syn_austin.txt"))
+capture.output(print(firms_sum), file = file.path("./outputs/firm_syn_austin_V3.txt"))
 
 #------------------------------------------------------------------------------------------------------
 # Define sample sizes for procurement markets to be run in the next step --- XXu: this part failed due to some bugs

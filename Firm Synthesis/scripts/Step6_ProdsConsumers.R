@@ -19,8 +19,8 @@ basedir <-
 setwd(basedir)
 
 firms_all = data.table::fread("./outputs/synthetic_firms_with_location.csv", h = T)
-sup_df = data.table::fread("./outputs/synthetic_producers.csv", h = T)
-buyer_df = data.table::fread("./outputs/synthetic_consumers.csv", h = T)
+sup_df = data.table::fread("./outputs/synthetic_producers_V3.csv", h = T)
+buyer_df = data.table::fread("./outputs/synthetic_consumers_V3.csv", h = T)
 sctg_lookup = data.table::fread("./inputs/SCTG_Groups_revised.csv", h = T)
 
 sctg_lookup <- sctg_lookup %>% select(SCTG_Code, SCTG_Group, SCTG_Name) %>% as_tibble()

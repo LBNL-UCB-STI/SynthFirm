@@ -22,7 +22,7 @@ mesozone_shapefile <- st_read('./inputs/Austin_freight.geojson')
 # clip us map to remove island
 box = c(xmin = -179.23109, ymin = 10, xmax = -66.96466, ymax = 71.365162)
 mesozone_shapefile_no_island <- st_crop(mesozone_shapefile, box)
-st_write(mesozone_shapefile_no_island, './inputs/Austin_freight_noisland.geojson')
+# st_write(mesozone_shapefile_no_island, './inputs/Austin_freight_noisland.geojson')
 list_of_mesozones <- unique(firms$MESOZONE)
 firms$lat <- 0
 firms$lon <- 0

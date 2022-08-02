@@ -40,12 +40,13 @@ def model_od_processor(data, mesozone_lookup):   # assign OD FAF zone ID
 
 ###### processing b2b flow ##########
 mesozone_lookup = read_csv(c.input_dir + c.mesozone_id_lookup_file, sep = ',')
+max_load_lookup = read_csv(c.input_dir + 'max_load_per_shipment_cfs2017.csv', sep = ',')
 domestic_zones = mesozone_lookup['MESOZONE'].unique()
-chunk_size = 10 ** 6
+chunk_size = 10 ** 5
 for sctg in c.list_of_sctg_group:
     print(sctg)
-    capacity_per_shipment = c.capacity_lookup[sctg]
-    max_ton_per_shipment = c.max_ton_lookup[sctg]
+    # capacity_per_shipment = c.capacity_lookup[sctg]
+    # max_ton_per_shipment = c.max_ton_lookup[sctg]
     filelist = [file for file in os.listdir(output_dir) if file.startswith(sctg)]
     combined_csv = pd.concat([read_csv(output_dir + f, low_memory=False) for f in filelist ])
     combined_csv = combined_csv.loc[combined_csv['SellerZone'].isin(domestic_zones)]
@@ -53,8 +54,9 @@ for sctg in c.list_of_sctg_group:
     combined_csv = model_od_processor(combined_csv, mesozone_lookup)
     
     combined_csv.loc[:, "TruckLoad"] *= c.lb_to_ton
-    combined_csv.loc[combined_csv["TruckLoad"] >= capacity_per_shipment, "TruckLoad"] = capacity_per_shipment
-    combined_csv.loc[:, "ship_count"] = combined_csv.loc[:, "TruckLoad"] / max_ton_per_shipment
+    combined_csv = pd.merge(combined_csv, max_load_lookup, on = 'Commodity_SCTG', how = 'left')
+    # combined_csv.loc[combined_csv["TruckLoad"] >= capacity_per_shipment, "TruckLoad"] = capacity_per_shipment
+    combined_csv.loc[:, "ship_count"] = combined_csv.loc[:, "TruckLoad"] * 2000 / combined_csv.loc[:, "SHIPMT_WGHT"] 
     combined_csv.loc[:, "ship_count"] = np.round(combined_csv.loc[:, "ship_count"], 0)
     combined_csv.loc[combined_csv["ship_count"] < 1, "ship_count"] = 1
     combined_csv = combined_csv[combined_csv['in_study_area'] == 1]
@@ -68,7 +70,7 @@ for sctg in c.list_of_sctg_group:
         chunk_dup.columns = chunk.columns
         chunk_dup.loc[:, "TruckLoad"] = chunk_dup.loc[:, "TruckLoad"] / chunk_dup.loc[:, "ship_count"]
         chunk_dup = chunk_dup[['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID', 'SellerZone',
-           'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'orig_FAFID', 'dest_FAFID']]
+           'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'orig_FAFID', 'dest_FAFID', 'Commodity_SCTG', 'UnitCost']]
         print(chunk_dup.head(5))
         chunk_dup.to_csv(output_dir + 'shipment_' + sctg + '_od' + str(q) + '.csv.zip', index = False)
         q += 1

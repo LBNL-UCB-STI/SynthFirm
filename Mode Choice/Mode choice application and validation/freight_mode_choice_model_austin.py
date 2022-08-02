@@ -24,7 +24,7 @@ mode_choice_param_file = 'freight_mode_choice_5alt_austin.csv'
 # load parameter
 mode_choice_param = read_csv(c.param_dir + mode_choice_param_file, sep = ',')
 mesozone_lookup = read_csv(c.param_dir + c.mesozone_id_lookup_file, sep = ',')
-value_density_lookup = read_csv(c.param_dir + c.value_density_file, sep = ',')
+# value_density_lookup = read_csv(c.param_dir + c.value_density_file, sep = ',')
 distance_travel_time_skim = read_csv(c.param_dir + c.distance_travel_skim_file, sep = ',')
 list_of_alternative = mode_choice_param['Alternative'].tolist()
 chunk_size = 10 ** 6  # process large data by chunk
@@ -62,8 +62,8 @@ def choice_model_variable_generator(data):     # generate variables for mode cho
     data.loc[:, 'TW_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(c.NAICS_tw)) + \
         0 * (~data.loc[:, 'NAICS_code'].isin(c.NAICS_tw))           
     # assign value density
-    data = pd.merge(data, value_density_lookup, on = 'SCTG_Group', how = 'left')
-
+    # data = pd.merge(data, value_density_lookup, on = 'SCTG_Group', how = 'left')
+    data.loc[:, 'value_density'] = data.loc[:, 'UnitCost'] * c.lb_to_ton
     ##### placeholder for generating alternative specific variables (travel time & cost) ######
     data = pd.merge(data, distance_travel_time_skim, on = ['orig_FAFID', 'dest_FAFID', 'Alternative'], how = 'left')
     data.loc[:, 'Cost_val'] = 0
@@ -94,7 +94,7 @@ def choice_model_variable_generator(data):     # generate variables for mode cho
     ###### assign mode availability ######
     data.loc[:, 'mode_available'] = 1
     # data.loc[(data['Alternative'] == 'Air') & (data['TruckLoad'] > 550), 'mode_available'] = 0 
-    # data.loc[(data['Alternative'] == 'Parcel') & (data['TruckLoad'] > 0.075), 'mode_available'] = 0  
+    data.loc[(data['Alternative'] == 'Parcel') & (data['TruckLoad'] > 0.1), 'mode_available'] = 0  
     data.loc[(data['Alternative'] == 'Private Truck') & (data['Distance'] > 500), 'mode_available'] = 0 
     data.loc[(data['Distance'].isna()) | (data['Travel_time'].isna()), 'mode_available'] = 0         
     return(data)        
@@ -181,7 +181,8 @@ for sctg in c.list_of_sctg_group:
         
         # convert data to long format, generate variables for mode choice
         modeled_OD_by_sctg_long = pd.melt(modeled_OD_by_sctg, id_vars=['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID', 'SellerZone',
-           'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 'shipment_id', 'orig_FAFID', 'dest_FAFID'], value_vars=list_of_alternative,
+           'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 'shipment_id', 'orig_FAFID', 'dest_FAFID', 'UnitCost'], 
+            value_vars=list_of_alternative,
             var_name='Alternative', value_name='constant')  # convert wide dataframe to long       
         # modeled_OD_by_sctg_long.loc[modeled_OD_by_sctg_long['TruckLoad'] > c.max_shipment_load, 'TruckLoad'] = c.max_shipment_load
         ##### generate variables for mode choice model #####             

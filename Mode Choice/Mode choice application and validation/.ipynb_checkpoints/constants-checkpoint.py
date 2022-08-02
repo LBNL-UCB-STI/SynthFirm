@@ -15,7 +15,7 @@ cfs_dir = 'CFS2017/'
 freight_model_zonal_map =  'Austin_freight.geojson'
 
 # input file
-faf_version_4_file = 'FAF4.5.1.csv'
+faf_version_4_file = 'FAF5.3.csv'
 cfs_distribution_file = 'cfs17_shpmt_dist_Austin_20220404.csv' # mode added
 cfs_summary_file = 'CFS_summary_statistics.csv'
 modeled_file = 'processed_b2b_flow_summary.csv'

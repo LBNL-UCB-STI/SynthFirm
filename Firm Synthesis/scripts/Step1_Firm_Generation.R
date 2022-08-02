@@ -198,7 +198,7 @@ setkey(firms_in_boundary, BusID)
 firms[CBPZONE > 999, MESOZONE := firms_in_boundary$MESOZONE]
 #Cleanup
 rm(mzemp, ZeroCand, firms_in_boundary)
-firms[, c("Industry_NAICS6_CBP", "n2", "n4", "est", "temprand") := NULL] #Revome extra fields,
+firms[, c("Industry_NAICS6_CBP", "n2", "n4", "est") := NULL] #Revome extra fields,
 setnames(firms, "emp_per_est", "Emp")
 write.csv(firms, './outputs/synthetic_firms.csv', row.names=FALSE)
 # by end of this part, the output variable 'cbp' has 7,071,215 rows and 8 variables, used 7.77gb of memory

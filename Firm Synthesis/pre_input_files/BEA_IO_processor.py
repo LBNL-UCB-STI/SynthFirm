@@ -15,7 +15,8 @@ data_dir = '/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS/'
 os.chdir(data_dir)
 
 io_2012 = read_csv('BEA_IO/BEA_IO_2012_6digit_USE.csv')
-io_2017 = read_csv('BEA_IO/BEA_IO_2017_USE.csv')
+io_2017 = read_csv('BEA_IO/data_2017io_revised_USE_with_added_value.csv')
+io_2017_sum = read_csv('BEA_IO/data_2017io_revised_USE_total_commodity.csv')
 
 naics_lookup = read_csv('BEA_IO/NAICS_reference_table_final.csv')
 synthfirm_naics = read_csv('BEA_IO/corresp_naics6_n6io_sctg_revised.csv')
@@ -25,7 +26,8 @@ synthfirm_naics = read_csv('BEA_IO/corresp_naics6_n6io_sctg_revised.csv')
 # matching NAICS code to IO table
 io_2012 = io_2012.fillna(0)
 io_2017 = io_2017.replace('---', 0)
-
+io_2017_sum = io_2017_sum.replace('---', 0)
+io_2017_sum['TotalCommodity'] = io_2017_sum['TotalCommodity'].astype(int)
 io_2012_long = pd.melt(io_2012, id_vars = ['Code', '﻿Industry Description'], 
                                   var_name = 'use', value_name = 'value')
 
@@ -34,8 +36,70 @@ io_2017_long = pd.melt(io_2017, id_vars = ['Index', 'Commodities/Industries'],
 io_2017_long.loc[:, 'value'] = io_2017_long.loc[:, 'value'].astype(float)
 io_2017_long.columns = ['make_17', 'Description', 'use_17', 'value_17']
 io_2017_long = io_2017_long[['make_17', 'use_17', 'value_17']]
+print(io_2017_long.value_17.sum())
+print(io_2017_sum.TotalCommodity.sum())
+# <codecell>
 
+# including value added
+io_2017_long.loc[:, 'industry_total'] = io_2017_long.groupby('use_17')['value_17'].transform('sum')
+io_2017_intermediate = io_2017_long.loc[io_2017_long['make_17'] != 'VAPRO']
+io_2017_value_added = io_2017_long.loc[io_2017_long['make_17'] == 'VAPRO']
+io_2017_value_added = io_2017_value_added[['use_17', 'value_17']]
+io_2017_value_added.columns = ['use_17', 'value_17_added']
+io_2017_intermediate = pd.merge(io_2017_intermediate, io_2017_value_added,
+                                on = 'use_17', how = 'left')
+io_2017_intermediate = pd.merge(io_2017_intermediate, io_2017_sum,
+                                left_on = 'make_17', right_on = 'index', how = 'left')
+
+io_2017_intermediate.loc[:, 'make_ratio'] = io_2017_intermediate.loc[:, 'value_17'] / \
+    io_2017_intermediate.groupby('use_17')['value_17'].transform('sum')
+
+io_2017_intermediate.loc[:, 'value_17_added'] *= io_2017_intermediate.loc[:, 'make_ratio']
+io_2017_intermediate.loc[:, 'cell_value'] = io_2017_intermediate.loc[:, 'value_17'] + \
+    io_2017_intermediate.loc[:, 'value_17_added']
+    
+# apply IPF
+# niter = 10
+io_2017_to_adj = io_2017_intermediate.copy()
+var_to_keep = ['make_17', 'use_17', 'industry_total', 'TotalCommodity', 'cell_value']
+# for i in range(niter):
+#     print('the total error in iteration ' + str(i + 1) + ' is')
+#     col_sum = io_2017_to_adj.groupby('use_17').agg({'cell_value':'sum', 
+#                          'industry_total':'mean'})
+#     error1 = col_sum.cell_value.sum() - col_sum.industry_total.sum()
+#     col_sum.loc[:, 'col_factor'] = col_sum.loc[:, 'industry_total'] / \
+#         col_sum.loc[:, 'cell_value'] 
+#     col_sum = col_sum.reset_index()
+#     col_sum = col_sum[['use_17', 'col_factor']]
+#     io_2017_to_adj = pd.merge(io_2017_to_adj, col_sum, 
+#                               on = 'use_17', how = 'left')
+#     io_2017_to_adj.loc[:, 'cell_value'] *= io_2017_to_adj.loc[:, 'col_factor']
+#     io_2017_to_adj = io_2017_to_adj[var_to_keep]
+    
+row_sum = io_2017_to_adj.groupby('make_17').agg({'cell_value':'sum', 
+                      'TotalCommodity':'mean'})
+error = row_sum.cell_value.sum() - row_sum.TotalCommodity.sum()
+row_sum.loc[:, 'row_factor'] = row_sum.loc[:, 'TotalCommodity'] / \
+    row_sum.loc[:, 'cell_value']
+row_sum = row_sum.reset_index()
+row_sum.loc[:, 'row_factor'].fillna(1, inplace = True)
+row_sum = row_sum[['make_17', 'row_factor']]
+io_2017_to_adj = pd.merge(io_2017_to_adj, row_sum, 
+                          on = 'make_17', how = 'left')
+io_2017_to_adj.loc[:, 'cell_value'] *= io_2017_to_adj.loc[:, 'row_factor']
+io_2017_to_adj.loc[:, 'cell_value'].fillna(0)
+io_2017_to_adj = io_2017_to_adj[var_to_keep]
+    
+
+    # total_error = error1 + error2
+print(error)
+    # break
+print(io_2017_to_adj.cell_value.sum())
+io_2017_long =io_2017_to_adj[['make_17', 'use_17', 'cell_value']]
+io_2017_long.columns = ['make_17', 'use_17', 'value_17']
+# <codecell>
 naics_lookup = naics_lookup[['NAICS12', 'NAICS17']]
+
 
 io_2012_long = pd.merge(io_2012_long, naics_lookup, 
                         left_on = 'Code', right_on = 'NAICS12', how = 'left')
@@ -219,5 +283,5 @@ print(io_2012_long_filtered.value_12.sum())
 io_2012_long_filtered.loc[:, 'use'] = 'X' + io_2012_long_filtered.loc[:, 'use']
 io_2012_wide = pd.pivot_table(io_2012_long_filtered, values='value_12', index=['make'],
                     columns=['use'], aggfunc=np.sum)
-io_2012_wide.to_csv('BEA_IO/data_2017io_revised_USE.csv')
+io_2012_wide.to_csv('BEA_IO/data_2017io_revised_USE_value_added.csv')
 

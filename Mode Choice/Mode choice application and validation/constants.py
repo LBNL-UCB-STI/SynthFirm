@@ -15,7 +15,7 @@ cfs_dir = 'CFS2017/'
 freight_model_zonal_map =  'Austin_freight.geojson'
 
 # input file
-faf_version_4_file = 'FAF4.5.1.csv'
+faf_version_4_file = 'FAF5.3.csv'
 cfs_distribution_file = 'cfs17_shpmt_dist_Austin_20220404.csv' # mode added
 cfs_summary_file = 'CFS_summary_statistics.csv'
 modeled_file = 'processed_b2b_flow_summary.csv'
@@ -50,5 +50,5 @@ max_shipment_load = 5000
 max_ton_lookup = {'sctg1': 47.9265, 'sctg2': 28.1825, 'sctg3': 24.7420, 'sctg4': 2.9975, 'sctg5': 19.5600} # in ton
 capacity_lookup = {'sctg1': 218327, 'sctg2': 51131, 'sctg3': 94561, 'sctg4': 4486, 'sctg5': 51647} # in 1000 ton
 
-weight_bin = [0, 0.075, 0.75, 15, 22.5, 10000]
+weight_bin = [0, 0.075, 0.75, 15, 22.5, 30000]
 weight_bin_label = [1, 2, 3, 4, 5]
