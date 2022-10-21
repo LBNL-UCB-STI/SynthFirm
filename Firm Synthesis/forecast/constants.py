@@ -7,12 +7,12 @@ Created on Thu Aug 12 11:44:23 2021
 """
 
 # directories
-param_dir = 'Parameter_SF/'
-input_dir = 'inputs_SF/'
-output_dir = 'outputs_SF/'
+param_dir = 'Parameter/'
+input_dir = 'inputs/'
+output_dir = 'outputs_aus_2040/'
 cfs_dir = 'CFS2017/'
 
-freight_model_zonal_map =  'SFBay_freight.geojson'
+freight_model_zonal_map =  'Austin_freight.geojson'
 
 # input file
 faf_version_4_file = 'FAF5.3.csv'
@@ -33,7 +33,7 @@ value_density_file = 'value_density_by_SCTG_group.csv' # dollar per lb by sctg g
 distance_travel_skim_file = 'combined_travel_time_skim.csv'
 
 # other parameters
-region_code = [62, 64, 65, 69] 
+region_code = [481,488,489] 
 truck_mode_id = 1 # mode ==> truck
 trade_type_id = 1 # domestic only
 list_of_sctg_group = ['sctg1', 'sctg2', 'sctg3', 'sctg4', 'sctg5'] #currently hard coded, can be improved

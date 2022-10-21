@@ -21,7 +21,7 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS"
 setwd(path2file)
 
-f1 = sf::st_read("Austin_freight_centroids.geojson")
+f1 = sf::st_read("SFBay_freight_centroids.geojson")
 
 require(sp)
 
@@ -78,4 +78,4 @@ names(centroid_distance_long) = c("OriginZone","DestinationZone","DistMiles")
 # f2 = reshape2::melt(xxW)
 # names(f2) = c("OriginZone","DestinationZone","DistMiles")
 # f2 = f2 %>% filter(DistMiles > 0)
-data.table::fwrite(centroid_distance_long, "Austin_od_dist.csv")
+data.table::fwrite(centroid_distance_long, "SFBay_od_dist.csv")

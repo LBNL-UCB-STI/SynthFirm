@@ -5,18 +5,25 @@ rm(list = ls())
 path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/scripts/'
 source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
 source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
+library(tidyverse)
+
+library(foreach)
+library(doParallel)
+registerDoParallel(cores=4)
 
 path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 setwd(path2file)
 
-firms <- data.table::fread("./outputs_aus_2040/forecasted_firms.csv", h = T)
+firms <- data.table::fread("./outputs/synthetic_firms.csv", h = T)
 
-private_carrier_size_distribution <- data.table::fread("./inputs/fleet/TX_private_fleet_size_distribution_V2.csv", h = T)
-for_hire_carrier_size_distribution <- data.table::fread("./inputs/fleet/TX_for_hire_fleet_size_distribution_V2.csv", h = T)
-for_lease_carrier_size_distribution <- data.table::fread("./inputs/fleet/TX_for_lease_fleet_size_distribution_V2.csv", h = T)
+private_carrier_size_distribution <- data.table::fread("./inputs/TX_private_fleet_size_distribution_V2.csv", h = T)
+for_hire_carrier_size_distribution <- data.table::fread("./inputs/TX_for_hire_fleet_size_distribution_V2.csv", h = T)
+for_lease_carrier_size_distribution <- data.table::fread("./inputs/TX_for_lease_fleet_size_distribution_V2.csv", h = T)
 
-cargo_type_distribution <- data.table::fread("./inputs/fleet/probability_of_cargo_group.csv", h = T)
+cargo_type_distribution <- data.table::fread("./inputs/probability_of_cargo_group.csv", h = T)
+national_fleet_composition <- data.table::fread("./inputs/AEO_vehicle_stock_2018.csv", h = T)
+vehicle_type_fraction <- c(0.206287,	0.505178,	0.244464,	0.044071)  # will be replaced once input from Alicia is ready
 mesozone_shapefile <- st_read('./inputs/Austin_freight.geojson')
 
 # clip us map to remove island
@@ -36,7 +43,7 @@ for (zone in list_of_mesozones){
   firms[firms$MESOZONE == zone, 'lon'] = sample_point_coordinates[,1]
 }
 
-write.csv(firms, './outputs_aus_2040/forecast_firms_with_location.csv', row.names=FALSE)
+write.csv(firms, './outputs/synthetic_firms_with_location.csv', row.names=FALSE)
 # zone_id = 20004
 # sample_size <- nrow(firms[firms$MESOZONE == zone_id, ])
 # selected_zone <- mesozone_shapefile_no_island %>% filter(MESOZONE == zone_id)
@@ -46,27 +53,55 @@ write.csv(firms, './outputs_aus_2040/forecast_firms_with_location.csv', row.name
 # firms[firms$MESOZONE == zone, 'lon'] = sample_point_coordinates[,1]
 
 #private truck fleet size
-firms <- data.table::fread('./outputs_SF/synthetic_firms_with_location.csv', h = T)
+firms <- data.table::fread('./outputs/synthetic_firms_with_location.csv', h = T)
 private_carrier_size_distribution_short <- private_carrier_size_distribution %>% select(fleet_size, min_size, avg_truck_per_carrier, 
-                                                                        total_truck_std, fraction_of_carrier, percent_sut) %>% as_tibble()
+                                                                        total_truck_std, fraction_of_carrier) %>% as_tibble()
 sample_size <- nrow(firms)
 sample_fleet_size <- sample_n(private_carrier_size_distribution_short, size = sample_size, weight = fraction_of_carrier, replace = TRUE)
 sample_fleet_size$n_trucks <- as.integer(rnorm(sample_size, mean = sample_fleet_size$avg_truck_per_carrier, sd = sample_fleet_size$total_truck_std))
 sample_fleet_size <- sample_fleet_size %>% mutate(n_trucks = ifelse(n_trucks <= min_size, min_size, n_trucks))
-sample_fleet_size <- sample_fleet_size %>%
-  rowwise() %>% mutate(mdt = rbinom(1, n_trucks, percent_sut))
-sample_fleet_size <- sample_fleet_size %>% mutate(hdt = n_trucks - mdt)
+
+# sample_fleet_size$DIESEL_Vocational_HDV = 0
+# sample_fleet_size$DIESEL_Tractor_HDV = 0
+# sample_fleet_size$DIESEL_Vocational_MDV = 0
+# sample_fleet_size$GAS_Vocational_MDV = 0
+
+#test_fleet_size = sample_fleet_size[1:10000,]
+
+finalMatrix <- foreach(row = 1:nrow(sample_fleet_size), .combine=rbind) %dopar% {
+  n_trucks = as.integer(sample_fleet_size[row, 'n_trucks'])
+  veh_out = rmultinom(1, n_trucks, prob = vehicle_type_fraction)
+  veh_out = t(veh_out)
+  veh_out
+}
+
+#list_of_n_truck = unique(sample_fleet_size$n_trucks)
+for (row in 1:nrow(sample_fleet_size)){
+  if (row %% 1000 == 0){
+    print(row)
+  }
+  n_trucks = as.integer(sample_fleet_size[row, 'n_trucks'])
+  veh_out = rmultinom(1, n_trucks, prob = vehicle_type_fraction)
+  sample_fleet_size[row, 'DIESEL_Vocational_HDV'] = veh_out[1]
+  sample_fleet_size[row, 'DIESEL_Tractor_HDV'] = veh_out[2]
+  sample_fleet_size[row, 'DIESEL_Vocational_MDV'] = veh_out[3]
+  sample_fleet_size[row, 'GAS_Vocational_MDV'] = veh_out[4]
+  # print(n_trucks)
+  # print(veh_out)
+  # break
+}
+
 sample_fleet_size <- arrange(sample_fleet_size, n_trucks)
-sample_fleet_size_out <- sample_fleet_size %>% select(mdt, hdt)
+sample_fleet_size_out <- sample_fleet_size %>% select(DIESEL_Vocational_HDV, DIESEL_Tractor_HDV, DIESEL_Vocational_MDV, GAS_Vocational_MDV)
 firms <- arrange(firms, Emp)
 firms <- cbind(firms, sample_fleet_size_out)
 
 #for-hire truck fleet size
 carrier_industry <- firms %>% filter(Industry_NAICS6_Make %in% c('492000', '484000')) %>% as_tibble()
-carrier_industry <- carrier_industry %>% select(-mdt, -hdt)
+carrier_industry <- carrier_industry %>% select(-DIESEL_Vocational_HDV, -DIESEL_Tractor_HDV, -DIESEL_Vocational_MDV, -GAS_Vocational_MDV)
 
 for_hire_carrier_size_distribution_short <- for_hire_carrier_size_distribution %>% select(fleet_size, min_size, avg_truck_per_carrier, 
-                                                                        total_truck_std, fraction_of_carrier, percent_sut) %>% as_tibble()
+                                                                        total_truck_std, fraction_of_carrier) %>% as_tibble()
 sample_size <- nrow(carrier_industry)
 
 sample_fleet_size <- sample_n(for_hire_carrier_size_distribution_short, size = sample_size, weight = fraction_of_carrier, replace = TRUE)

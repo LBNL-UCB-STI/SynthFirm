@@ -19,8 +19,8 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS"
 setwd(path2file)
 
-state_name = 'TX'
-region_name = 'Austin'
+state_name = 'CA'
+region_name = 'SFBay'
 file_name = paste0(state_name, '_bg.geojson')
 state_df = sf::st_read(file_name)
 
@@ -38,7 +38,7 @@ faf1 = sf::st_read("FAF4Zones.geojson")
 lookup_file = paste0(region_name, '_FAFCNTY.csv')
 faf_lookup = data.table::fread(lookup_file,h=T)
 
-study_area_faf <- c(481, 488, 489)  # need to make this token a global input
+study_area_faf <- c(64, 62, 65, 69)  # need to make this token a global input
 faf_lookup <- faf_lookup %>% filter(! FAFID %in% study_area_faf) %>% as_tibble()
 
 faf_lookup <- faf_lookup %>% select(FAFID, CBPZONE1)

@@ -12,16 +12,16 @@ setwd(path2file)
 
 c_n6_n6io_sctg <-
   data.table::fread("./inputs/corresp_naics6_n6io_sctg_revised.csv", h = T)
-firms <- data.table::fread("./outputs/synthetic_firms.csv", h = T)
+firms <- data.table::fread("./outputs/synthetic_firms_v2.csv", h = T)
 unitcost <- data.table::fread("./inputs/data_unitcost_cfs2017.csv", h = T)
 for_cons <-
   data.table::fread("./inputs/data_foreign_cons.csv", h = T)
 prefweights <-
   data.table::fread("./inputs/data_firm_pref_weights.csv", h = T)
 
-wholesalers <- data.table::fread('./outputs/synthetic_wholesaler_V3.csv')
-producers <- data.table::fread('./outputs/synthetic_producers_V3.csv')
-io <- data.table::fread('./outputs/data_2017io_filtered_V3.csv')
+wholesalers <- data.table::fread('./outputs/synthetic_wholesaler_V2.csv')
+producers <- data.table::fread('./outputs/synthetic_producers_V2.csv')
+io <- data.table::fread('./outputs/data_2017io_filtered_V2.csv')
 
 consumer_value_fraction_by_location <- data.table::fread("./inputs/consumer_value_fraction_by_faf.csv", h = T)
 mesozone_faf_lookup <- data.table::fread("./inputs/zonal_id_lookup_final.csv", h = T)
@@ -85,7 +85,7 @@ io_with_loc[, ValEmp := ProVal / Emp] #production value per employee (in Million
 consumers <-
   merge(io_with_loc[, list(Industry_NAICS6_Use, Industry_NAICS6_Make, Commodity_SCTG, FAFZONE, ValEmp)], 
         consumers[, list(MESOZONE, Industry_NAICS6_Use, Industry_NAICS6_Make, Buyer.SCTG, FAFZONE, BusID, Emp)],
-        by = c('Industry_NAICS6_Use', 'Industry_NAICS6_Make', 'FAFZONE')) #8,390,414
+        by = c('Industry_NAICS6_Use', 'Industry_NAICS6_Make', 'FAFZONE'), allow.cartesian=TRUE) #8,626,516
 
 
 consumers[, ConVal := ValEmp * Emp]
@@ -162,7 +162,7 @@ for_consumers[est > 1, ConVal := ConVal / est]															## update ConVal fo
 for_consumers[est > 1, PurchaseAmountlb := PurchaseAmountlb / est]									## update PurchaseAmountTons for multiple firms
 for_consumers <-
   for_consumers[rep(seq_len(for_consumers[, .N]), est),]										## Enumerates the foreign producers using the est variable.
-for_consumers[, est := NULL] #32,240 foreign consumers
+for_consumers[, est := NULL] #40,843 foreign consumers
 ### -------------------------------------------------------------------------------------
 
 # calculate other fields required in producers tables, clean table, and rbind with consumers
@@ -175,7 +175,7 @@ for_consumers[, c("CBPZONE",
              "ProdVal",
              "UnitCost") := NULL] # Remove extra fields
 consumers[, FAFZONE:= NULL]
-consumers <- rbind(consumers, for_consumers)
+consumers <- rbind(consumers, for_consumers) #8,171,491
 
 # Add preference weights
 setkey(prefweights, Commodity_SCTG)
@@ -245,5 +245,5 @@ sample_consumers <- consumers %>% filter(BuyerID <= 100) %>% as_tibble()
 setkey(consumers, InputCommodity)
 
 #data.table::fwrite(producers, "./outputs/producers_all.csv")
-data.table::fwrite(consumers, "./outputs/synthetic_consumers_V3.csv", row.names=FALSE)
-data.table::fwrite(sample_consumers, "./outputs/sample_synthetic_consumers_V3.csv", row.names=FALSE)
+data.table::fwrite(consumers, "./outputs/synthetic_consumers_V2.csv", row.names=FALSE)
+data.table::fwrite(sample_consumers, "./outputs/sample_synthetic_consumers_V2.csv", row.names=FALSE)

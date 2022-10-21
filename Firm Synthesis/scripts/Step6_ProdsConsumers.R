@@ -18,10 +18,10 @@ basedir <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 setwd(basedir)
 
-firms_all = data.table::fread("./outputs/synthetic_firms_with_location.csv", h = T)
-sup_df = data.table::fread("./outputs/synthetic_producers_V3.csv", h = T)
-buyer_df = data.table::fread("./outputs/synthetic_consumers_V3.csv", h = T)
-sctg_lookup = data.table::fread("./inputs/SCTG_Groups_revised.csv", h = T)
+firms_all = data.table::fread("./outputs_SF/synthetic_firms_with_location.csv", h = T)
+sup_df = data.table::fread("./outputs_SF/synthetic_producers.csv", h = T)
+buyer_df = data.table::fread("./outputs_SF/synthetic_consumers.csv", h = T)
+sctg_lookup = data.table::fread("./inputs_SF/SCTG_Groups_revised.csv", h = T)
 
 sctg_lookup <- sctg_lookup %>% select(SCTG_Code, SCTG_Group, SCTG_Name) %>% as_tibble()
 sup_df = sup_df %>% left_join(sctg_lookup, by = c("Commodity_SCTG" = "SCTG_Code")) %>% as_tibble()
@@ -54,7 +54,7 @@ for (i in 1:5) {
     SingleSourceMaxFraction
   ) %>% as_tibble()
   
-  fwrite(g1_prods, paste0("./outputs/prods_sctg", i, ".csv"))
-  fwrite(g1_consm, paste0("./outputs/consumers_sctg", i, ".csv"))
+  fwrite(g1_prods, paste0("./outputs_SF/prods_sctg", i, ".csv"))
+  fwrite(g1_consm, paste0("./outputs_SF/consumers_sctg", i, ".csv"))
   gc()
 }

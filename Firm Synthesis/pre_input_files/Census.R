@@ -21,7 +21,7 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS"
 setwd(path2file)
 
-selected_state = 'TX'
+selected_state = 'CA'
 selected_year = 2015
 
 ## archived scripts to generate data from external census data file

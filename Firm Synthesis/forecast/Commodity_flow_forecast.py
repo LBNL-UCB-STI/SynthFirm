@@ -18,20 +18,20 @@ warnings.filterwarnings("ignore")
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 # load inputs
-mesozone_to_faf_lookup = read_csv("inputs_SF/zonal_id_lookup_final.csv")
-shipment_by_distance_bin_distribution = read_csv("skims/fraction_of_shipment_count_by_distance_bin.csv")
+mesozone_to_faf_lookup = read_csv("inputs/zonal_id_lookup_final.csv")
+# shipment_by_distance_bin_distribution = read_csv("skims/fraction_of_shipment_count_by_distance_bin.csv")
 shipment_distance_lookup = read_csv("skims/combined_travel_time_skim.csv")
-producer = read_csv("outputs_SF/synthetic_producers.csv", low_memory = False)
+producer = read_csv("outputs_aus_2040/forecasted_production.csv", low_memory = False)
 
-cost_by_location = read_csv('inputs_SF/data_unitcost_by_zone_cfs2017.csv')
-cfs_to_faf = read_csv('inputs_SF/CFS_FAF_LOOKUP.csv')
-max_load_per_shipment = read_csv('inputs_SF/max_load_per_shipment_cfs2017.csv')
+cost_by_location = read_csv('inputs/total_commodity_production_2040.csv')
+cfs_to_faf = read_csv('inputs/CFS_FAF_LOOKUP.csv')
+max_load_per_shipment = read_csv('inputs/max_load_per_shipment_cfs2017.csv')
 
 
 # <codecell>
-cost_by_location_faf = pd.merge(cost_by_location, cfs_to_faf,
-                                left_on = 'DEST_CFS_AREA', right_on = 'ST_MA', how = 'left')
-cost_by_location_faf = cost_by_location_faf[['FAF', 'Commodity_SCTG', 'UnitCost']] # cost per ton
+cost_by_location_faf = cost_by_location[['dms_orig', 'SCTG_Code', 'tons_2040', 'value_density_2040']]
+cost_by_location_faf.columns = ['FAF', 'Commodity_SCTG', 'Weight', 'UnitCost'] # cost per lb
+cost_by_location_faf.loc[:, 'UnitCost'] *= 2000 # convert to cost per ton
 
 producer = pd.merge(producer, mesozone_to_faf_lookup, left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
 producer.loc[:, 'FAFID'] = producer.loc[:, 'FAFID'].replace(np.nan, 0)
@@ -54,8 +54,8 @@ def split_dataframe(df, chunk_size = 10000):
 for k in range(5):
     sctg = k + 1
     print('process SCTG group ' + str(sctg))
-    shipment_by_distance_bin_distribution.loc[:, 'probability'] = shipment_by_distance_bin_distribution.loc[:, str(sctg)]
-    g1_consm = read_csv("outputs/consumers_sctg" + str(sctg) +".csv", low_memory = False)
+    # shipment_by_distance_bin_distribution.loc[:, 'probability'] = shipment_by_distance_bin_distribution.loc[:, str(sctg)]
+    g1_consm = read_csv("outputs_aus_2040/forecasted_consumption_sctg" + str(sctg) +".csv", low_memory = False)
     g1_consm = pd.merge(g1_consm, mesozone_to_faf_lookup, left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
     g1_consm.loc[:, 'FAFID'] = g1_consm.loc[:, 'FAFID'].replace(np.nan, 0)
 
@@ -73,7 +73,7 @@ for k in range(5):
         print(com)
         output_b2b_flow = None
         output_file = "sctg" + str(sctg) + '_' + str(com) + ".csv.zip"
-        path_to_output = 'outputs_SF/' + output_file
+        path_to_output = 'outputs_aus_2040/' + output_file
         if os.path.exists(path_to_output):
             continue        
         buyer = g1_consm.loc[ (g1_consm['InputCommodity'] == com) & (g1_consm['PurchaseAmountlb'] > 0)]
@@ -113,6 +113,7 @@ for k in range(5):
                                                    how = 'left')
             supplier_with_distance_cost.loc[:, 'UnitCost'] = \
                 supplier_with_distance_cost.loc[:,'UnitCost'].fillna(supplier_with_distance_cost.groupby('Commodity_SCTG')['UnitCost'].transform('mean'))
+            supplier_with_distance_cost.loc[:, 'Weight'] = supplier_with_distance_cost.loc[:, 'Weight'].fillna(1)  # minimum output weight as 1 if unknown
             for level in available_levels:
                 # print('processing demand level ' + str(level))
                 selected_buyer_by_level = selected_buyer.loc[selected_buyer['demand_rank'] == level]
@@ -125,15 +126,15 @@ for k in range(5):
                 if len(supplier_pool) == 0:                        
                         supplier_pool = supplier_with_distance_cost.copy()
 
-                nbreaks = shipment_by_distance_bin_distribution.Cutpoint.tolist()
-                nbreaks = np.insert(nbreaks, 0, -1)
-                nlabels = shipment_by_distance_bin_distribution.IDs.tolist()
-                supplier_pool.loc[:, 'distance_bin'] = pd.cut(supplier_pool.loc[:, 'Distance'], 
-                                                                  bins = nbreaks, labels = nlabels, right = True)
-                supplier_pool = pd.merge(supplier_pool, shipment_by_distance_bin_distribution, 
-                                left_on = 'distance_bin', right_on = 'IDs', how = 'left')
+                # nbreaks = shipment_by_distance_bin_distribution.Cutpoint.tolist()
+                # nbreaks = np.insert(nbreaks, 0, -1)
+                # nlabels = shipment_by_distance_bin_distribution.IDs.tolist()
+                # supplier_pool.loc[:, 'distance_bin'] = pd.cut(supplier_pool.loc[:, 'Distance'], 
+                #                                                   bins = nbreaks, labels = nlabels, right = True)
+                # supplier_pool = pd.merge(supplier_pool, shipment_by_distance_bin_distribution, 
+                #                 left_on = 'distance_bin', right_on = 'IDs', how = 'left')
                 supplier_pool = supplier_pool[['SellerID', 'Zone', 'NAICS', 'OutputCommodity', 'Commodity_SCTG',
-                                               'OutputCapacitylb', 'supply_rank', 'Distance', 'UnitCost', 'probability', 'SHIPMT_WGHT']]
+                                               'OutputCapacitylb', 'supply_rank', 'Distance', 'UnitCost', 'Weight', 'SHIPMT_WGHT']]
                 # for chunk in chunks_of_buyers: 
                 #     # print(len(chunk))
                 #     if len(chunk) == 0:
@@ -141,7 +142,7 @@ for k in range(5):
                 sample_size = min(2 * len(selected_buyer_by_level), len(supplier_pool))
                 if len(supplier_pool) == 0:
                     continue
-                selected_supplier = supplier_pool.sample(n = sample_size, replace=False, weights = 'probability')
+                selected_supplier = supplier_pool.sample(n = sample_size, replace = False, weights = 'Weight')
                 
                 # pairing buyer and supplier
                 if sctg == 5:
@@ -164,8 +165,8 @@ for k in range(5):
                 paired_buyer_supplier.loc[criteria1,'Value'] = paired_buyer_supplier.loc[criteria1,'SHIPMT_WGHT'] * \
                     paired_buyer_supplier.loc[criteria1,'UnitCost'] / 2000
                 paired_buyer_supplier.loc[:,'Utility'] = \
-                    -9.36e-05 * paired_buyer_supplier.loc[:,'Distance'] + \
-                        	-2.9e-07 * paired_buyer_supplier.loc[:,'Value']
+                    -0.000448 * paired_buyer_supplier.loc[:,'Distance'] + \
+                        -1.09e-05 * paired_buyer_supplier.loc[:,'Value']
                 paired_buyer_supplier.loc[:,'Score'] = np.exp(paired_buyer_supplier.loc[:,'Utility'])
                 paired_buyer_supplier.loc[:, 'ratio'] = paired_buyer_supplier.loc[:, 'OutputCapacitylb'] / \
                     paired_buyer_supplier.loc[:, 'PurchaseAmountlb']

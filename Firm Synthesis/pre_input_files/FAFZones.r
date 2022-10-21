@@ -20,8 +20,8 @@ path2file <-
 setwd(path2file)
 
 # data_to_check <- st_read('sfbay_freight.geojson')
-region_name = 'Austin'
-state_name = 'TX'
+region_name = 'SFBay'
+state_name = 'CA'
 cfs_df = sf::st_read(dsn = "CFS_Areas.geojson")
 cfs_lookup = fread("CFS_FAF_LOOKUP.csv",
                    colClasses = list(character = c("STFIPS", "CFSMA", "FAF")),
@@ -47,11 +47,11 @@ faf_cnty = faf_cnty %>% mutate(FAFID = as.numeric(FAF))
 
 faf_df = as.data.frame(faf_cnty) %>% select(FAFID, ANSI_ST, ANSI_CNTY)
 
-study_area_faf <- c(481, 488, 489)  # need to make this token a global input
+study_area_faf <- c(64, 62, 65, 69)  # need to make this token a global input
 faf_df1 = faf_df %>% filter(FAFID %in% study_area_faf) # select FAF zones within study area
 faf_df2 = faf_df %>% anti_join(faf_df1, by = c("FAFID")) %>% arrange(FAFID) # select FAF zones outside study area
 
-faf_df1 = faf_df1 %>% mutate(CBPZONE = paste0(substr(FAFID, 1, 2), ANSI_CNTY)) # 5-digit fips code
+faf_df1 = faf_df1 %>% mutate(CBPZONE = paste0(ANSI_ST, ANSI_CNTY)) # 5-digit fips code
 
 faf_df3 = faf_df2 %>% group_by(FAFID) %>% summarize(count = n()) %>% mutate(CBPZONE = seq(1, length(FAFID)))
 

@@ -52,8 +52,11 @@ print("Enumerating Firms")
 #cbp <- as.data.table(cbp)
 # colnames(cbp) <- c('Industry_NAICS6_CBP', 'FAFZONE',	'CBPZONE',
 #                   'employment',	'establishment',	'e1',	'e2',	'e3',	'e4',	'e5',	'e6',	'e7',	'e8')
+
+cbp <- cbp %>% mutate(employment = ifelse(employment < establishment, establishment, employment)) %>% as_tibble()
 total_employment = sum(cbp$employment)
 print(total_employment)
+cbp <- as.data.table(cbp)
 cbp_by_location <-
   cbp[!is.na(CBPZONE) &
         !is.na(FAFZONE) & !is.na(Industry_NAICS6_CBP),
@@ -81,7 +84,7 @@ cbp_long <-
     value.name = "est"
   ) #Melt to create separate rows for each firm size category
 cbp_long <- as.data.table(cbp_long)
-cbp_long[, esizecat := as.integer(esizecat)] #convert esizecat to an integer (1:8)
+cbp_long[, esizecat := as.integer(esizecat)] #convert esizecat to an integer (1:7)
 cbp_long <- cbp_long %>% filter(est > 0) %>% as_tibble()
 
 # assign employment size per category
@@ -108,16 +111,23 @@ firms <-
   cbp_long[rep(seq_len(cbp_long[, .N]), est),] #Enumerates the agent businesses using the est variable.
 firms[, BusID := .I] #Add an ID
 
-# cbp_emp <- cbp %>% 
-#   group_by(Industry_NAICS6_CBP, CBPZONE, FAFZONE) %>% 
-#   summarise(total_emp_sim = sum(Emp)) %>% as_tibble()
-# 
-# 
-# cbp_emp <- cbp_emp %>% left_join(cbp, by = c('Industry_NAICS6_CBP', 'CBPZONE', 'FAFZONE'))
-# cbp_emp <- cbp_emp %>% mutate(emp_adj = employment/total_emp_sim)
+emp_obs <- cbp %>%
+  group_by(Industry_NAICS6_CBP, CBPZONE, FAFZONE) %>%
+  summarise(total_emp_obs = sum(employment)) %>% as_tibble()
+
+emp_sim <- firms %>%
+  group_by(Industry_NAICS6_CBP, CBPZONE, FAFZONE) %>%
+  summarise(total_emp_sim = sum(emp_per_est)) %>% as_tibble()
+
+emp_adj <- emp_obs %>% left_join(emp_sim, by = c('Industry_NAICS6_CBP', 'CBPZONE', 'FAFZONE'))
+emp_adj <- emp_adj %>% mutate(emp_adj = total_emp_obs/total_emp_sim)
+
+firms <- firms %>% left_join(emp_adj, by = c('Industry_NAICS6_CBP', 'CBPZONE', 'FAFZONE')) %>% as_tibble()
+firms <- firms %>% mutate(emp_per_est = emp_per_est * emp_adj)
 # cbp_emp
 # summarise(cbp_emp)
 total_employment_est = sum(firms$emp_per_est)
+print(total_employment_est)
 #-----------------------------------------------------------------------------------
 # Allocating specific commodity and location for each establishment
 #-----------------------------------------------------------------------------------
@@ -156,6 +166,7 @@ total_employment_est = sum(firms$emp_per_est)
 # firms[n2 == "42", Industry_NAICS6_Make := paste0(n4, "00")]
 
 #Assign firms within study areas 
+firms <- as.data.table(firms)
 firms_in_boundary <- firms[CBPZONE > 999, list(CBPZONE, BusID, n2, emp_per_est)]
 #Assign specific NAICS categories which would be used to locate businesses to tazs
 firms_in_boundary[n2 %in% c("31", "32", "33"), n2 := "3133"]
@@ -191,16 +202,16 @@ firms_in_boundary <-
   firms_in_boundary[firms_in_boundary[, .I[which.max(u)], by = BusID]$V1,] #Assign the taz for which the random number generated is the highest among all candidate tazs
 
 #Assign MESOZONES for all firms
-firms[CBPZONE <= 132, MESOZONE := CBPZONE + 20000L]
+firms[CBPZONE <= 999, MESOZONE := CBPZONE + 20000L]
 #cbp[CBPZONE %in% 801:808, MESOZONE:= CBPZONE]
 setkey(firms, BusID)
 setkey(firms_in_boundary, BusID)
 firms[CBPZONE > 999, MESOZONE := firms_in_boundary$MESOZONE]
 #Cleanup
 rm(mzemp, ZeroCand, firms_in_boundary)
-firms[, c("Industry_NAICS6_CBP", "n2", "n4", "est") := NULL] #Revome extra fields,
+firms[, c("Industry_NAICS6_CBP", "total_emp_obs", "total_emp_sim", "emp_adj", "n2", "n4", "est") := NULL] #Revome extra fields,
 setnames(firms, "emp_per_est", "Emp")
-write.csv(firms, './outputs/synthetic_firms.csv', row.names=FALSE)
+write.csv(firms, './outputs/synthetic_firms_v2.csv', row.names=FALSE)
 # by end of this part, the output variable 'cbp' has 7,071,215 rows and 8 variables, used 7.77gb of memory
 
 

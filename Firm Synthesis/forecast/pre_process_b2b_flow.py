@@ -14,7 +14,7 @@ from pandas import read_csv
 
 data_dir = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 os.chdir(data_dir)
-output_dir = 'outputs_SF/'
+output_dir = 'outputs_aus_2040/'
 
 def split_dataframe(df, chunk_size = 10 ** 6): 
     chunks = list()
@@ -47,7 +47,7 @@ for sctg in c.list_of_sctg_group:
     print(sctg)
     # capacity_per_shipment = c.capacity_lookup[sctg]
     # max_ton_per_shipment = c.max_ton_lookup[sctg]
-    filelist = [file for file in os.listdir(output_dir) if file.startswith(sctg)]
+    filelist = [file for file in os.listdir(output_dir) if file.startswith(sctg + '_')]
     combined_csv = pd.concat([read_csv(output_dir + f, low_memory=False) for f in filelist ])
     combined_csv = combined_csv.loc[combined_csv['SellerZone'].isin(domestic_zones)]
     combined_csv = combined_csv.loc[combined_csv['BuyerZone'].isin(domestic_zones)]

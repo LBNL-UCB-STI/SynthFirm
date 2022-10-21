@@ -21,7 +21,7 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS"
 setwd(path2file)
 
-region_name = 'Austin'
+region_name = 'SFBay'
 naics_code <-
   data.table::fread('corresp_naics6_n6io_sctg_revised.csv', h = T)
 cbp_data <-

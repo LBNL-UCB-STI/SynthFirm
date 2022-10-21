@@ -19,8 +19,8 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
 setwd(path2file)
 
-selected_state = 'TX'
-selected_region = 'Austin'
+selected_state = 'CA'
+selected_region = 'SFBay'
 
 naics = c(
   "n11",
@@ -87,7 +87,7 @@ naics_df3 = naics_df3 %>% group_by(GEOID) %>% mutate(percrank = floor(10*rank(pc
 naics_df4 = reshape2::dcast(naics_df3, GEOID ~ variable, value.var = "percrank")
 naics_df4 = naics_df4 %>% mutate(cnty_id = substr(GEOID, 1, 5))
 
-study_area_faf <- c(481, 488, 489)  # need to make this token a global input
+study_area_faf <- c(64, 62, 65, 69)  # need to make this token a global input
 f3 = f1 %>% filter(FAFID %in% study_area_faf) %>% select(ST_CNTY,CBPZONE1)
 
 naics_df5 = naics_df4 %>% left_join(f3, by=c("cnty_id"="ST_CNTY")) #employment within study area
