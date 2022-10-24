@@ -40,7 +40,7 @@ def model_od_processor(data, mesozone_lookup):   # assign OD FAF zone ID
 
 ###### processing b2b flow ##########
 mesozone_lookup = read_csv(c.input_dir + c.mesozone_id_lookup_file, sep = ',')
-max_load_lookup = read_csv(c.input_dir + 'max_load_per_shipment_80percent.csv', sep = ',')
+max_load_lookup = read_csv(c.input_dir + 'max_load_per_shipment_cfs2017.csv', sep = ',')
 domestic_zones = mesozone_lookup['MESOZONE'].unique()
 chunk_size = 10 ** 5
 for sctg in c.list_of_sctg_group:
