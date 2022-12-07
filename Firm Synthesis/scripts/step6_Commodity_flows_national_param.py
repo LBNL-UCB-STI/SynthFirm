@@ -19,15 +19,15 @@ os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 # load inputs
 mesozone_to_faf_lookup = read_csv("inputs/zonal_id_lookup_final.csv")
-# shipment_by_distance_bin_distribution = read_csv("skims/fraction_of_shipment_count_by_distance_bin.csv")
-shipment_distance_lookup = read_csv("skims/combined_travel_time_skim.csv")
+shipment_by_distance_bin_distribution = read_csv("skims/fraction_of_shipment_by_distance_bin_V2.csv")
+shipment_distance_lookup = read_csv("skims/CFS2017_routed_distance_matrix.csv")
 producer = read_csv("outputs/synthetic_producers_V2.csv", low_memory = False)
 
 cost_by_location = read_csv('inputs/data_unitcost_by_zone_cfs2017.csv')
 cfs_to_faf = read_csv('inputs/CFS_FAF_LOOKUP.csv')
 max_load_per_shipment = read_csv('inputs/max_load_per_shipment_90percent.csv')
 sctg_group = read_csv('inputs/SCTG_Groups_revised.csv')
-supplier_selection_param = read_csv('inputs/supplier_selection_parameter.csv')
+supplier_selection_param = read_csv('Parameter/supplier_selection_parameter.csv')
 
 
 # <codecell>
@@ -40,8 +40,8 @@ producer.loc[:, 'FAFID'] = producer.loc[:, 'FAFID'].replace(np.nan, 0)
 producer = producer[['SellerID', 'Zone', 'NAICS', 'OutputCommodity', 'Commodity_SCTG', 'OutputCapacitylb', 'FAFID']]
 int_vars = ['SellerID', 'Zone', 'OutputCapacitylb', 'FAFID']
 producer.loc[:, int_vars] = producer.loc[:, int_vars].astype(int)
-shipment_distance_lookup = shipment_distance_lookup.loc[shipment_distance_lookup['Alternative'] == 'Air']
-step_size = 10 # mile
+# shipment_distance_lookup = shipment_distance_lookup.loc[shipment_distance_lookup['Alternative'] == 'Air']
+step_size = 100 # mile
 # <codecell>
 from sklearn.utils import shuffle
 
@@ -56,7 +56,7 @@ def split_dataframe(df, chunk_size = 10000):
 for k in range(5):
     sctg = k + 1
     print('process SCTG group ' + str(sctg))
-    # shipment_by_distance_bin_distribution.loc[:, 'probability'] = shipment_by_distance_bin_distribution.loc[:, str(sctg)]
+    shipment_by_distance_bin_distribution.loc[:, 'probability'] = shipment_by_distance_bin_distribution.loc[:, str(sctg)]
     g1_consm = read_csv("outputs/consumers_sctg" + str(sctg) +".csv", low_memory = False)
     g1_consm = pd.merge(g1_consm, mesozone_to_faf_lookup, left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
     g1_consm.loc[:, 'FAFID'] = g1_consm.loc[:, 'FAFID'].replace(np.nan, 0)
@@ -102,9 +102,9 @@ for k in range(5):
             # print(faf)
             selected_buyer = buyer.loc[buyer['FAFID'] == faf]
             available_levels = selected_buyer.demand_rank.unique()
-            distance_skim = shipment_distance_lookup.loc[shipment_distance_lookup['orig_FAFID'] == faf]
+            distance_skim = shipment_distance_lookup.loc[shipment_distance_lookup['dest_FAFID'] == faf]
             supplier_with_dist = pd.merge(supplier, distance_skim, 
-                                     left_on = 'FAFID', right_on = 'dest_FAFID', how = 'left')
+                                     left_on = 'FAFID', right_on = 'orig_FAFID', how = 'left')
             supplier_with_dist.loc[:, 'Distance'] = supplier_with_dist.loc[:, 'Distance'].replace(np.nan, 5000)
             supplier_with_distance_cost = pd.merge(supplier_with_dist, cost_by_location_faf,
                                                    left_on = ['FAFID', 'Commodity_SCTG'],
@@ -128,15 +128,15 @@ for k in range(5):
                 if len(supplier_pool) == 0:                        
                         supplier_pool = supplier_with_distance_cost.copy()
 
-                # nbreaks = shipment_by_distance_bin_distribution.Cutpoint.tolist()
-                # nbreaks = np.insert(nbreaks, 0, -1)
-                # nlabels = shipment_by_distance_bin_distribution.IDs.tolist()
-                # supplier_pool.loc[:, 'distance_bin'] = pd.cut(supplier_pool.loc[:, 'Distance'], 
-                #                                                   bins = nbreaks, labels = nlabels, right = True)
-                # supplier_pool = pd.merge(supplier_pool, shipment_by_distance_bin_distribution, 
-                #                 left_on = 'distance_bin', right_on = 'IDs', how = 'left')
+                nbreaks = shipment_by_distance_bin_distribution.Cutpoint.tolist()
+                nbreaks = np.insert(nbreaks, 0, -1)
+                nlabels = shipment_by_distance_bin_distribution.IDs.tolist()
+                supplier_pool.loc[:, 'distance_bin'] = pd.cut(supplier_pool.loc[:, 'Distance'], 
+                                                                  bins = nbreaks, labels = nlabels, right = True)
+                supplier_pool = pd.merge(supplier_pool, shipment_by_distance_bin_distribution, 
+                                left_on = 'distance_bin', right_on = 'IDs', how = 'left')
                 supplier_pool = supplier_pool[['SellerID', 'Zone', 'NAICS', 'OutputCommodity', 'Commodity_SCTG',
-                                               'OutputCapacitylb', 'supply_rank', 'Distance', 'UnitCost', 'SHIPMT_WGHT']]
+                                               'OutputCapacitylb', 'supply_rank', 'Distance', 'UnitCost', 'SHIPMT_WGHT', 'probability']]
                 # for chunk in chunks_of_buyers: 
                 #     # print(len(chunk))
                 #     if len(chunk) == 0:
@@ -144,7 +144,7 @@ for k in range(5):
                 sample_size = min(2 * len(selected_buyer_by_level), len(supplier_pool))
                 if len(supplier_pool) == 0:
                     continue
-                selected_supplier = supplier_pool.sample(n = sample_size, replace = False)
+                selected_supplier = supplier_pool.sample(n = sample_size, replace = False, weights= 'probability')
                 
                 # pairing buyer and supplier
                 if sctg == 5:
