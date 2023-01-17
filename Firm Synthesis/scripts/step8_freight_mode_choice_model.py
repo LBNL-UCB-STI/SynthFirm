@@ -8,7 +8,7 @@ Created on Thu Aug  5 11:30:01 2021
 from pandas import read_csv
 import pandas as pd
 import numpy as np
-import constants as c
+import constants_sf as c
 import os
 import warnings
 warnings.filterwarnings('ignore')
@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 #define parameter file names
-mode_choice_param_file = 'freight_mode_choice_5alt_austin_calibrated.csv'
+mode_choice_param_file = 'freight_mode_choice_5alt_sfbay.csv'
 
 
 # load parameter

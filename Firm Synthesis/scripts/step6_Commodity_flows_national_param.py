@@ -18,16 +18,18 @@ warnings.filterwarnings("ignore")
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 # load inputs
-mesozone_to_faf_lookup = read_csv("inputs/zonal_id_lookup_final.csv")
+mesozone_to_faf_lookup = read_csv("inputs_SF/zonal_id_lookup_final.csv")
 shipment_by_distance_bin_distribution = read_csv("skims/fraction_of_shipment_by_distance_bin_V2.csv")
 shipment_distance_lookup = read_csv("skims/CFS2017_routed_distance_matrix.csv")
-producer = read_csv("outputs/synthetic_producers_V2.csv", low_memory = False)
+producer = read_csv("outputs_SF/synthetic_producers.csv", low_memory = False)
 
-cost_by_location = read_csv('inputs/data_unitcost_by_zone_cfs2017.csv')
-cfs_to_faf = read_csv('inputs/CFS_FAF_LOOKUP.csv')
-max_load_per_shipment = read_csv('inputs/max_load_per_shipment_90percent.csv')
-sctg_group = read_csv('inputs/SCTG_Groups_revised.csv')
-supplier_selection_param = read_csv('Parameter/supplier_selection_parameter.csv')
+cost_by_location = read_csv('inputs_SF/data_unitcost_by_zone_cfs2017.csv')
+cfs_to_faf = read_csv('Parameter_SF/CFS_FAF_LOOKUP.csv')
+max_load_per_shipment = read_csv('inputs_SF/max_load_per_shipment_80percent.csv')
+sctg_group = read_csv('inputs_SF/SCTG_Groups_revised.csv')
+supplier_selection_param = read_csv('Parameter_SF/supplier_selection_parameter.csv')
+
+output_dir = 'outputs_SF/'
 
 
 # <codecell>
@@ -76,7 +78,7 @@ for k in range(5):
         print(com)
         output_b2b_flow = None
         output_file = "sctg" + str(sctg) + '_' + str(com) + ".csv.zip"
-        path_to_output = 'outputs/' + output_file
+        path_to_output = output_dir + output_file
         if os.path.exists(path_to_output):
             continue        
         buyer = g1_consm.loc[ (g1_consm['InputCommodity'] == com) & (g1_consm['PurchaseAmountlb'] > 0)]

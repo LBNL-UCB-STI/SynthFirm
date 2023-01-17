@@ -8,13 +8,13 @@ Created on Mon Apr  4 10:04:44 2022
 
 import pandas as pd
 import os
-import constants as c
+import constants_sf as c
 import numpy as np
 from pandas import read_csv
 
 data_dir = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 os.chdir(data_dir)
-output_dir = 'outputs/'
+output_dir = 'outputs_SF/'
 
 def split_dataframe(df, chunk_size = 10 ** 6): 
     chunks = list()
@@ -40,7 +40,7 @@ def model_od_processor(data, mesozone_lookup):   # assign OD FAF zone ID
 
 ###### processing b2b flow ##########
 mesozone_lookup = read_csv(c.input_dir + c.mesozone_id_lookup_file, sep = ',')
-max_load_lookup = read_csv(c.input_dir + 'max_load_per_shipment_90percent.csv', sep = ',')
+max_load_lookup = read_csv(c.input_dir + 'max_load_per_shipment_80percent.csv', sep = ',')
 domestic_zones = mesozone_lookup['MESOZONE'].unique()
 chunk_size = 10 ** 5
 for sctg in c.list_of_sctg_group:
