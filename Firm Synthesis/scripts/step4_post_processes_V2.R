@@ -15,7 +15,7 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 setwd(path2file)
 
-firms <- data.table::fread("./outputs/synthetic_firms.csv", h = T)
+firms <- data.table::fread("./outputs_aus_2050/forecasted_firms.csv", h = T)
 
 private_carrier_size_distribution <- data.table::fread("./inputs/TX_private_fleet_size_distribution_V2.csv", h = T)
 for_hire_carrier_size_distribution <- data.table::fread("./inputs/TX_for_hire_fleet_size_distribution_V2.csv", h = T)
@@ -43,7 +43,7 @@ for (zone in list_of_mesozones){
   firms[firms$MESOZONE == zone, 'lon'] = sample_point_coordinates[,1]
 }
 
-write.csv(firms, './outputs/synthetic_firms_with_location.csv', row.names=FALSE)
+write.csv(firms, './outputs_aus_2050/forecast_firms_with_location.csv', row.names=FALSE)
 # zone_id = 20004
 # sample_size <- nrow(firms[firms$MESOZONE == zone_id, ])
 # selected_zone <- mesozone_shapefile_no_island %>% filter(MESOZONE == zone_id)

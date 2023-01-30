@@ -9,8 +9,9 @@ Created on Thu Aug 12 11:44:23 2021
 # directories
 param_dir = 'Parameter/'
 input_dir = 'inputs/'
-output_dir = 'outputs_aus_2040/'
+output_dir = 'outputs_aus_2050/'
 cfs_dir = 'CFS2017/'
+valid_dir = 'Validation/'
 
 freight_model_zonal_map =  'Austin_freight.geojson'
 
