@@ -12,6 +12,7 @@ input_dir = 'inputs_national/'
 output_dir = 'outputs_national/'
 cfs_dir = 'CFS2017/'
 valid_dir = 'Validation/'
+skim_dir = 'skims/'
 
 freight_model_zonal_map =  'national_freight.geojson'
 

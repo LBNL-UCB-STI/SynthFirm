@@ -18,7 +18,7 @@ firms <- data.table::fread("./outputs_national/synthetic_firms.csv", h = T) # 8,
 for_prod <-
   data.table::fread("./inputs_national/data_foreign_prod.csv", h = T)
 io <- data.table::fread("./inputs_national/data_2017io_revised_USE_value_added.csv", h = T)
-unitcost <- data.table::fread("./inputs_national/data_unitcost_cfs2017.csv", h = T)
+unitcost <- data.table::fread("./inputs_national/data_unitcost_cfs2017_calibrated.csv", h = T)
 
 producer_value_fraction_by_location <- data.table::fread("./inputs_national/producer_value_fraction_by_faf.csv", h = T)
 mesozone_faf_lookup <- data.table::fread("./Parameter_national/zonal_id_lookup_final.csv", h = T)

@@ -13,7 +13,7 @@ setwd(path2file)
 c_n6_n6io_sctg <-
   data.table::fread("./inputs_national/corresp_naics6_n6io_sctg_revised.csv", h = T)
 firms <- data.table::fread("./outputs_national/synthetic_firms.csv", h = T)
-unitcost <- data.table::fread("./inputs_national/data_unitcost_cfs2017.csv", h = T)
+unitcost <- data.table::fread("./inputs_national/data_unitcost_cfs2017_calibrated.csv", h = T)
 for_cons <-
   data.table::fread("./inputs_national/data_foreign_cons.csv", h = T)
 prefweights <-

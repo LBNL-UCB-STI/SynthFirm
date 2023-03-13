@@ -12,24 +12,25 @@ import numpy as np
 import os
 import gc
 import warnings
+import constants as c
 
 warnings.filterwarnings("ignore")
 
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 # load inputs
-mesozone_to_faf_lookup = read_csv("Parameter_national/zonal_id_lookup_final.csv")
-shipment_by_distance_bin_distribution = read_csv("skims/fraction_of_shipment_by_distance_bin_V2.csv")
-shipment_distance_lookup = read_csv("skims/national_od_dist.csv")
-producer = read_csv("outputs_national/synthetic_producers.csv", low_memory = False)
+mesozone_to_faf_lookup = read_csv(c.param_dir + "zonal_id_lookup_final.csv")
+shipment_by_distance_bin_distribution = read_csv(c.skim_dir + "fraction_of_shipment_by_distance_bin_V2.csv")
+shipment_distance_lookup = read_csv(c.skim_dir + "national_od_dist.csv")
+producer = read_csv(c.output_dir + "synthetic_producers.csv", low_memory = False)
 
-cost_by_location = read_csv('inputs_national/data_unitcost_by_zone_cfs2017.csv')
-cfs_to_faf = read_csv('Parameter_national/CFS_FAF_LOOKUP.csv')
-max_load_per_shipment = read_csv('inputs_national/max_load_per_shipment_80percent.csv')
-sctg_group = read_csv('inputs_national/SCTG_Groups_revised.csv')
-supplier_selection_param = read_csv('Parameter_national/supplier_selection_parameter.csv')
+cost_by_location = read_csv(c.param_dir + 'data_unitcost_by_zone_cfs2017.csv')
+cfs_to_faf = read_csv(c.param_dir + 'CFS_FAF_LOOKUP.csv')
+max_load_per_shipment = read_csv(c.param_dir + 'max_load_per_shipment_80percent.csv')
+sctg_group = read_csv(c.param_dir + 'SCTG_Groups_revised.csv')
+supplier_selection_param = read_csv(c.param_dir + 'supplier_selection_parameter.csv')
 
-output_dir = 'outputs_national/'
+# output_dir = 'outputs_national/'
 
 
 producer.loc[producer['Zone'] == 2270, 'Zone'] = 2158
@@ -76,7 +77,7 @@ for k in range(5):
     sctg = k + 1
     print('process SCTG group ' + str(sctg))
     shipment_by_distance_bin_distribution.loc[:, 'probability'] = shipment_by_distance_bin_distribution.loc[:, str(sctg)]
-    g1_consm = read_csv("outputs_national/consumers_sctg" + str(sctg) +".csv", low_memory = False)
+    g1_consm = read_csv(c.output_dir + "consumers_sctg" + str(sctg) +".csv", low_memory = False)
     g1_consm.loc[g1_consm['Zone'] == 2270, 'Zone'] = 2158
     g1_consm.loc[g1_consm['Zone'] == 46113, 'Zone'] = 46102
     g1_consm.loc[g1_consm['Zone'] == 51515, 'Zone'] = 51019
@@ -98,7 +99,7 @@ for k in range(5):
         print(com)
         output_b2b_flow = None
         output_file = "sctg" + str(sctg) + '_' + str(com) + ".csv.zip"
-        path_to_output = output_dir + output_file
+        path_to_output = c.output_dir + output_file
         if os.path.exists(path_to_output):
             continue        
         buyer = g1_consm.loc[ (g1_consm['InputCommodity'] == com) & (g1_consm['PurchaseAmountlb'] > 0)]
