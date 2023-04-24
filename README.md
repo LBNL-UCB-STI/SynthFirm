@@ -6,5 +6,5 @@
 
 To fill--
 + An inventory of all code within the repository should be taken and reported in the Readme file. If other readmes are in the repo, include a TOC that links to these other readmes.
-+Explanation of Purpose, written to be readable by a new team member.
-+Installation instructions which are up to date and usable by a new team member.
++ Explanation of Purpose, written to be readable by a new team member.
++ Installation instructions which are up to date and usable by a new team member.
