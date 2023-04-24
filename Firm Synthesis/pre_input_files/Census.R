@@ -13,28 +13,36 @@ new.packages <-
 if (length(new.packages))
   install.packages(new.packages)
 lapply(list.of.packages, require, character = TRUE)
+require(tidycensus)
+require(reshape2)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
-  "/Users/srinath/OneDrive - LBNL/Projects/SMART-2.0/Task-3 BAMOS/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS"
 setwd(path2file)
 
-sf_cbg = sf::st_read("SFBay_CBG.geojson")
+selected_state = 'CA'
+selected_year = 2015
 
-sf_cbg = sf_cbg %>% mutate(tract_id = substr(blkgrpid, 1,11),
-                           cnty_id = paste0(fipst, fipco))
+## archived scripts to generate data from external census data file
+# sf_cbg = sf::st_read("SFBay_CBG.geojson")
+# 
+# sf_cbg = sf_cbg %>% mutate(tract_id = substr(blkgrpid, 1,11),
+#                            cnty_id = paste0(fipst, fipco))
+# 
+# sf_tract = sf_cbg %>% group_by(tract_id) %>% summarize(count = n())
+# sf_tract = sf_tract %>% mutate(cnty_id = substr(tract_id, 1, 5))
+# sf_cnty = sf_tract %>% group_by(cnty_id) %>% summarize(count = n())
+# print(sf_cnty)
+# sf::st_write(sf_tract, "sfbay_tracts.geojson")
+# plot(sf_tract)
 
-sf_tract = sf_cbg %>% group_by(tract_id) %>% summarize(count = n())
-sf_tract = sf_tract %>% mutate(cnty_id = substr(tract_id, 1, 5))
-sf_cnty = sf_tract %>% group_by(cnty_id) %>% summarize(count = n())
-print(sf_cnty)
-sf::st_write(sf_tract, "sfbay_tracts.geojson")
-plot(sf_tract)
 
-require(tidycensus)
+####### BEGINNING OF CENSUS DATA PROCESSES ######
 
-census_api_key("d49f1c9b81751571b083252dfbb8ac14ae8b63b7", install = TRUE)
 
+census_api_key("d49f1c9b81751571b083252dfbb8ac14ae8b63b7", install = TRUE, overwrite=TRUE) # using this at the first time of running SynthFirm
+readRenviron("~/.Renviron")
 male_naics = c(
   "C24030_004",
   "C24030_005",
@@ -58,12 +66,12 @@ male_naics = c(
   "C24030_028"
 )
 
-ca_df1 <-
+state_df1 <-
   get_acs(
     geography = "block group",
-    year = 2015,
+    year = selected_year, # ACS 5-year estimate, using later years such as 2018/2019 will cause technical issues
     variables = male_naics,
-    state = "CA"
+    state = selected_state
   )
 
 fem_naics = c(
@@ -89,18 +97,18 @@ fem_naics = c(
   "C24030_055"
 )
 
-ca_df2 <-
+state_df2 <-
   get_acs(
     geography = "block group",
-    year = 2015,
+    year = selected_year,
     variables = fem_naics,
-    state = "CA"
+    state = selected_state
   )
 
-require(reshape2)
 
-ca_acs1 = ca_df1 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
-ca_acs2 = ca_df2 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
+
+state_acs1 = state_df1 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
+state_acs2 = state_df2 %>% dcast(GEOID + NAME ~ variable, value.var = "estimate")
 
 naics_m = c(
   "n11_m",
@@ -169,10 +177,10 @@ naics = c(
   "n92"
 )
 
-names(ca_acs1) = c("GEOID", "NAME", naics_m)
-names(ca_acs2) = c("GEOID", "NAME", naics_f)
+names(state_acs1) = c("GEOID", "NAME", naics_m)
+names(state_acs2) = c("GEOID", "NAME", naics_f)
 
-ca_acs = ca_acs1 %>% left_join(ca_acs2, by = c("GEOID", "NAME")) %>% mutate(
+state_acs = state_acs1 %>% left_join(state_acs2, by = c("GEOID", "NAME")) %>% mutate(
   n11 = n11_m + n11_f,
   n21 = n21_m + n21_f,
   n22 = n22_m + n22_f,
@@ -195,20 +203,27 @@ ca_acs = ca_acs1 %>% left_join(ca_acs2, by = c("GEOID", "NAME")) %>% mutate(
   n92 = n92_m + n92_f
 )
 
-ca_acs = ca_acs %>% select(GEOID, NAME, all_of(naics)) %>% mutate(metalayer_id = substr(GEOID, 1, 8)) %>%
+state_acs = state_acs %>% select(GEOID, NAME, all_of(naics)) %>% mutate(metalayer_id = substr(GEOID, 1, 8)) %>%
   select(GEOID, metalayer_id, all_of(naics))
 
-data.table::fwrite(ca_acs, "ca_naics.csv")
 
-ca_df = get_acs(
+v19 <- load_variables(2019, "acs5", cache = TRUE)
+View(v19)
+
+state_bg_df = get_acs(
   geography = "block group",
   year = 2019,
-  variables = fem_naics,
-  state = "CA",
+  variables = c('B01003_001'),
+  state = selected_state,
   geometry = TRUE
 )
-sf::st_write(ca_df, "ca_bg.geojson")
 
+state_bg_df_filtered <- state_bg_df %>% filter(! grepl('Block Group 0', NAME)) # with population
+list_of_geoid <- unique(state_bg_df_filtered$GEOID)
+bg_name = paste0(selected_state, '_bg.geojson')
+sf::st_write(state_bg_df_filtered, bg_name)
 
-
+state_acs_filtered <- state_acs %>% filter(GEOID %in% list_of_geoid)
+output_name = paste0(selected_state, '_naics.csv')
+data.table::fwrite(state_acs_filtered, output_name)
 
