@@ -59,7 +59,7 @@ for k in range(5):
     sctg = k + 1
     print('process SCTG group ' + str(sctg))
     shipment_by_distance_bin_distribution.loc[:, 'probability'] = shipment_by_distance_bin_distribution.loc[:, str(sctg)]
-    g1_consm = read_csv("outputs/consumers_sctg" + str(sctg) +".csv", low_memory = False)
+    g1_consm = read_csv("outputs_SF/consumers_sctg" + str(sctg) +".csv", low_memory = False)
     g1_consm = pd.merge(g1_consm, mesozone_to_faf_lookup, left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
     g1_consm.loc[:, 'FAFID'] = g1_consm.loc[:, 'FAFID'].replace(np.nan, 0)
 

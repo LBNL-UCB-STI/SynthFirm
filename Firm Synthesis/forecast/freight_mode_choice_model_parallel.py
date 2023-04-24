@@ -8,7 +8,7 @@ Created on Thu Aug  5 11:30:01 2021
 from pandas import read_csv
 import pandas as pd
 import numpy as np
-import constants as c
+# import constants as c
 import os, sys
 import warnings
 import shutil
@@ -18,39 +18,53 @@ warnings.filterwarnings('ignore')
 
 # change to data dir
 
-os.chdir('../../')
+os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 #define parameter file names
-mode_choice_param_file = 'freight_mode_choice_5alt_national.csv'
+mode_choice_param_file = 'freight_mode_choice_7alt_austin.csv'
 
 
 # load parameter
-mode_choice_param = read_csv(c.param_dir + mode_choice_param_file, sep = ',')
+mode_choice_param = read_csv('Parameter/' + mode_choice_param_file, sep = ',')
 # print(mode_choice_param)
-mesozone_lookup = read_csv(c.param_dir + c.mesozone_id_lookup_file, sep = ',')
+mesozone_lookup = read_csv('Parameter/' + 'zonal_id_lookup_final.csv', sep = ',')
 # value_density_lookup = read_csv(c.param_dir + c.value_density_file, sep = ',')
-distance_travel_time_skim = read_csv(c.param_dir + c.distance_travel_skim_file, sep = ',')
+distance_travel_time_skim = read_csv('Parameter/' + 'combined_travel_time_skim_7alt.csv', sep = ',')
+op_cost_by_scenario = read_csv('Parameter/' + 'opcost_sensitivity_analysis.csv', sep = ',')
 list_of_alternative = mode_choice_param['Alternative'].tolist()
 chunk_size = 10 ** 6  # process large data by chunk
 
+weight_bin = [0, 0.075, 0.75, 15, 22.5, 30000]
+weight_bin_label = [1, 2, 3, 4, 5]
+output_dir = 'outputs_aus_2050/'
+lb_to_ton = 1/2000
+NAICS_wholesale = [42]
+NAICS_mfr = [31, 32, 33]
+NAICS_mgt = [55]
+NAICS_retail = [44, 45]
+NAICS_info = [51]
+NAICS_mining = [21]
+NAICS_tw = [49]
+list_of_sctg_group = ['sctg1', 'sctg2', 'sctg3', 'sctg4', 'sctg5']
+
 ###### Functions used for mode choice variable generation and simulation #####
 
-def choice_model_variable_generator(data):     # generate variables for mode choice model #####
+def choice_model_variable_generator(data, fuel_cost, elec_cost, rail_cost):     # generate variables for mode choice model #####
     
     # weight bin
-    data.loc[:, 'weight_bin'] = pd.cut(data.loc[:, 'TruckLoad'], bins = c.weight_bin, 
-                                       labels = c.weight_bin_label, right = True,
+    data.loc[:, 'weight_bin'] = pd.cut(data.loc[:, 'TruckLoad'], bins = weight_bin, 
+                                       labels = weight_bin_label, right = True,
                                        include_lowest = True)
     data.loc[:, 'weight_bin'] = data.loc[:, 'weight_bin'].astype(int)
-    data.loc[:, 'weight_bin_1'] = 0
-    data.loc[data['weight_bin'] == 1, 'weight_bin_1'] = 1
-    data.loc[:, 'weight_bin_2'] = 0
-    data.loc[data['weight_bin'] == 2, 'weight_bin_2'] = 1
-    data.loc[:, 'weight_bin_3'] = 0
-    data.loc[data['weight_bin'] == 3, 'weight_bin_3'] = 1
-    data.loc[:, 'weight_bin_4'] = 0
-    data.loc[data['weight_bin'] == 4, 'weight_bin_4'] = 1
-    data.loc[:, 'weight_bin_5'] = 0
-    data.loc[data['weight_bin'] == 5, 'weight_bin_5'] = 1
+    # data.loc[:, 'weight_bin_1'] = 0
+    # data.loc[data['weight_bin'] == 1, 'weight_bin_1'] = 1
+    # data.loc[:, 'weight_bin_2'] = 0
+    # data.loc[data['weight_bin'] == 2, 'weight_bin_2'] = 1
+    # data.loc[:, 'weight_bin_3'] = 0
+    # data.loc[data['weight_bin'] == 3, 'weight_bin_3'] = 1
+    # data.loc[:, 'weight_bin_4'] = 0
+    # data.loc[data['weight_bin'] == 4, 'weight_bin_4'] = 1
+    # data.loc[:, 'weight_bin_5'] = 0
+    # data.loc[data['weight_bin'] == 5, 'weight_bin_5'] = 1
     
     # dummy variables for commodity
     data.loc[:, 'Bulk_val'] = 1 * (data.loc[:, 'SCTG_Group'] == 1) + \
@@ -63,64 +77,62 @@ def choice_model_variable_generator(data):     # generate variables for mode cho
         0 * (data.loc[:, 'SCTG_Group'] != 4)   
     
     # dummy variables for industry type 
-    data.loc[:, 'Wholesale_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(c.NAICS_wholesale)) + \
-        0 * (~data.loc[:, 'NAICS_code'].isin(c.NAICS_wholesale))  
-    data.loc[:, 'Mfr_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(c.NAICS_mfr)) + \
-        0 * (~data.loc[:, 'NAICS_code'].isin(c.NAICS_mfr)) 
-    data.loc[:, 'Mgt_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(c.NAICS_mgt)) + \
-        0 * (~data.loc[:, 'NAICS_code'].isin(c.NAICS_mgt)) 
-    data.loc[:, 'Retail_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(c.NAICS_retail)) + \
-        0 * (~data.loc[:, 'NAICS_code'].isin(c.NAICS_retail))
-    data.loc[:, 'Info_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(c.NAICS_info)) + \
-        0 * (~data.loc[:, 'NAICS_code'].isin(c.NAICS_info))
-    data.loc[:, 'TW_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(c.NAICS_tw)) + \
-        0 * (~data.loc[:, 'NAICS_code'].isin(c.NAICS_tw))           
+    data.loc[:, 'Wholesale_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(NAICS_wholesale)) + \
+        0 * (~data.loc[:, 'NAICS_code'].isin(NAICS_wholesale))  
+    data.loc[:, 'Mfr_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(NAICS_mfr)) + \
+        0 * (~data.loc[:, 'NAICS_code'].isin(NAICS_mfr)) 
+    data.loc[:, 'Mgt_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(NAICS_mgt)) + \
+        0 * (~data.loc[:, 'NAICS_code'].isin(NAICS_mgt)) 
+    data.loc[:, 'Retail_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(NAICS_retail)) + \
+        0 * (~data.loc[:, 'NAICS_code'].isin(NAICS_retail))
+    data.loc[:, 'Info_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(NAICS_info)) + \
+        0 * (~data.loc[:, 'NAICS_code'].isin(NAICS_info))
+    data.loc[:, 'TW_val'] = 1 * (data.loc[:, 'NAICS_code'].isin(NAICS_tw)) + \
+        0 * (~data.loc[:, 'NAICS_code'].isin(NAICS_tw))           
     # assign value density
     # data = pd.merge(data, value_density_lookup, on = 'SCTG_Group', how = 'left')
-    data.loc[:, 'value_density'] = data.loc[:, 'UnitCost'] * c.lb_to_ton
+    data.loc[:, 'value_density'] = data.loc[:, 'UnitCost'] * lb_to_ton
     ##### placeholder for generating alternative specific variables (travel time & cost) ######
     data = pd.merge(data, distance_travel_time_skim, 
                      on = ['orig_FAFID', 'dest_FAFID', 'Alternative'], how = 'left')
     data.loc[:, 'Cost_val'] = 0
     # 1. rail cost
-    data.loc[data['Alternative'] == 'Rail/IMX', 'Cost_val'] = 0.039 * data.loc[data['Alternative'] == 'Rail/IMX', 'TruckLoad'] * \
+    data.loc[data['Alternative'] == 'Rail/IMX', 'Cost_val'] = rail_cost * data.loc[data['Alternative'] == 'Rail/IMX', 'TruckLoad'] * \
         data.loc[data['Alternative'] == 'Rail/IMX','Distance']
     data.loc[(data['Alternative'] == 'Rail/IMX') & (data['Cost_val'] < 200), 'Cost_val'] = 200
     # 2. air cost
     data.loc[data['Alternative'] == 'Air', 'Cost_val'] = 55 + 1.08 * (data.loc[data['Alternative'] == 'Air','TruckLoad'] > 0.05) * \
-        (data.loc[data['Alternative'] == 'Air','TruckLoad'] - 0.05) / c.lb_to_ton
+        (data.loc[data['Alternative'] == 'Air','TruckLoad'] - 0.05) / lb_to_ton
     # 3. truck cost
-    truck_criteria = (data['Alternative'] == 'Private Truck') | (data['Alternative'] == 'For-hire Truck')
-    weight_criteria_low = (data['TruckLoad'] < 0.075)
-    weight_criteria_medium = (data['TruckLoad'] >= 0.075) & (data['TruckLoad'] < 0.75)
-    weight_criteria_high = (data['TruckLoad'] >= 0.75) 
-    data.loc[truck_criteria & weight_criteria_low, 'Cost_val'] = 2.83 * data.loc[truck_criteria & weight_criteria_low,'TruckLoad'] * \
-        data.loc[truck_criteria & weight_criteria_low, 'Distance']
-    data.loc[truck_criteria & weight_criteria_medium, 'Cost_val'] = 0.5 * data.loc[truck_criteria & weight_criteria_medium,'TruckLoad'] * \
-        data.loc[truck_criteria & weight_criteria_medium, 'Distance']
-    data.loc[truck_criteria & weight_criteria_high, 'Cost_val'] = 0.18 * data.loc[truck_criteria & weight_criteria_high,'TruckLoad'] * \
-        data.loc[truck_criteria * weight_criteria_high, 'Distance']   
-    data.loc[truck_criteria & (data['Cost_val'] < 10), 'Cost_val'] = 10
+    truck_modes = ['Private Truck Fuel', 'Private Truck Elec',
+                           'For-hire Truck Fuel', 'For-hire Truck Elec']
+    data.loc[data['Alternative'] == 'Private Truck Fuel', 'Cost_val'] = fuel_cost * \
+        data.loc[data['Alternative'] == 'Private Truck Fuel', 'Distance']
+    data.loc[data['Alternative'] == 'Private Truck Elec', 'Cost_val'] = elec_cost * \
+        data.loc[data['Alternative'] == 'Private Truck Elec', 'Distance']
+    data.loc[data['Alternative'] == 'For-hire Truck Fuel', 'Cost_val'] = fuel_cost * \
+        data.loc[data['Alternative'] == 'For-hire Truck Fuel', 'Distance']  
+    data.loc[data['Alternative'] == 'For-hire Truck Elec', 'Cost_val'] = elec_cost * \
+        data.loc[data['Alternative'] == 'For-hire Truck Elec', 'Distance']   
+    data.loc[(data['Alternative'].isin(truck_modes)) & (data['Cost_val'] < 10), 'Cost_val'] = 10
     
     # 4. parcel
-    data.loc[data['Alternative'] == 'Parcel', 'Cost_val'] =  3.58 + 0.015 * data.loc[data['Alternative'] == 'Parcel', 'TruckLoad'] / c.lb_to_ton
+    data.loc[data['Alternative'] == 'Parcel', 'Cost_val'] =  3.58 + 0.015 * data.loc[data['Alternative'] == 'Parcel', 'TruckLoad'] / lb_to_ton
     # 4. parcel cost
     
     ###### assign mode availability ######
     data.loc[:, 'mode_available'] = 1
     data.loc[(data['Alternative'] == 'Air') & (data['TruckLoad'] > 7.5), 'mode_available'] = 0 
     data.loc[(data['Alternative'] == 'Parcel') & (data['TruckLoad'] > 0.15), 'mode_available'] = 0  
-    data.loc[(data['Alternative'] == 'Private Truck') & (data['Distance'] > 500), 'mode_available'] = 0 
+    data.loc[(data['Alternative'] == 'Private Truck Fuel') & (data['Distance'] > 500), 'mode_available'] = 0 
+    data.loc[(data['Alternative'] == 'Private Truck Elec') & (data['Distance'] > 500), 'mode_available'] = 0 
     data.loc[(data['Distance'].isna()) | (data['Travel_time'].isna()), 'mode_available'] = 0         
     return(data)        
 
 def mode_choice_utility_generator(data, mode_choice_param): # compute utility and probability by mode
     data = pd.merge(data, mode_choice_param, on = 'Alternative', how = 'left')
     data.loc[:, 'Utility'] = data.loc[:, 'constant'] * data.loc[:, 'Const'] + \
-    data.loc[:, 'weight_bin_2'] * data.loc[:, 'Weight_2'] + \
-    data.loc[:, 'weight_bin_3'] * data.loc[:, 'Weight_3'] + \
-    data.loc[:, 'weight_bin_4'] * data.loc[:, 'Weight_4'] + \
-    data.loc[:, 'weight_bin_5'] * data.loc[:, 'Weight_5'] + \
+    data.loc[:, 'weight_bin'] * data.loc[:, 'Weight'] + \
     data.loc[:, 'Distance'] * data.loc[:, 'Dist'] + \
     data.loc[:, 'Bulk_val'] * data.loc[:, 'Bulk'] + \
     data.loc[:, 'Fuel_fert_val'] * data.loc[:, 'Fuel_fert'] + \
@@ -169,7 +181,7 @@ def split_dataframe(df, chunk_size = 10 ** 6):
     return chunks
 
 def process_chunk(args):
-    modeled_OD_by_sctg, i=args
+    modeled_OD_by_sctg, i, fuel_cost, elec_cost, rail_cost, output_path, sctg, file_name = args
 
     print('process chunk id ' + str(i))
     # select domestic shipment
@@ -188,7 +200,7 @@ def process_chunk(args):
         var_name='Alternative', value_name='constant')  # convert wide dataframe to long
     # modeled_OD_by_sctg_long.loc[modeled_OD_by_sctg_long['TruckLoad'] > c.max_shipment_load, 'TruckLoad'] = c.max_shipment_load
     ##### generate variables for mode choice model #####
-    modeled_OD_by_sctg_long = choice_model_variable_generator(modeled_OD_by_sctg_long)
+    modeled_OD_by_sctg_long = choice_model_variable_generator(modeled_OD_by_sctg_long, fuel_cost, elec_cost, rail_cost)
     ##### compute utilities and probabilities #####
     print('start mode choice generation')
     mode_choice_results = mode_choice_utility_generator(modeled_OD_by_sctg_long, mode_choice_param)
@@ -225,39 +237,74 @@ def process_chunk(args):
 
     ##### writing output ######
     # combined_modeled_OD_by_sctg.to_csv(c.input_dir + 'sample_mode_choice.csv')
-    modeled_OD_by_sctg.to_csv(c.output_dir + sctg + '/reassigned_' + file_name + '_' + str(i) + '.zip') # writing output
+    final_path = output_path + '/' + sctg
+    isExist = os.path.exists(final_path)
+    if not isExist:
+        os.makedirs(final_path)
+            
+               # Create a new directory because it does not exist
+               
+    modeled_OD_by_sctg.to_csv(final_path + '/reassigned_' + file_name + '_' + str(i) + '.zip') # writing output
 
-# aggregated output data
-# mode_choide_by_commodity = None
-chunk_size = 10 ** 6
-njob=0
-###### processing OD flow and generate mode choice ##########
-for sctg in c.list_of_sctg_group:
-    if sys.argv[-1].startswith("sctg"):
-        if sctg!=sys.argv[-1]: continue
-    print(sctg)
-    sctg_id = int(sctg[4])
-    file_start = 'shipment_' + sctg
-    filelist = sorted([file for file in os.listdir(c.output_dir) if file.startswith(file_start)])
-    i = 1688
-    print(len(filelist))
-    for f in filelist:
-        print(f)
-        all_modeled_OD_by_sctg = read_csv(c.output_dir + f, low_memory=False) 
-        all_modeled_OD_by_sctg.reset_index(inplace = True)
-        chunks_of_flows = split_dataframe(all_modeled_OD_by_sctg, chunk_size)
-        # OD_file_to_load = sctg + '_OD.csv'
-        file_name = sctg + '_OD'
-        jobs=[]
-        for modeled_OD_by_sctg in chunks_of_flows:
-            jobs.append( (modeled_OD_by_sctg, i))
-            i+=1
+def main():
+    # aggregated output data
+    # mode_choide_by_commodity = None
+    chunk_size = 10 ** 6
+    njob=0
+    fuel_scenario = ['HOP', 'Ref']
+    elec_scenario = ['p2', 'p4', 'p6', 'p8', 'p10']
+    for fs in fuel_scenario:
+        for es in elec_scenario:
+            print('processing scenario ' + fs + ' for fuel and ' + es + ' for elec')
+            scenario_name = fs + '_' + es
+            output_path = output_dir + scenario_name
+            # Check whether the specified path exists or not
+            isExist = os.path.exists(output_path)
+            if not isExist:
+            
+               # Create a new directory because it does not exist
+               os.makedirs(output_path)
+    
+            row_index = (op_cost_by_scenario['Diesel_Scenario'] == fs) & \
+                        (op_cost_by_scenario['Elec_Scenario'] == es)
+            fuel_cost = np.round(op_cost_by_scenario.loc[row_index, 'Diesel_TC'], 2) 
+            elec_cost = np.round(op_cost_by_scenario.loc[row_index, 'Elec_TC'], 2) 
+            rail_cost = np.round(op_cost_by_scenario.loc[row_index, 'Rail_TC'], 2)                         
+    ###### processing OD flow and generate mode choice ##########
+            for sctg in list_of_sctg_group:
+                if sys.argv[-1].startswith("sctg"):
+                    if sctg!=sys.argv[-1]: continue
+                print(sctg)
+                # sctg_id = int(sctg[4])
+                file_start = 'shipment_' + sctg
+                filelist = sorted([file for file in os.listdir(output_dir) if file.startswith(file_start)])
+                i = 0
+                print(len(filelist))
+                for f in filelist:
+                    print(f)
+                    all_modeled_OD_by_sctg = read_csv(output_dir + f, low_memory=False) 
+                    all_modeled_OD_by_sctg.reset_index(inplace = True)
+                    chunks_of_flows = split_dataframe(all_modeled_OD_by_sctg, chunk_size)
+                    # OD_file_to_load = sctg + '_OD.csv'
+                    file_name = sctg + '_OD'
+                    jobs=[]
+                    for modeled_OD_by_sctg in chunks_of_flows:
+                        jobs.append( (modeled_OD_by_sctg, i, fuel_cost, elec_cost, rail_cost, output_path, sctg, file_name))
+                        i+=1
+            
+                    print(len(jobs))
+                    njob+=len(jobs)
+                    pl=Pool(4)
+                    pl.map(process_chunk, jobs)
+                    # for j in jobs: process_chunk(j)
+            
+                    # shutil.move(output_dir + f, output_path + f)
+        #             break
+        #         break
+        #     break
+        # break
+         
+        print("total jobs", njob)
 
-        print(len(jobs))
-        njob+=len(jobs)
-        pl=Pool(8)
-        pl.map(process_chunk, jobs)
-
-        shutil.move(c.output_dir + f, c.output_dir + 'processed_shipment/' + f)
- 
-print("total jobs", njob)
+if __name__ == '__main__':
+    main()
