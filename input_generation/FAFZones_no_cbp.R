@@ -16,27 +16,28 @@ if (length(new.packages))
   install.packages(new.packages)
 lapply(list.of.packages, require, character = TRUE)
 #################################################################################
-#install_github("f1kidd/fmlogit")
+
 path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 setwd(path2file)
 
-region_name = 'SFBay'
+# define inputs
+region_name = 'BayArea'
 naics_code <-
-  data.table::fread('corresp_naics6_n6io_sctg_revised.csv', h = T)
+  data.table::fread('RawData/corresp_naics6_n6io_sctg_revised.csv', h = T)
 cbp_data <-
-  data.table::fread("data_emp_cbp.csv", h = T)
-region_file_name = paste0(region_name, '_FAFCNTY.csv')
+  data.table::fread(paste0('inputs_', region_name, '/data_emp_cbp.csv'), h = T)
+region_file_name = paste0('inputs_', region_name, '/', region_name, '_FAFCNTY.csv')
 faf_county_lookup <-
   data.table::fread(region_file_name, h = T)
 
+# generate list of industries to fill (not in CBP data)
 list_of_naics_in_cbp <- unique(cbp_data$Industry_NAICS6_CBP)
 naics_code_to_fill <-naics_code %>% filter(!Industry_NAICS6_CBP %in% list_of_naics_in_cbp) %>% as_tibble()
-
 list_of_naics_to_add <- as.character(unique(naics_code_to_fill$Industry_NAICS6_CBP))
 
 #download from U.S. department of labor, QCEW by industry, https://www.bls.gov/cew/downloadable-data-files.htm
-list_of_qcew_files <- list.files('2017_annual_by_industry')
+list_of_qcew_files <- list.files('RawData/2017_annual_by_industry')
 qcew_files <- as.data.table(list_of_qcew_files)
 qcew_files_sep <- separate(qcew_files, sep = ' ', col = c('list_of_qcew_files'),
                            into = c('s1', 's2', 's3', 's4', 's5', 's6'))
@@ -47,7 +48,7 @@ qcew_files_to_add <- qcew_files_sep %>% filter(s2 %in% list_of_naics_to_add) %>%
 cbp_filled_out <- NULL
 for (row in 1:nrow(qcew_files_to_add)) {
   print(qcew_files_to_add[row, 's2'])
-  link <- paste0('2017_annual_by_industry/', qcew_files_to_add[row, 'list_of_qcew_files'])
+  link <- paste0('RawData/', '2017_annual_by_industry/', qcew_files_to_add[row, 'list_of_qcew_files'])
   firm_emp_by_naics <- data.table::fread(link, h = T)
   firm_emp_by_naics <- firm_emp_by_naics %>% filter(agglvl_code == 78, annual_avg_estabs_count > 0) %>% as_tibble()
   firm_emp_by_naics_summary <- firm_emp_by_naics %>%
@@ -90,13 +91,7 @@ for (row in 1:nrow(qcew_files_to_add)) {
 }
 
 industry_code_added <- unique(cbp_filled_out$Industry_NAICS6_CBP)
-# naics_code_to_fill <-naics_code_to_fill %>% mutate(processed_industry = ifelse(Industry_NAICS6_CBP %in% industry_code_added, Industry_NAICS6_CBP,
-#                                                                                floor(Industry_NAICS6_CBP/10)))  %>% as_tibble()
-
 naics_code_to_fill_remaining <- naics_code_to_fill[(! naics_code_to_fill$Industry_NAICS6_CBP %in% industry_code_added),]
-# list_of_naics_to_add_5digit <- unique(naics_code_to_fill_remaining$processed_industry)
-# qcew_files_remaining <- qcew_files_sep %>% filter(! s2 %in% industry_code_added) %>% as_tibble()
-# qcew_files_to_add_5digit <- qcew_files_sep %>% filter(s2 %in% list_of_naics_to_add_5digit) %>% as_tibble() # match with 6 digit
 
 additional_cbp_filled_out <- NULL
 list_of_naics_with_data <- unique(as.numeric(qcew_files_sep$s2))
@@ -124,8 +119,7 @@ for (row in 1:nrow(naics_code_to_fill_remaining)) {
     next}
   file_name <- qcew_files_sep[qcew_files_sep$s2 == s2_value, 'list_of_qcew_files']
   selected_naics <- qcew_files_sep[qcew_files_sep$s2 == s2_value, 's2']
-  # print(qcew_files_to_add[row, 's2'])
-  link <- paste0('2017_annual_by_industry/', file_name)
+  link <- paste0('RawData/', '2017_annual_by_industry/', file_name)
   firm_emp_by_naics <- data.table::fread(link, h = T)
   firm_emp_by_naics <- firm_emp_by_naics %>% filter(agglvl_code == agg_lev_code, annual_avg_estabs_count > 0) %>% as_tibble()
   firm_emp_by_naics_summary <- firm_emp_by_naics %>%
@@ -165,19 +159,26 @@ for (row in 1:nrow(naics_code_to_fill_remaining)) {
                                        'employment',	'establishment',	'e1',	'e2',	'e3',	'e4',	'e5',	'e6',	'e7')
   firm_emp_by_naics_out$Industry_NAICS6_CBP = raw_naics
   additional_cbp_filled_out <- rbind(additional_cbp_filled_out, firm_emp_by_naics_out)
-  # break
+
 }
-write.csv(additional_cbp_filled_out, 'gap_filling_cbp_data.csv')
+
+# output_path <- paste0('inputs_', region_name, '/gap_filling_cbp_data.csv')
+# write.csv(additional_cbp_filled_out, output_path)
 
 additional_cbp_out <- additional_cbp_filled_out %>% 
   ungroup() %>% 
   select(Industry_NAICS6_CBP, FAFZONE,	CBPZONE, employment,	establishment,	e1,	e2,	e3,	e4,	e5,	e6,	e7)
 
 final_cbp_with_gap_filling <- rbind(cbp_data, cbp_filled_out, additional_cbp_out)
-write.csv(final_cbp_with_gap_filling, 'data_emp_cbp_imputed.csv')
+output_path <- paste0('inputs_', region_name, '/data_emp_cbp_imputed.csv')
+write.csv(final_cbp_with_gap_filling, output_path)
 total_emp <- sum(final_cbp_with_gap_filling$employment)
 total_est <- sum(final_cbp_with_gap_filling$establishment)
 
-
 old_emp <- sum(cbp_data$employment)
 old_est <- sum(cbp_data$establishment)
+
+print(paste('firms before imputation', old_est))
+print(paste('firms after imputation', total_est))
+print(paste('employees before imputation', old_emp))
+print(paste('firms after imputation', total_emp))

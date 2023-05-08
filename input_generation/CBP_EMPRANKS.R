@@ -16,11 +16,11 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 setwd(path2file)
 
 selected_state = 'CA'
-selected_region = 'SFBay'
+selected_region = 'BayArea'
 
 naics = c(
   "n11",
@@ -69,11 +69,10 @@ rank_vars = c(
   "rank92",
   "rank99"
 )
-selected_file = paste0(selected_region, '_FAFCNTY.csv')
-f1 = data.table::fread(selected_file,colClasses = list(character=c("ANSI_ST","ANSI_CNTY","ST_CNTY")),
-                       h=T)
+selected_file = paste0('inputs_', selected_region, '/', selected_region, '_FAFCNTY.csv')
+f1 = data.table::fread(selected_file,colClasses = list(character=c("ANSI_ST","ANSI_CNTY","ST_CNTY")), h=T)
 
-naics_file_name = paste0(selected_state, '_naics.csv') # employment data
+naics_file_name = paste0('inputs_', selected_region, '/', selected_state, '_naics.csv') # employment data
 f2 = data.table::fread(naics_file_name,colClasses = list(character=c("GEOID","metalayer_id")),h=T)
 f2 = f2 %>% select(-c(metalayer_id))
 
@@ -87,7 +86,8 @@ naics_df3 = naics_df3 %>% group_by(GEOID) %>% mutate(percrank = floor(10*rank(pc
 naics_df4 = reshape2::dcast(naics_df3, GEOID ~ variable, value.var = "percrank")
 naics_df4 = naics_df4 %>% mutate(cnty_id = substr(GEOID, 1, 5))
 
-study_area_faf <- c(64, 62, 65, 69)  # need to make this token a global input
+f1_in_study_area <- f1 %>% filter(CBPZONE>=1000)
+study_area_faf <- unique(f1_in_study_area$FAFID)
 f3 = f1 %>% filter(FAFID %in% study_area_faf) %>% select(ST_CNTY,CBPZONE1)
 
 naics_df5 = naics_df4 %>% left_join(f3, by=c("cnty_id"="ST_CNTY")) #employment within study area
@@ -99,8 +99,10 @@ naics_df7 = naics_df6 %>% select(CBPZONE1,MESOZONE,all_of(naics))
 names(naics_df7)[3:23] = rank_vars
 naics_df7 = naics_df7 %>% rename(COUNTY = CBPZONE1)
 
-data.table::fwrite(naics_df7, "data_mesozone_emprankings.csv")
-data.table::fwrite(naics_df6[c("CBPZONE1","GEOID","MESOZONE")],"MESOZONE_GEOID_LOOKUP.csv")
+output_path = paste0('inputs_', selected_region, '/data_mesozone_emprankings.csv')
+data.table::fwrite(naics_df7, output_path)
+output_path_2 = paste0('inputs_', selected_region, '/MESOZONE_GEOID_LOOKUP.csv')
+data.table::fwrite(naics_df6[c("CBPZONE1","GEOID","MESOZONE")], output_path_2)
 
 
 

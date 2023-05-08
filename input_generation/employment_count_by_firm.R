@@ -16,13 +16,14 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm/BayArea_GIS"
+  "/Users/xiaodanxu/Documents/SynthFirm"
 setwd(path2file)
 
 # link: https://www2.census.gov/programs-surveys/susb/datasets/2016/us_state_naics_detailedsizes_2016.txt
 # info: https://www.census.gov/programs-surveys/susb.html
 
-employment_by_firm_size = data.table::fread("us_state_naics_detailedsizes_2016.txt", h = T)
+# load inputs
+employment_by_firm_size = data.table::fread("RawData/us_state_naics_detailedsizes_2016.txt", h = T)
 employment_by_firm_size <- employment_by_firm_size %>% filter(NAICS != '--')
 employment_by_firm_size <- employment_by_firm_size %>% mutate(NAICS = as.integer(NAICS))
 employment_by_firm_size = employment_by_firm_size %>% na.exclude()
@@ -47,11 +48,11 @@ employment_by_size_group <- employment_by_6digit_naics %>%
 employment_by_size_group <- employment_by_size_group %>% mutate(emp_per_est  = total_emp/total_est, est_per_firm = total_est/total_firm)
 
 employment_by_size_group_filtered <- employment_by_size_group %>% filter(est_per_firm < 1.5)
-write.csv(employment_by_size_group_filtered, 'employment_by_firm_size_naics.csv')
+write.csv(employment_by_size_group_filtered, 'RawData/employment_by_firm_size_naics.csv')
 
 employment_by_size_group_no_naics <- employment_by_size_group_filtered %>% 
   group_by(size_group) %>% 
   summarise(total_emp = sum(total_emp), total_est = sum(total_est))
 
 employment_by_size_group_no_naics <- employment_by_size_group_no_naics %>% mutate(emp_per_est  = total_emp/total_est)
-write.csv(employment_by_size_group_no_naics, 'employment_by_firm_size_gapfill.csv')
+write.csv(employment_by_size_group_no_naics, 'RawData/employment_by_firm_size_gapfill.csv')
