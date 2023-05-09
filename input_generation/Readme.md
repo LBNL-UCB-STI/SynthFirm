@@ -1,6 +1,6 @@
 # SynthFirm Input Data Generation
 <p>This folder include scripts that are used to generate SynthFirm inputs from raw data sources under various geographic resolution </p>
-<p> Contact: Xiaodan Xu, Ph.D.  <XiaodanXu@lbl.gov> </p>
+<p> Contact: Xiaodan Xu, Ph.D.  XiaodanXu@lbl.gov </p>
 <p> Update (May 8, 2023): documented firm and employment data generation </p>
 
 ## a. national-level input generation (regardless of study area)
