@@ -13,8 +13,9 @@
   
 ### step a.2 - generate initial employment count per firm by firm size at national level (employment_count_by_firm.R):
 * Require CENSUS employment data by firm size (https://www.census.gov/programs-surveys/susb.html)
-* Produce average employment per firm by firm size group and industry'employment_by_firm_size_naics.csv'
-* Produce average employment per firm by firm size group for industries without observed data 'employment_by_firm_size_naics.csv' (while this value is not used in SynthFirm output due to IPF fitting, it is needed to initiate firm synthesize and provide initial employmnet values)
+* Produce average employment per firm by firm size group  'employment_by_firm_size_gapfill.csv'
+* Produce average employment per firm by firm size group and industries 'employment_by_firm_size_naics.csv' 
+* While these two tables are not directly associated with synthetic firm output due to IPF fitting, it is needed to initiate firm synthesize and provide initial employment values.
 
 
 ## b.study area input generation (need to specify study region)
