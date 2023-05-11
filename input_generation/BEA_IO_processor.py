@@ -11,19 +11,22 @@ import os
 import numpy as np
 from pandas import read_csv
 
-data_dir = '/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS/'
+data_dir = '/Users/xiaodanxu/Documents/SynthFirm.nosync/'
 os.chdir(data_dir)
 
-io_2012 = read_csv('BEA_IO/BEA_IO_2012_6digit_USE.csv')
-io_2017 = read_csv('BEA_IO/data_2017io_revised_USE_with_added_value.csv')
-io_2017_sum = read_csv('BEA_IO/data_2017io_revised_USE_total_commodity.csv')
-
-naics_lookup = read_csv('BEA_IO/NAICS_reference_table_final.csv')
-synthfirm_naics = read_csv('BEA_IO/corresp_naics6_n6io_sctg_revised.csv')
-
+# load inputs
+io_2012 = read_csv('RawData/BEA_IO/BEA_IO_2012_6digit_USE.csv') # formatted 2012 I-O table
+io_2017 = read_csv('RawData/BEA_IO/data_2017io_revised_USE_with_added_value.csv')
+# formatted 2017 I-O table, with 'value added' row kept from raw data
+io_2017_sum = read_csv('RawData/BEA_IO/data_2017io_revised_USE_total_commodity.csv')
+# row sum (industry total from 2017 I-O table)
+naics_lookup = read_csv('RawData/BEA_IO/NAICS_reference_table_final.csv')
+# industry reference table from 2012 I-O definition page
+synthfirm_naics = read_csv('RawData/corresp_naics6_n6io_sctg_revised.csv')
+# empirical industry-commodity lookup table from MAG model
 # <codecell>
 
-# matching NAICS code to IO table
+# clean and format inputs
 io_2012 = io_2012.fillna(0)
 io_2017 = io_2017.replace('---', 0)
 io_2017_sum = io_2017_sum.replace('---', 0)
@@ -98,6 +101,8 @@ print(io_2017_to_adj.cell_value.sum())
 io_2017_long =io_2017_to_adj[['make_17', 'use_17', 'cell_value']]
 io_2017_long.columns = ['make_17', 'use_17', 'value_17']
 # <codecell>
+
+# matching NAICS code to IO table
 naics_lookup = naics_lookup[['NAICS12', 'NAICS17']]
 
 
@@ -166,8 +171,8 @@ for i in range(niter):
 print(io_2012_long_to_adj.value_12.sum())
 # <codecell>
 
-# compare to current IO data
-current_io = read_csv('BEA_IO/data_2017io.csv')
+# compare to previous IO data that Srinath generated
+current_io = read_csv('RawData/BEA_IO/data_2017io.csv')
 current_io_long = pd.melt(current_io, id_vars = ['Industry_NAICS6_MakeUse'], 
                                   var_name = 'Use', value_name = 'value')
 naics_code_make = current_io_long.Industry_NAICS6_MakeUse.unique()
@@ -181,6 +186,7 @@ print(current_io_long.value.sum())
 print(io_2012_long_filtered.value_12.sum())
 # <codecell>
 synthfirm_naics_unique = synthfirm_naics.Industry_NAICS6_Make.unique()
+# harmonize industry code used in different data (it needs to be updated if the industry code changed in later updates)
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['230302']), 'make'] = '230301'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['233210']), 'make'] = '230301'
 io_2012_long_to_adj.loc[io_2012_long_to_adj['make'].isin(['233230']), 'make'] = '230301'
@@ -283,5 +289,5 @@ print(io_2012_long_filtered.value_12.sum())
 io_2012_long_filtered.loc[:, 'use'] = 'X' + io_2012_long_filtered.loc[:, 'use']
 io_2012_wide = pd.pivot_table(io_2012_long_filtered, values='value_12', index=['make'],
                     columns=['use'], aggfunc=np.sum)
-io_2012_wide.to_csv('BEA_IO/data_2017io_revised_USE_value_added.csv')
+io_2012_wide.to_csv('RawData/BEA_IO/data_2017io_revised_USE_value_added.csv')
 
