@@ -33,9 +33,9 @@ def split_dataframe(df, chunk_size = 100000):
     return chunks
 
 # load input
-scenario_name = 'Ref_highp6'
-analysis_year = '2050'
-output_dir = 'outputs_aus_fleet'
+scenario_name = 'TDA_low'
+analysis_year = '2018'
+output_dir = 'outputs_aus_2050'
 result_dir = output_dir + '/' + analysis_year + '/' + scenario_name
     
 firms = read_csv(result_dir + '/synthetic_firms_with_fleet.csv')
@@ -57,7 +57,7 @@ payload_capacity = {'Class 4-6 Vocational': 4,
 
 ev_availability.head(5)
 # filter vehicle composition data
-analysis_year = 2050
+analysis_year = 2018
 vehicle_type_by_state = \
 vehicle_type_by_state.loc[vehicle_type_by_state['Year'] == analysis_year]
 
@@ -68,7 +68,7 @@ ev_availability = ev_availability.loc[ev_availability['Year'] == analysis_year]
 
 # load b2b output
 combined_b2b_flow = None
-dir_to_outputs = 'mode_choice/outputs'
+dir_to_outputs = 'outputs_aus_2050'
 for i in range(5):
     sctg = i + 1
     sctg_code = 'sctg' + str(sctg)
