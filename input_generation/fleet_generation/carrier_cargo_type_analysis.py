@@ -12,17 +12,17 @@ import pandas as pd
 import numpy as np
 
 
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync/BayArea_GIS')
+os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
-carrier_census_data = read_csv('CENSUS_20220109_all.csv', sep = ',', encoding='latin1')
+carrier_census_data = read_csv('PrivateData/registration/CENSUS_20220109_all.csv', sep = ',', encoding='latin1')
 # carrier_census_data.to_csv('FMCSA_CENSUS1_2022Jan.csv', index = False)
-
+output_dir = 'inputs_BayArea/fleet/'
 
 # <codecell>
-sample_carrier_data = carrier_census_data.head(1000)
-sample_carrier_data.to_csv('FMCSA_CENSUS_sample.csv', index = False)
-print(carrier_census_data.head(5))
-print(carrier_census_data.columns)
+# sample_carrier_data = carrier_census_data.head(1000)
+# sample_carrier_data.to_csv('FMCSA_CENSUS_sample.csv', index = False)
+# print(carrier_census_data.head(5))
+# print(carrier_census_data.columns)
 #carrier_census_data = carrier_census_data.loc[carrier_census_data['CARSHIP'] == 'C'] # = CARRIER
 carrier_census_data = carrier_census_data.loc[carrier_census_data['ACT_STAT'] == 'A'] # = ACTIVE
 carrier_census_data = carrier_census_data.loc[carrier_census_data['PHY_NATN'] == 'US'] # IN US
@@ -120,7 +120,7 @@ cargo_groups_fraction = cargo_groups.sum()/len(cargo_groups)
 cargo_groups_fraction = cargo_groups_fraction.to_frame()
 cargo_groups_fraction.columns = ['probability']
 print(cargo_groups_fraction)
-cargo_groups_fraction.to_csv('probability_of_cargo_group.csv', sep = ',')
+cargo_groups_fraction.to_csv(output_dir + 'probability_of_cargo_group.csv', sep = ',')
 # corr = cargo_groups.corr()
 plt.figure(figsize = (8, 6))
 sns.heatmap(cargo_groups.corr(), cmap = 'coolwarm')

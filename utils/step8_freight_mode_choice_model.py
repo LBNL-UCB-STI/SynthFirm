@@ -89,7 +89,7 @@ def choice_model_variable_generator(data):     # generate variables for mode cho
     data.loc[truck_criteria & (data['Cost_val'] < 10), 'Cost_val'] = 10
     
     # 4. parcel
-    data.loc[data['Alternative'] == 'Parcel', 'Cost_val'] =  3.58 + 0.015 * data.loc[data['Alternative'] == 'Parcel', 'TruckLoad'] / c.lb_to_ton
+    data.loc[data['Alternative'] == 'Parcel', 'Cost_val'] =  np.exp(3.58 + 0.015 * data.loc[data['Alternative'] == 'Parcel', 'TruckLoad'] / c.lb_to_ton)
     # 4. parcel cost
     
     ###### assign mode availability ######

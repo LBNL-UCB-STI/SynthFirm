@@ -18,6 +18,7 @@ warnings.filterwarnings("ignore")
 
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync/')
 
+print('Load inputs and set up scenarios...')
 # vehicle assignment function
 def veh_type_simulator(n_truck, vehicle_type_fraction): # Simulate mode choice
     choice = np.random.multinomial(n_truck, vehicle_type_fraction, size = 1)
@@ -33,29 +34,33 @@ def split_dataframe(df, chunk_size = 100000):
     return chunks
 
 # load input
-scenario_name = 'TDA_low'
+scenario_name = 'Ref_highp6'
 analysis_year = '2018'
-output_dir = 'outputs_aus_2050'
-result_dir = output_dir + '/' + analysis_year + '/' + scenario_name
+output_dir = 'outputs_SF/'
+input_dir = 'inputs_SF/'
+# dir_to_outputs = 'outputs_aus_2050'
+result_dir = output_dir + analysis_year + '/' + scenario_name
     
 firms = read_csv(result_dir + '/synthetic_firms_with_fleet.csv')
-private_fleet = read_csv('inputs/fleet/TX_private_fleet_size_distribution_V2.csv')
-for_hire_fleet = read_csv('inputs/fleet/TX_for_hire_fleet_size_distribution_V2.csv')
-for_lease_fleet = read_csv('inputs/fleet/TX_for_lease_fleet_size_distribution_V2.csv')
-cargo_type_distribution = read_csv("inputs/fleet/probability_of_cargo_group.csv")
+private_fleet = read_csv(input_dir + 'fleet/CA_private_fleet_size_distribution_V2.csv')
+for_hire_fleet = read_csv(input_dir + 'fleet/CA_for_hire_fleet_size_distribution_V2.csv')
+for_lease_fleet = read_csv(input_dir + 'fleet/CA_for_lease_fleet_size_distribution_V2.csv')
+cargo_type_distribution = read_csv(input_dir + "fleet/probability_of_cargo_group.csv")
 
 # forecast values
-national_fleet_composition = read_csv('inputs/fleet/' + scenario_name + '/TDA_vehicle_stock.csv')
-vehicle_type_by_state = read_csv('inputs/fleet/' + scenario_name + '/fleet_composition_by_state.csv')
-ev_availability = read_csv('inputs/fleet/' + scenario_name + '/EV_availability.csv')
+national_fleet_composition = read_csv(input_dir + 'fleet/' + scenario_name + '/TDA_vehicle_stock.csv')
+vehicle_type_by_state = read_csv(input_dir + 'fleet/'  + scenario_name + '/fleet_composition_by_state.csv')
+ev_availability = read_csv(input_dir + 'fleet/'  + scenario_name + '/EV_availability.csv')
 
-state_fips_lookup = read_csv('inputs/us-state-ansi-fips.csv')
+state_fips_lookup = read_csv(input_dir + 'us-state-ansi-fips.csv')
 
 payload_capacity = {'Class 4-6 Vocational': 4,
                    'Class 7&8 Tractor': 18,
                    'Class 7&8 Vocational': 18}
 
-ev_availability.head(5)
+# <codecell>
+########## pre-processing data #######
+print('Formating data and load B2B flow...')
 # filter vehicle composition data
 analysis_year = 2018
 vehicle_type_by_state = \
@@ -68,11 +73,11 @@ ev_availability = ev_availability.loc[ev_availability['Year'] == analysis_year]
 
 # load b2b output
 combined_b2b_flow = None
-dir_to_outputs = 'outputs_aus_2050'
+
 for i in range(5):
     sctg = i + 1
     sctg_code = 'sctg' + str(sctg)
-    file_dir = dir_to_outputs + '/' + sctg_code + '_truck/'
+    file_dir = output_dir + sctg_code + '_truck/'
     filelist = [file for file in os.listdir(file_dir) if (file.endswith('.csv'))]
     print(sctg_code)
     combined_csv = pd.concat([read_csv(file_dir + f, low_memory=False) for f in filelist ])
@@ -91,6 +96,11 @@ firms_with_adj = pd.merge(firms, selected_firms_with_load,
 print(len(firms_without_adj))
 print(len(firms_with_adj))
 
+# <codecell>
+
+###### adjust private fleet within study area #########
+
+print('Regenerate private fleet...')
 # format fleet composition
 list_of_veh_tech = vehicle_type_by_state['vehicle category'].unique().tolist()
 
@@ -108,7 +118,7 @@ firms_with_adj = firms_with_adj[['esizecat', 'CBPZONE', 'FAFZONE', 'Industry_NAI
 
 firms_with_adj = firms_with_adj.drop_duplicates(subset = 'BusID',
                                                 keep = 'first')
-print(len(firms_with_adj.BusID.unique()))
+# print(len(firms_with_adj.BusID.unique()))
 
 # re-generate fleet size for selected firms
 sample_size = len(firms_with_adj)
@@ -122,7 +132,7 @@ firm_fleet_sample = \
 private_fleet_short.sample(n = sample_size,
                            weights = private_fleet_short['fraction_of_carrier'],
                            replace = True)
-print(len(firm_fleet_sample))
+# print(len(firm_fleet_sample))
 # generate random fleet size
 firm_fleet_sample.loc[:, 'n_trucks'] = np.random.normal(loc = firm_fleet_sample.loc[:, 'avg_truck_per_carrier'],
                                                    scale = firm_fleet_sample.loc[:, 'total_truck_std'])
@@ -181,7 +191,7 @@ for chunk in chunks:
     else:
         firms_with_fleet = pd.concat([firms_with_fleet, chunk])
     i += 1
-firms_with_fleet.head(5)
+
 
 # assign EV powertrain
 body_types = ev_availability['vehicle type'].unique()
@@ -208,6 +218,11 @@ for bt in body_types:
     firm_to_assign.loc[:, 'number_of_veh'] * vehicle_capacity
     firms_with_fleet_out = pd.concat([firms_with_fleet_out, firm_to_assign])
 
+# <codecell>
+
+###### format and write output #########
+
+print('Writing output...')
 # format data
 index_var = ['esizecat', 'CBPZONE', 'FAFZONE', 'Industry_NAICS6_Make',
        'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
@@ -236,7 +251,7 @@ firms_with_fleet_short.groupby('BusID')['pdf'].cumsum()
 for i in range(5):
     sctg = i + 1
     sctg_code = 'sctg' + str(sctg)
-    file_dir = dir_to_outputs + '/' + sctg_code + '_truck/'
+    file_dir = output_dir + sctg_code + '_truck/'
 
     filelist = [file for file in os.listdir(file_dir) if (file.endswith('.csv'))]
     print(sctg_code)
@@ -254,12 +269,12 @@ for i in range(5):
         private_truck.loc[criteria, 'indicator'] = 1
         private_truck = private_truck.loc[private_truck['indicator'] == 1]
         private_truck = private_truck.drop_duplicates(subset = 'shipment_id', keep = 'first')
-        print(sample_size, len(private_truck))
+        # print(sample_size, len(private_truck))
         private_truck = private_truck.drop(columns=['rand',	'BusID', 'veh_capacity', 'pdf', 'cdf', 'indicator'])
         private_truck.to_csv(result_dir +  '/private_truck_shipment_' + sctg_code +  '.csv')
     if len(for_hire_truck) > 0:
         for_hire_truck.to_csv(result_dir +  '/for_hire_truck_shipment_' + sctg_code + '.csv')
 
-firms_with_fleet_out = firms_with_fleet_out.drop(columns=['veh_capacity'])
+firms_with_fleet_out = firms_with_fleet_out.drop(columns=['veh_capacity', 'Unnamed: 0'])
 firms_output = pd.concat([firms_with_fleet_out, firms_without_adj])
 firms_output.to_csv(result_dir + '/synthetic_firms_with_fleet_mc_adjusted.csv')
