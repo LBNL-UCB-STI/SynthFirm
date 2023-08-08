@@ -102,6 +102,7 @@ fleet_by_state_output.loc[fleet_by_state_output['vehicle type'] != 'Class 4-6 Tr
 
 
 for scenario_name in list_of_scenarios:
+    print('processing fleet under ' + scenario_name)
     vehicle_stock = pd.read_excel(file_name, sheet_name = scenario_name)  
 #     print(vehicle_stock.columns)
     # vehicle_stock = read_csv('registration/TDAResults.csv')
@@ -159,7 +160,7 @@ for scenario_name in list_of_scenarios:
                            'fuel type', 'vehicle category', 'veh_fraction']]
     
     # writing output
-    # writing output
+
     output_path = output_dir + scenario_name
     isExist = os.path.exists(output_path)
     if not isExist:
