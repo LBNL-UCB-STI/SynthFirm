@@ -1,45 +1,46 @@
 ################ part 4 ######################
 
 #-----------------------------------------------------------------------------------
-rm(list = ls())
-path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/scripts/'
-source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
-source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
+# rm(list = ls())
+# path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/scripts/'
+# source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
+# source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
 
-path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm.nosync"
-setwd(path2file)
+# path2file <-
+#   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
+# setwd(path2file)
+
+print("Generating synthetic consumers...")
+
+output_dir <- paste0(path2file, "/outputs_", scenario)
+
+firms <- data.table::fread(paste0(output_dir, '/', synthetic_firms_no_location_file), h = T) # 8,396, 679 FIRMS
+mesozone_faf_lookup <- data.table::fread(paste0(path2file, "/inputs_", scenario, '/', zonal_id_file), h = T)
 
 c_n6_n6io_sctg <-
-  data.table::fread("./inputs/corresp_naics6_n6io_sctg_revised.csv", h = T)
-firms <- data.table::fread("./outputs/synthetic_firms_v2.csv", h = T)
-unitcost <- data.table::fread("./inputs/data_unitcost_cfs2017.csv", h = T)
+  data.table::fread(paste0(path2file, "/SynthFirm_parameters/", c_n6_n6io_sctg_file), h = T)
+unitcost <- data.table::fread(paste0(path2file, "/SynthFirm_parameters/", agg_unit_cost_file), h = T)
 for_cons <-
-  data.table::fread("./inputs/data_foreign_cons.csv", h = T)
-prefweights <-
-  data.table::fread("./inputs/data_firm_pref_weights.csv", h = T)
+  data.table::fread(paste0(path2file, "/SynthFirm_parameters/", foreign_cons_file), h = T)
+consumer_value_fraction_by_location <- 
+  data.table::fread(paste0(path2file, "/SynthFirm_parameters/", cons_by_zone_file), h = T)
+# prefweights <-
+#   data.table::fread("./inputs/data_firm_pref_weights.csv", h = T)
 
-wholesalers <- data.table::fread('./outputs/synthetic_wholesaler_V2.csv')
-producers <- data.table::fread('./outputs/synthetic_producers_V2.csv')
-io <- data.table::fread('./outputs/data_2017io_filtered_V2.csv')
+wholesalers <- data.table::fread(paste0(output_dir, '/', synthetic_wholesaler_file))
+producers <- data.table::fread(paste0(output_dir, '/', synthetic_producer_file))
+io <- data.table::fread(paste0(output_dir, '/', io_filtered_file))
 
-consumer_value_fraction_by_location <- data.table::fread("./inputs/consumer_value_fraction_by_faf.csv", h = T)
-mesozone_faf_lookup <- data.table::fread("./inputs/zonal_id_lookup_final.csv", h = T)
+sctg_lookup <- data.table::fread(paste0(path2file, "/SynthFirm_parameters/", SCTG_group_file), h = T)
 #-----------------------------------------------------------------------------------
 #Create consumers database
 #-----------------------------------------------------------------------------------
-print("Creating Consumers Database")
 
 #For each firm generate a list of input commodities that need to be purchased (commodity code, amount)
 list_of_supply_industry <- unique(producers$NAICS)
 io <-
   io[Industry_NAICS6_Make %in% list_of_supply_industry] #focus on just producers of transported commodities
 setkey(io, Industry_NAICS6_Use, ProVal) #sort on NAICS_USe, ProVal
-#io <- io[ProVal >0,]
-
-# io[, CumPctProVal := cumsum(ProVal) / sum(ProVal), by = Industry_NAICS6_Use] #cumulative pct value of the consumption inputs
-#io <- io[CumPctProVal > 1 - provalthreshold,] #select suppliers including the first above the threshold value
-
 
 #Calcuate value per employee required
 setnames(firms, "Industry_NAICS6_Make", "Industry_NAICS6_Use")  #In the consumers table Use code is that of the consuming firm
@@ -47,7 +48,7 @@ list_of_consumer_naics <- unique(io$Industry_NAICS6_Use)
 
 consumers <- NULL
 for (con_naics in list_of_consumer_naics){
-  print(con_naics)
+  # print(con_naics)
   con_firms <- firms[Industry_NAICS6_Use == con_naics,]
   sample_size <- nrow(con_firms)
   con_io <- io[Industry_NAICS6_Use == con_naics,]
@@ -64,10 +65,6 @@ naics_by_sctg_fration <- unique(c_n6_n6io_sctg[, list(SCTG = Commodity_SCTG, Ind
 naics_by_sctg_fration <-
   naics_by_sctg_fration[SCTG > 0,]
 
-# consumers <-
-#   merge(consumers, naics_by_sctg_fration, "Industry_NAICS6_Make", allow.cartesian = TRUE) #merge in the first matching SCTG code
-# consumers[, Proportion := Proportion / sum(Proportion), by = BusID]
-
 emp <- consumers[, list(Emp = sum(Emp)), by = c('Industry_NAICS6_Use', 'Industry_NAICS6_Make', 'FAFZONE')]
 io <- merge(emp, io, by = c("Industry_NAICS6_Use", "Industry_NAICS6_Make"))
 io <- merge(io, naics_by_sctg_fration, "Industry_NAICS6_Make", allow.cartesian = TRUE)
@@ -81,7 +78,7 @@ io_with_loc[, ProVal := ProVal * value_fraction]
 io_with_loc[, ValEmp := ProVal / Emp] #production value per employee (in Million of Dollars)
 
 
-#Merge top k% suppliers with establishment list to create a consumers\buyers dataset
+#Merge suppliers with I-O table list to create a consumers dataset
 consumers <-
   merge(io_with_loc[, list(Industry_NAICS6_Use, Industry_NAICS6_Make, Commodity_SCTG, FAFZONE, ValEmp)], 
         consumers[, list(MESOZONE, Industry_NAICS6_Use, Industry_NAICS6_Make, Buyer.SCTG, FAFZONE, BusID, Emp)],
@@ -89,12 +86,12 @@ consumers <-
 
 
 consumers[, ConVal := ValEmp * Emp]
-# print(consumers$ConVal)
+
 
 
 
 # Calculate the purchase amount and convert to tons needed - this is production value
-# consumers[, ConVal := ValEmp * Emp]
+
 # Convert purchase value from $M to POUNDS
 unitcost[, UnitCost := UnitCost / 2000]
 consumers[, UnitCost := unitcost$UnitCost[match(Commodity_SCTG, unitcost$Commodity_SCTG)]]
@@ -117,7 +114,7 @@ list_of_for_consumer_naics <- unique(for_cons$Industry_NAICS6_Use)
 
 for_consumers <- NULL
 for (con_naics in list_of_for_consumer_naics){
-  print(con_naics)
+  # print(con_naics)
   con_firms <- for_cons[Industry_NAICS6_Use == con_naics,]
   sample_size <- nrow(con_firms)
   con_io <- io[Industry_NAICS6_Use == con_naics,]
@@ -139,12 +136,6 @@ for_consumers <-
   for_consumers[Commodity_SCTG > 0, list(ProdVal = sum(USExpVal) / 1000000), by =
              list(Industry_NAICS6_Make, Industry_NAICS6_Use, CBPZONE, FAFZONE, Commodity_SCTG)]
 
-
-# io[, PctProVal := ProVal / sum(ProVal), by = Industry_NAICS6_Make]
-# setkey(io, Industry_NAICS6_Make)
-# for_cons <-
-#   merge(for_cons, io[, list(Industry_NAICS6_Make, Industry_NAICS6_Use, ProVal, PctProVal)], by =
-#           "Industry_NAICS6_Make", allow.cartesian = TRUE)
 for_consumers[, ConVal := ProdVal]
 
 # Convert purchase value from $M to POUNDS
@@ -177,17 +168,10 @@ for_consumers[, c("CBPZONE",
 consumers[, FAFZONE:= NULL]
 consumers <- rbind(consumers, for_consumers) #8,171,491
 
-# Add preference weights
-setkey(prefweights, Commodity_SCTG)
-consumers <-
-  merge(consumers, prefweights[, list(Commodity_SCTG,
-                                      CostWeight,
-                                      TimeWeight,
-                                      SingleSourceMaxFraction)], "Commodity_SCTG")
-#consumers[,c("PrefWeight3_AttributeK","PrefWeight4_AttributeL","PrefWeight5_AttributeM","MaxFrac1_SingleSource","MaxFrac2_PortOfOrigin","MaxFrac3_PortOfEntry"):=list(0,0,0,0.8,1.0,1.0)]
+
 
 # Prepare for writing a file of each NAICS containing the firms that use those goods as inputs (done once sampling figured out below)
-#BuyerID (BusID)  Zone (MESOZONE)	NAICS (NAICS6_Use)	Size (Emp)	OutputCommodity (SCTG_Make)	InputCommodity (SCTG_Use)	PurchaseAmountTons	PrefWeight1_UnitCost (CostWeight)	PrefWeight2_ShipTime (TimeWeight)	PrefWeight3_AttributeK	PrefWeight4_AttributeL	PrefWeight5_AttributeM	MaxFrac1_SingleSource	MaxFrac2_PortOfOrigin	MaxFrac3_PortOfEntry
+
 setnames(
   consumers,
   c(
@@ -195,18 +179,14 @@ setnames(
     "MESOZONE",
     "Industry_NAICS6_Make",
     "Industry_NAICS6_Use",
-    "Emp",
-    "CostWeight",
-    "TimeWeight"
+    "Emp"
   ),
   c(
     "BuyerID",
     "Zone",
     "InputCommodity",
     "NAICS",
-    "Size",
-    "PrefWeight1_UnitCost",
-    "PrefWeight2_ShipTime"
+    "Size"
   )
 )
 consumers[, OutputCommodity := NAICS]
@@ -214,26 +194,18 @@ consumers[, OutputCommodity := NAICS]
 #Add wholesalers to the consumers
 wholesalers[, ConVal := OutputCapacitylb * NonTransportUnitCost / wholesalecostfactor]
 wholesalers[, NonTransportUnitCost := NULL]
-wholesalers <-
-  merge(wholesalers, prefweights[, list(Commodity_SCTG,
-                                        CostWeight,
-                                        TimeWeight,
-                                        SingleSourceMaxFraction)], "Commodity_SCTG")
+
 setnames(
   wholesalers,
   c(
     "SellerID",
     "OutputCommodity",
-    "OutputCapacitylb",
-    "CostWeight",
-    "TimeWeight"
+    "OutputCapacitylb"
   ),
   c(
     "BuyerID",
     "InputCommodity",
-    "PurchaseAmountlb",
-    "PrefWeight1_UnitCost",
-    "PrefWeight2_ShipTime"
+    "PurchaseAmountlb"
   )
 )
 wholesalers[, Buyer.SCTG := Commodity_SCTG]
@@ -244,6 +216,31 @@ consumers <- rbind(consumers, wholesalers, use.names = TRUE)
 sample_consumers <- consumers %>% filter(BuyerID <= 100) %>% as_tibble()
 setkey(consumers, InputCommodity)
 
-#data.table::fwrite(producers, "./outputs/producers_all.csv")
-data.table::fwrite(consumers, "./outputs/synthetic_consumers_V2.csv", row.names=FALSE)
-data.table::fwrite(sample_consumers, "./outputs/sample_synthetic_consumers_V2.csv", row.names=FALSE)
+print('Total number of consumers is:')
+print(nrow(consumers))
+
+data.table::fwrite(consumers, paste0(output_dir, '/', synthetic_consumer_file), row.names=FALSE)
+data.table::fwrite(sample_consumers, paste0(output_dir, '/', sample_synthetic_consumer_file), row.names=FALSE)
+
+consumers = consumers %>% left_join(sctg_lookup, by = c("Commodity_SCTG" =
+                                                        "SCTG_Code")) %>% as_tibble()
+
+
+### SCTG 5 Groups Processed ###
+for (i in 1:5) {
+  print(paste0("Processing SCTG Group ", i))
+  g1_consm = consumers %>% filter(SCTG_Group == i) %>% select(
+    SCTG_Group,
+    Commodity_SCTG,
+    BuyerID,
+    Zone,
+    NAICS,
+    InputCommodity,
+    PurchaseAmountlb
+  ) %>% as_tibble()
+
+  fwrite(g1_consm, paste0(output_dir, '/', synthetic_consumer_by_sctg_filehead, i, ".csv"))
+
+}
+
+print('Synthetic consumer generation is done!')

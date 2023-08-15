@@ -1,23 +1,27 @@
 ################ part 5 ######################
 
 #-----------------------------------------------------------------------------------
-rm(list = ls())
-path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/scripts/'
-source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
-source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
+# rm(list = ls())
+# path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/scripts/'
+# source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
+# source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
 
-path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm.nosync"
-setwd(path2file)
+# path2file <-
+#   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
+# setwd(path2file)
+print("Generating summary statistics for synthetic firms...")
 
+output_dir <- paste0(path2file, "/outputs_", scenario)
+
+
+firms <- data.table::fread(paste0(output_dir, '/', synthetic_firms_no_location_file), h = T) # 8,396, 679 FIRMS
+producers <- data.table::fread(paste0(output_dir, '/', synthetic_producer_file))
+consumers <- data.table::fread(paste0(output_dir, '/', synthetic_consumer_file))
 c_n6_n6io_sctg <-
-  data.table::fread("./inputs_SF/corresp_naics6_n6io_sctg_revised.csv", h = T)
-firms <- data.table::fread("./outputs_SF/synthetic_firms.csv", h = T)
-producers <- data.table::fread('./outputs_SF/synthetic_producers.csv', h = T)
-consumers <- data.table::fread('./outputs_SF/synthetic_consumers.csv', h = T)
-prefweights <-
-  data.table::fread("./inputs_SF/data_firm_pref_weights.csv", h = T)
-io_sum <- data.table::fread('./outputs_SF/io_summary_revised.csv', h = T)
+  data.table::fread(paste0(path2file, "/SynthFirm_parameters/", c_n6_n6io_sctg_file), h = T)
+io_sum <- data.table::fread(paste0(path2file, "/SynthFirm_parameters/",io_summary_file), h = T)
+sctg_lookup <- data.table::fread(paste0(path2file, "/SynthFirm_parameters/", SCTG_group_file), h = T)
+
 
 
 ################ part 5 ######################
@@ -30,8 +34,8 @@ print("Producing Consumers and Producers Summaries")
 #output summaries -- add this to the output functions to replace old ones
 sctgcat <-
   data.table(
-    Commodity_SCTG = prefweights$Commodity_SCTG,
-    SCTG_Name = prefweights$Commodity_SCTG_desc
+    Commodity_SCTG = sctg_lookup$SCTG_Code,
+    SCTG_Name = sctg_lookup$Description
   )
 #Sumamrize CBP, Producers and Consumers
 firms_sum <- list()
@@ -43,12 +47,6 @@ firms_sum[["firmsempbysctg"]] <-
   merge(sctgcat, firms[, list(Establishments = .N, Employment = sum(Emp)), by =
                        Commodity_SCTG], "Commodity_SCTG", all.y = T)
 
-#IO
-# firms_sum[["total_value"]] <- sum(io$ProVal)
-# firms_sum[["Industry_NAICS_Make"]] <-
-#   length(unique(io$Industry_NAICS6_Make))
-# firms_sum[["Industry_NAICS_Use"]] <-
-#   length(unique(io$Industry_NAICS6_Use))
 
 #producers
 firms_sum[["producers"]] <- nrow(producers)
@@ -79,7 +77,7 @@ firms_sum[["producersdomfor"]] <- producers_domfor
 #consumers
 firms_sum[["consumers"]] <- length(unique(consumers$BuyerID))
 firms_sum[["consumption_pairs"]] <- nrow(consumers)
-firms_sum[["threshold"]] <- provalthreshold
+#firms_sum[["threshold"]] <- provalthreshold
 firms_sum[["consumer_inputs"]] <- sum(consumers$PurchaseAmountlb)
 consumers_summary <-
   merge(sctgcat, consumers[, list(Consumers = .N,
@@ -183,7 +181,8 @@ firms_sum[["io_sum_make_sctg"]] <-
   data.frame(io_sum_make[order(Commodity_SCTG)])
 
 #output
-capture.output(print(firms_sum), file = file.path("./outputs_SF/firm_syn_bay_area.txt"))
+capture.output(print(firms_sum), 
+               file = file.path(paste0(output_dir, '/', scenario, '_summary_of_firm_statistics.txt')))
 
 #------------------------------------------------------------------------------------------------------
 # Define sample sizes for procurement markets to be run in the next step --- XXu: this part failed due to some bugs

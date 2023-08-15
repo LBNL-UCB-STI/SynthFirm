@@ -3,31 +3,34 @@
 #-----------------------------------------------------------------------------------
 #Create producers/suppliers database
 #-----------------------------------------------------------------------------------
-rm(list = ls())
-path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/Firm Synthesis/scripts/'
-source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
-source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
+# rm(list = ls())
+# path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/utils/'
+# source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
+#source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
+#source('config.R')  # load input settings 
 
-path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm.nosync"
-setwd(path2file)
+# path2file <-
+#   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
+# setwd(path2file)
+print("Generating synthetic producers...")
+
+output_dir <- paste0(path2file, "/outputs_", scenario)
+
+firms <- data.table::fread(paste0(output_dir, '/', synthetic_firms_no_location_file), h = T) # 8,396, 679 FIRMS
+mesozone_faf_lookup <- data.table::fread(paste0(path2file, "/inputs_", scenario, '/', zonal_id_file), h = T)
 
 c_n6_n6io_sctg <-
-  data.table::fread("./inputs/corresp_naics6_n6io_sctg_revised.csv", h = T)
-firms <- data.table::fread("./outputs/synthetic_firms_v2.csv", h = T) # 8,390,414 FIRMS
+  data.table::fread(paste0(path2file, "/SynthFirm_parameters/", c_n6_n6io_sctg_file), h = T)
 for_prod <-
-  data.table::fread("./inputs/data_foreign_prod.csv", h = T)
-io <- data.table::fread("./inputs/data_2017io_revised_USE_value_added.csv", h = T)
-unitcost <- data.table::fread("./inputs/data_unitcost_cfs2017.csv", h = T)
+  data.table::fread(paste0(path2file, "/SynthFirm_parameters/", foreign_prod_file), h = T)
 
-producer_value_fraction_by_location <- data.table::fread("./inputs/producer_value_fraction_by_faf.csv", h = T)
-mesozone_faf_lookup <- data.table::fread("./inputs/zonal_id_lookup_final.csv", h = T)
-# prefweights <-
-#   data.table::fread("./inputs/data_firm_pref_weights.csv", h = T)
+io <- data.table::fread(paste0(path2file, "/SynthFirm_parameters/", BEA_io_2017_file), h = T)
+unitcost <- data.table::fread(paste0(path2file, "/SynthFirm_parameters/", agg_unit_cost_file), h = T)
 
-print("Creating Producers Database")
-# firms <- merge(firms, 
-#                mesozone_faf_lookup[, list(MESOZONE, FAFID)], by = "MESOZONE") 
+producer_value_fraction_by_location <- 
+  data.table::fread(paste0(path2file, "/SynthFirm_parameters/", prod_by_zone_file), h = T)
+
+sctg_lookup <- data.table::fread(paste0(path2file, "/SynthFirm_parameters/", SCTG_group_file), h = T)
 
 # Creation of Producers database
 # All agents that produce some SCTG commodity become potential producers
@@ -50,7 +53,8 @@ setnames(
 )
 io[, Industry_NAICS6_Use := as.character(Industry_NAICS6_Use)]
 io <- io[io$ProVal>0,]
-write.csv(io, './outputs_SF/io_summary_revised_v2.csv', row.names=FALSE)
+write.csv(io, paste0(path2file, "/SynthFirm_parameters/", io_summary_file), row.names=FALSE) 
+# write cleaned I-O data for future use
 
 
 to_wholesale <- # commodity flow goes TO wholesale
@@ -77,10 +81,7 @@ to_wholsale_by_sctg[, ProVal := ProVal * Proportion]
 from_wholesale <- io[substr(Industry_NAICS6_Make, 1, 2) == "42" &
                        ProVal > 0] # 859 rows
 setnames(from_wholesale, "ProVal", "ProValFromWhl")
-# from_wholesale_to_user <-
-#   merge(from_wholesale, naics_by_sctg_fration, by = "Industry_NAICS6_Make", allow.cartesian=TRUE) #29282 * 4
-# from_wholesale_to_user[, ProValFromWhl := ProValFromWhl * Proportion] 
-#setnames(from_wholesale_to_user, "ProVal", "ProValUse")
+
 
 # at this point, 'from_wholesale_to_user' refers to the amount of commodity from wholesale to each end users (ProValFromWhl)
 
@@ -92,7 +93,6 @@ wholesale_flow <-
         by.y = 'Industry_NAICS6_Use', allow.cartesian = TRUE) #size = 81048 * 8
 
 # at this point, fromwhl defines amount of commodity from wholesale and to wholesale
-#wholesale_flow[, ProValUse := ProValFromWhl * Proportion]
 
 wholesale_flow[, ProValPctUse := ProVal / sum(ProVal), by = c('Industry_NAICS6_Make', 'Industry_NAICS6_Use')] 
 # split among source production industry (to wholesale)
@@ -159,12 +159,12 @@ wholesalers <- firms[substr(Industry_NAICS6_Make, 1, 2) == "42",] # 407,124 whol
 whlval <- wholesale_flow[, list(ProVal = sum(ProValWhl)), by = c('NAICS_whl', 'SCTG')]
 setnames(whlval, "NAICS_whl", "Industry_NAICS6_Make")
 setnames(whlval, "SCTG", "Commodity_SCTG")
-# whlval_with_loc[, ProVal := ProVal * value_fraction]
+
 list_of_wholesaler_naics <- unique(whlval$Industry_NAICS6_Make)
 wholesalers[, Commodity_SCTG := NULL]
 wholesalers_with_sctg <- NULL
 for (whl_naics in list_of_wholesaler_naics){
-  print(whl_naics)
+  # print(whl_naics)
   con_firms <- wholesalers[Industry_NAICS6_Make == whl_naics,]
   sample_size <- nrow(con_firms)
   con_io <- whlval[Industry_NAICS6_Make == whl_naics,]
@@ -360,8 +360,36 @@ wholesalers_with_value <- wholesalers_with_value[!is.na(OutputCommodity)]
 producers <- rbind(producers, wholesalers_with_value) # size = 690,436 * 8
 setkey(producers, OutputCommodity)
 
-write.csv(wholesalers_with_value, './outputs/synthetic_wholesaler_v2.csv', row.names=FALSE)
-write.csv(producers, './outputs/synthetic_producers_v2.csv', row.names=FALSE)
-write.csv(io_no_wholesale, './outputs/data_2017io_filtered_v2.csv', row.names=FALSE)
+print('Total number of producers:')
+print(nrow(producers))
+
+print('Total number of wholesalers (among producers):')
+print(nrow(wholesalers_with_value))
+
+write.csv(wholesalers_with_value, paste0(output_dir, '/', synthetic_wholesaler_file), row.names=FALSE)
+write.csv(producers, paste0(output_dir, '/', synthetic_producer_file), row.names=FALSE)
+write.csv(io_no_wholesale, paste0(output_dir, '/', io_filtered_file), row.names=FALSE)
+
+sctg_lookup <- sctg_lookup %>% select(SCTG_Code, SCTG_Group, SCTG_Name) %>% as_tibble()
+producers = producers %>% left_join(sctg_lookup, by = c("Commodity_SCTG" = "SCTG_Code")) %>% as_tibble()
+
+for (i in 1:5) {
+  print(paste0("Processing SCTG Group ", i))
+  
+  g1_prods = producers %>% filter(SCTG_Group == i) %>% select(
+    SCTG_Group,
+    Commodity_SCTG,
+    SellerID,
+    Zone,
+    NAICS,
+    OutputCommodity,
+    OutputCapacitylb
+  ) %>% as_tibble()
+  
+  
+  fwrite(g1_prods, paste0(output_dir, '/', synthetic_producer_by_sctg_filehead, i, ".csv"))
+}  
+
+print('Producer generation is done!')
 #writing out done below once sampling identified
 ################ part 3 END######################

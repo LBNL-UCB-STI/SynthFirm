@@ -9,6 +9,9 @@ packages = c(
   "reshape2",
   "ggplot2",
   "fastcluster",
-  "sf"
+  "sf",
+  "foreach",
+  "doParallel",
+  "tidyverse"
 )
 lapply(packages, require, character = TRUE)

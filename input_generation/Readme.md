@@ -15,8 +15,8 @@
   
 ### step a.2 - generate initial employment count per firm by firm size at national level (employment_count_by_firm.R):
 * Require CENSUS employment data by firm size (https://www.census.gov/programs-surveys/susb.html)
-* Produce average employment per firm by firm size group  'employment_by_firm_size_gapfill.csv'
-* Produce average employment per firm by firm size group and industries 'employment_by_firm_size_naics.csv' 
+* Produce average employment per firm by firm size group  'SynthFirm_parameters/employment_by_firm_size_gapfill.csv'
+* Produce average employment per firm by firm size group and industries 'SynthFirm_parameters/employment_by_firm_size_naics.csv' 
 * While these two tables are not directly associated with synthetic firm output due to IPF fitting, it is needed to initiate firm synthesize and provide initial employment values.
 
 ### step a.3 - project BEA I-O table for baseline year in BEA_IO_processor.py:
@@ -25,7 +25,7 @@
   * 2017 I-O with 71 industries:https://apps.bea.gov/iTable/?reqid=150&step=3&isuri=1&table_list=6009&categories=io (modify year to baseline = 2017)
 * For 2017 I-O, in addition to industry-specific values, it is critical to include added value (last row) during production.  This value indicates the value of commodity gained during production and paid by consumers.  Without this the final I-O will be significantly under-estimated. BEA:The sum of the entries in a column is that industry’s output.
 * Project 2012 I-O value to 2017 industry total, to obtain I-O values by all 405 industries
-* Produce projected baseline I-O data as output 'data_2017io_revised_USE_value_added.csv'
+* Produce projected baseline I-O data as output 'SynthFirm_parameters/data_2017io_revised_USE_value_added.csv'
 
 ### step a.4 - collect commodity flow distributions from CFS data in CFS_distribution_generator.py:
 * Require CFS 2017 public use data as input (cfs-2017-puf-csv.csv):https://www.census.gov/data/datasets/2017/econ/cfs/historical-datasets.html
@@ -34,10 +34,10 @@
   * CFS and FAF zone lookup from FAF5 document: CFS_FAF_LOOKUP.csv (downloaded from FAF5 website under 'Related Information': https://faf.ornl.gov/faf5/)
   * commodity SCTG group definition: SCTG_Groups_revised.csv (defined by research team)
 * Produce the following 5 outputs:
-  * Unit cost by commodity: data_unitcost_cfs2017.csv
-  * Unit cost by CFS zone and commodity: data_unitcost_by_zone_cfs2017.csv
-  * Shipment size with pre-defined percentile cut-off criteria: max_load_per_shipment_{X}percent.csv -> x is pre-defined quantile value to select max load by sctg 
-  * Production/consumption value allocation factor by FAF zone: producer_value_fraction_by_faf.csv AND consumer_value_fraction_by_faf.csv
+  * Unit cost by commodity: SynthFirm_parameters/data_unitcost_cfs2017.csv
+  * Unit cost by CFS zone and commodity: SynthFirm_parameters/data_unitcost_by_zone_cfs2017.csv
+  * Shipment size with pre-defined percentile cut-off criteria: SynthFirm_parameters/max_load_per_shipment_{X}percent.csv -> x is pre-defined quantile value to select max load by sctg 
+  * Production/consumption value allocation factor by FAF zone: SynthFirm_parameters/producer_value_fraction_by_faf.csv AND SynthFirm_parameters/consumer_value_fraction_by_faf.csv
   * Seasonal load allocation factor by SCTG group for national freight trip generation (future work): seasonal_allocation_factor_by_sctg.csv
   
 ### step a.5 - estimate supplier selection model parameter in supplier_selection_model_estimation.py:
@@ -84,6 +84,13 @@
   * Require mesozone - census GEOID look up file MESOZONE_GEOID_LOOKUP.csv from step b.4
 * Produce shapefile of model spatial resolution: {region_name}_freight.geojson
 * Produce centroids of modeled zones: {region_name}_freight_centroids.geojson
+
+### step b.6 generate final mesoscopic zonal lookup table in zonal_data_processor.py
+* Require the following zonal shapefile and lookup tables: 
+  * Require CFS and FAF zone lookup from FAF5 document: CFS_FAF_LOOKUP.csv from step a.5
+  * Require FAF zone - county look up file {region_name}_FAFCNTY.csv from step b.2
+  * Require shapefile of model spatial resolution: {region_name}_freight.geojson from step b.5
+* Produce mesoscopic zonal lookup table: zonal_id_lookup_final.csv
 
 ## c.firm fleet generation (using private data sources, under folder: fleet_generation)
 
