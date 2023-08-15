@@ -5,16 +5,16 @@
 
 
 ## data generation ##
-* Please refer to [input_generation/Readme.md] to prepare inputs for selected region
+* Please refer to (input_generation/Readme.md) to prepare inputs for selected region
 * Following instructions to prepare inputs needed for the selected region (or use data files shared by the team, POC: XiaodanXu@lbl.gov)
 
 ## Synthetic firm generation ##
-* define input path and files under the configure file [utils/config.R]
-* open master run file in [utils/run_firm_generation_master_R.R] and define the path to project
+* define input path and files under the configure file (utils/config.R)
+* open master run file in (utils/run_firm_generation_master_R.R) and define the path to project
 
-'''
+```
 path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/utils/'
 setwd(path2code)
-'''
+```
 
 * run through the rest of code in R (will eventually create a run_model.sh to replace this!)
