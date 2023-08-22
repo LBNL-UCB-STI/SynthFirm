@@ -4,7 +4,7 @@
 <p> Updates (Aug 14, 2023): documented synthetic firm, producer and consumer generation </p>
 
 
-## data generation ##
+## Input Data Generation ##
 * Please refer to this [input generation guide](input_generation/Readme.md) to prepare inputs for selected region
 * Following instructions to prepare inputs needed for the selected region (or use data files shared by the team, POC: XiaodanXu@lbl.gov)
 
@@ -31,7 +31,7 @@ setwd(path2code)
 
     ```
 
-  * select the modules that are needed:
+  * Select the modules that are needed (must complete all of them in the following order, but can run one module at a time):
 
     ```
     enable_supplier_selection = no # supplier selection
@@ -41,11 +41,11 @@ setwd(path2code)
     enable_fleet_generation = no # fleet generation (DO NOT ACTIVATE, NOT YET READY)
     ```
 
-  * fill in rest of the input file names (and do not change file structure defined in synthetic firm generation)
-  * finish preparing configure file!
+  * Fill in rest of the input file names (and do not change file structure defined in synthetic firm generation)
+  * Finish preparing configure file!
 
 * Run selected SynthFirm modules:
-  * In terminal/Shell, direct to where the SynthFirm tool is located
+  * Open system Terminal/Shell, change directory to where the SynthFirm tool is located
   * Run [SynthFirm model](SynthFirm_run.py):
 
     ```
