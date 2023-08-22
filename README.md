@@ -21,7 +21,7 @@ setwd(path2code)
 
 ## Synthetic B2B flow generation ##
 * Define input path and files under the [configure file](SynthFirm.conf)
- * Fill in project information following this example:
+  * Fill in project information following this example:
 
     ```
     file_path = /Users/xiaodanxu/Documents/SynthFirm.nosync # path to project data
@@ -31,7 +31,7 @@ setwd(path2code)
 
     ```
 
- * select the modules that are needed:
+  * select the modules that are needed:
 
     ```
     enable_supplier_selection = no # supplier selection
@@ -41,18 +41,18 @@ setwd(path2code)
     enable_fleet_generation = no # fleet generation (DO NOT ACTIVATE, NOT YET READY)
     ```
 
- * fill in rest of the input file names (and do not change file structure defined in synthetic firm generation)
- * finish preparing configure file!
+  * fill in rest of the input file names (and do not change file structure defined in synthetic firm generation)
+  * finish preparing configure file!
 
 * Run selected SynthFirm modules:
- * In terminal/Shell, direct to where the SynthFirm tool is located
- * Run [SynthFirm model](SynthFirm_run.py):
+  * In terminal/Shell, direct to where the SynthFirm tool is located
+  * Run [SynthFirm model](SynthFirm_run.py):
 
     ```
     python SynthFirm_run.py --config 'SynthFirm.conf'
     ```
 
- * Check output following the prompt on screen
+  * Check output following the prompt on screen
 * You are done, cheers!
 
 
