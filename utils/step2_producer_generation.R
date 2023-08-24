@@ -12,7 +12,7 @@
 # path2file <-
 #   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 # setwd(path2file)
-# update 08/24/2023, renaming files
+# try update file name
 print("Generating synthetic producers...")
 
 output_dir <- paste0(path2file, "/outputs_", scenario)
