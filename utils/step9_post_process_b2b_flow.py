@@ -31,9 +31,11 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
     # look up table for sctg group and label
     sctg_group_short = sctg_group_lookup[['SCTG_Group', 'SCTG_Name']]
     sctg_group_short = sctg_group_short.drop_duplicates(keep = 'first')
+    # print(sctg_group_short)
     # sctg_def = {'sctg1': 'bulk', 'sctg2': 'fuel_fert', 'sctg3':'interm_food', 'sctg4': 'mfr_goods', 'sctg5': 'other'}
     # <codecell>
     combined_modeled_OD = None
+    combined_modeled_OD_mesozone = None
     # mode_choide_by_commodity = None
     # combined_truck_output = None
     for k in range(5):
@@ -102,9 +104,25 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
             # agg_OD_by_sctg.loc[:, 'SCTG_Name'] = sctg_def[sctg]
             agg_OD_by_sctg.loc[:, 'chunk_id'] = iterator
             combined_modeled_OD = pd.concat([combined_modeled_OD, agg_OD_by_sctg], sort = False)
+            
+            # adding mesozone aggregation
+            agg_OD_by_sctg = modeled_OD_by_sctg.groupby(['SellerZone', "orig_FAFID", "orig_FAFNAME", 'BuyerZone', "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'mode_choice'])[['tmiles', 'ShipmentLoad']].sum()        
+            agg_OD_by_sctg = agg_OD_by_sctg.reset_index()
+            agg_count_by_sctg = modeled_OD_by_sctg.groupby(['SellerZone', "orig_FAFID", "orig_FAFNAME", 'BuyerZone', "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'mode_choice'])[['shipment_id']].count() 
+            agg_count_by_sctg = agg_count_by_sctg.reset_index()
+            agg_OD_by_sctg = pd.merge(agg_OD_by_sctg, agg_count_by_sctg, 
+                                  on = ['SellerZone', "orig_FAFID", "orig_FAFNAME", 'BuyerZone', "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'mode_choice'],
+                                  how = 'left')
+            agg_OD_by_sctg = agg_OD_by_sctg.rename(columns={"shipment_id": "count"})
+            agg_OD_by_sctg = pd.merge(agg_OD_by_sctg, sctg_group_short, 
+                                      on = "SCTG_Group",
+                                      how ='left')
+            agg_OD_by_sctg.loc[:, 'chunk_id'] = iterator
+            combined_modeled_OD_mesozone = pd.concat([combined_modeled_OD_mesozone, agg_OD_by_sctg], sort = False)
+            
             iterator += 1 
     #         break        
-        break
+        # break
     #     combined_truck_output.to_csv(c.input_dir + 'truck_only_OD_' + sctg + '.csv', index = False)
     # combined_modeled_OD = pd.merge(combined_modeled_OD, sctg_group_definition, on = ['SCTG_Group'], how = 'left')
     #combined_modeled_OD.head(10) 
@@ -132,8 +150,30 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
     combined_modeled_OD_agg.loc[:, 'Distance'] = combined_modeled_OD_agg.loc[:, 'tmiles'] / 1000 / combined_modeled_OD_agg.loc[:, 'ShipmentLoad']
     # print(combined_modeled_OD_agg.head(10))
     
+    # add mesozone aggregation
+    combined_modeled_OD_mesozone = combined_modeled_OD_mesozone.groupby(['SellerZone', "orig_FAFID", "orig_FAFNAME", 'BuyerZone', 
+                                                       "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'SCTG_Name',
+                                                       'mode_choice'])[['tmiles', 'ShipmentLoad', 'count']].sum()
+    combined_modeled_OD_mesozone = combined_modeled_OD_mesozone.reset_index()
+    # combined_modeled_OD_agg.head(5)
+    # combined_modeled_OD_agg.loc[:, 'in_study_area'] = 0
+    # buffer = combined_modeled_OD_agg.loc[:, 'orig_FAFID'].isin(c.bay_area_region_code) | \
+    #         combined_modeled_OD_agg.loc[:, 'dest_FAFID'].isin(c.bay_area_region_code)
+    # combined_modeled_OD_agg.loc[buffer, 'in_study_area'] = 1
+    
+    combined_modeled_OD_mesozone.loc[:, 'outbound'] = 0
+    combined_modeled_OD_mesozone.loc[combined_modeled_OD_mesozone.loc[:, 'orig_FAFID'].isin(region_code), 'outbound'] = 1
+    
+    combined_modeled_OD_mesozone.loc[:, 'inbound'] = 0
+    combined_modeled_OD_mesozone.loc[combined_modeled_OD_mesozone.loc[:, 'dest_FAFID'].isin(region_code), 'inbound'] = 1
+    
+    combined_modeled_OD_mesozone.loc[:, 'orig_FAFID'] = combined_modeled_OD_mesozone.loc[:, 'orig_FAFID'].astype(int)
+    combined_modeled_OD_mesozone.loc[:, 'dest_FAFID'] = combined_modeled_OD_mesozone.loc[:, 'dest_FAFID'].astype(int)
+    combined_modeled_OD_mesozone.loc[:, 'SCTG_Group'] = combined_modeled_OD_mesozone.loc[:, 'SCTG_Group'].astype(int)
+    combined_modeled_OD_mesozone.loc[:, 'Distance'] = combined_modeled_OD_mesozone.loc[:, 'tmiles'] / 1000 / combined_modeled_OD_agg.loc[:, 'ShipmentLoad']
     # <codecell>
     combined_modeled_OD_agg.to_csv(os.path.join(output_dir, 'processed_b2b_flow_summary.csv'), sep = ',')
+    combined_modeled_OD_mesozone.to_csv(os.path.join(output_dir, 'processed_b2b_flow_summary_mesozone.csv'), sep = ',')
     print('end of post mode choice analysis')
     print('--------------------------------')
     

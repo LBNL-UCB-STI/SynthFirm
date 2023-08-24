@@ -89,7 +89,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
         
         # process each buyer industry
         for com in list_of_commodity:
-            # print(com)
+            print(com)
             output_b2b_flow = None
             output_file = "sctg" + str(sctg) + '_' + str(com) + ".csv.zip"
             path_to_output = os.path.join(output_dir, output_file)
@@ -231,7 +231,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                 continue
             print('writing output for commodity ' + str(com))
             output_b2b_flow.to_csv(path_to_output, index = False)
-        break
+        # break
     print('end of supplier selection')
     print('-------------------------')
     return

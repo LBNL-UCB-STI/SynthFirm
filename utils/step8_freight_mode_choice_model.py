@@ -243,7 +243,7 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
             # combined_modeled_OD_by_sctg.to_csv(c.input_dir + 'sample_mode_choice.csv')
             modeled_OD_by_sctg.to_csv(os.path.join(mc_out_dir, out_file_name)) # writing output
         #     break
-        break
+        # break
     print('end of mode choice generation')
     print('-----------------------------')
     return

@@ -25,7 +25,7 @@ source('config.R')  # load input settings
 source('Step4_Firm_Location_Generation.R')
 rm(list = ls())
 
-# step 4 -- summarize firm generation statistics
+# step 5 -- summarize firm generation statistics
 source('config.R')  # load input settings 
 source('Step5_Result_Summary.R')
 rm(list = ls())

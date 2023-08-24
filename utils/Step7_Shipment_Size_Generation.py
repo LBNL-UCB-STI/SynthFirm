@@ -85,7 +85,7 @@ def shipment_size_generation(mesozone_to_faf_file, max_load_per_shipment_file,
             chunk_dup.to_csv(os.path.join(output_dir, out_file_name), index = False)
             q += 1
     #     break
-        break
+        # break
     print('end of shipping size generation')
     print('-------------------------------')
     return
