@@ -35,6 +35,7 @@
   * Select the modules that are needed (must complete all of them in the following order, but can run one module at a time):
 
     ```
+    enable_firm_generation = no # synthetic firm, producer and buyer generation
     enable_supplier_selection = no # supplier selection
     enable_size_generation = no # shipment size generation
     enable_mode_choice = no # mode choice model
@@ -52,7 +53,7 @@
     ```
     python SynthFirm_run.py --config 'SynthFirm.conf'
     ```
-  * The firm generation step is executed in R using the master run file in [R master file](utils/run_firm_generation_master_R.R), users need to make sure the right path to project is defined in this file:
+  * The firm generation step is executed in R using [R master file](utils/run_firm_generation_master_R.R), users need to make sure the right path to project is defined in this file:
   ```
   path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/utils/'
   setwd(path2code)
