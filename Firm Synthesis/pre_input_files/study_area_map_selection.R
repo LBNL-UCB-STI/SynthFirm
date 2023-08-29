@@ -1,6 +1,0 @@
-library(sf)
-library(dplyr)
-mesozone <- st_read('/Users/xiaodanxu/Documents/SynthFirm.nosync/inputs_SF/SFBay_freight.geojson')
-mesozone_sf <- mesozone %>% filter(MESOZONE < 20000)
-plot(st_geometry(mesozone_sf))
-st_write(mesozone_sf, '/Users/xiaodanxu/Documents/SynthFirm.nosync/inputs_SF/SFBay_freight_bay_area_only.geojson')
