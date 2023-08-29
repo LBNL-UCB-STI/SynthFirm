@@ -3,6 +3,7 @@
 <p> Contact: Xiaodan Xu, Ph.D.  (XiaodanXu@lbl.gov) </p>
 <p> Updates (Aug 14, 2023): documented synthetic firm, producer and consumer generation </p>
 <p> Updates (Aug 22, 2023): documented B2B flow generation </p>
+<p> Updates (Aug 29, 2023): added firm generation into SynthFirm pipeline and uploaded input data </p>
 
 ## Task 0 -- Input data generation and environment setup ##
 * Please refer to this [input generation guide](input_generation/Readme.md) to prepare inputs for selected region
