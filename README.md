@@ -19,10 +19,10 @@
     ```
 
 ## Task 1 -- Synthetic firm generation ##
-* Define input path and files under the [configure file](utils/config.R)
+* Define input path and files under the [R configure file](utils/config.R)
 
 ## Task 2 -- Synthetic B2B flow generation ##
-* Define input path and files under the [configure file](SynthFirm.conf)
+* Define input path and files under the [Python configure file](SynthFirm.conf)
   * Fill in project information following this example:
 
     ```
