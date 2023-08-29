@@ -103,6 +103,7 @@ print(len(firms_with_adj))
 print('Regenerate private fleet...')
 # format fleet composition
 list_of_veh_tech = vehicle_type_by_state['vehicle category'].unique().tolist()
+print(list_of_veh_tech)
 
 private_fleet_by_state = \
 vehicle_type_by_state.loc[vehicle_type_by_state['Service type'] == 'PRIVATE']
@@ -275,6 +276,14 @@ for i in range(5):
     if len(for_hire_truck) > 0:
         for_hire_truck.to_csv(result_dir +  '/for_hire_truck_shipment_' + sctg_code + '.csv')
 
+# fill in columns that are not selected
+for veh in list_of_veh_tech:
+    if veh not in firms_with_fleet_out.columns:
+        firms_with_fleet_out[veh] = 0
+        
 firms_with_fleet_out = firms_with_fleet_out.drop(columns=['veh_capacity', 'Unnamed: 0'])
 firms_output = pd.concat([firms_with_fleet_out, firms_without_adj])
+
+
+
 firms_output.to_csv(result_dir + '/synthetic_firms_with_fleet_mc_adjusted.csv')

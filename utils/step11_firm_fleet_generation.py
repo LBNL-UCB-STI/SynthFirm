@@ -37,6 +37,7 @@ def split_dataframe(df, chunk_size = 100000):
 
 ########### define inputs ################
 print('loading fleet inputs...')
+
 scenario_name = 'Ref_highp6'
 input_dir = 'inputs_SF/'
 output_dir = 'outputs_SF/'
@@ -61,7 +62,7 @@ state_fips_lookup = read_csv(input_dir + 'us-state-ansi-fips.csv')
 ############## pre-processing data ################
 print('initial fleet composition generation...')
 # filter vehicle composition data
-analysis_year = 2018
+analysis_year = 2050
 vehicle_type_by_state = \
 vehicle_type_by_state.loc[vehicle_type_by_state['Year'] == analysis_year]
 
@@ -72,6 +73,7 @@ ev_availability = ev_availability.loc[ev_availability['Year'] == analysis_year]
 
 # format fleet composition
 list_of_veh_tech = vehicle_type_by_state['vehicle category'].unique().tolist()
+print(list_of_veh_tech)
 
 private_fleet_by_state = \
 vehicle_type_by_state.loc[vehicle_type_by_state['Service type'] == 'PRIVATE']
@@ -477,6 +479,15 @@ carriers_with_fleet_out = carriers_with_fleet_out.drop(columns=['cargo_check'])
 
 # writing output
 
+# fill in columns that are not selected
+for veh in list_of_veh_tech:
+    if veh not in firms_with_fleet_out.columns:
+        firms_with_fleet_out[veh] = 0
+    if veh not in carriers_with_fleet_out.columns:
+        carriers_with_fleet_out[veh] = 0
+    if veh not in leasing_with_fleet_out.columns:
+        leasing_with_fleet_out[veh] = 0
+        
 result_dir = output_dir + '/' + str(analysis_year) + '/' + scenario_name
 isExist = os.path.exists(result_dir)
 if not isExist:
