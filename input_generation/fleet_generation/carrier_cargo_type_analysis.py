@@ -16,7 +16,7 @@ os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 carrier_census_data = read_csv('PrivateData/registration/CENSUS_20220109_all.csv', sep = ',', encoding='latin1')
 # carrier_census_data.to_csv('FMCSA_CENSUS1_2022Jan.csv', index = False)
-output_dir = 'inputs_BayArea/fleet/'
+output_dir = 'inputs_Austin/fleet/'
 
 # <codecell>
 # sample_carrier_data = carrier_census_data.head(1000)

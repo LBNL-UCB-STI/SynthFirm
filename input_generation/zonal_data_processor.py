@@ -12,7 +12,7 @@ import geopandas as gps
 import os
 
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
-scenario_name = 'BayArea'
+scenario_name = 'Austin'
 input_dir = 'inputs_' + scenario_name + '/'
 
 

@@ -19,8 +19,8 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 setwd(path2file)
 
-selected_state = 'CA'
-selected_region = 'BayArea'
+selected_state = 'TX'
+selected_region = 'Austin'
 
 naics = c(
   "n11",

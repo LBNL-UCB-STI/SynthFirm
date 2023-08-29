@@ -23,9 +23,9 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-selected_state = 'CA'
+selected_state = 'TX'
 selected_year = 2017
-region_name = 'BayArea'
+region_name = 'Austin'
 
 
 ####### BEGINNING OF CENSUS DATA PROCESSES ######

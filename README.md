@@ -4,20 +4,21 @@
 <p> Updates (Aug 14, 2023): documented synthetic firm, producer and consumer generation </p>
 <p> Updates (Aug 22, 2023): documented B2B flow generation </p>
 
-## Task 0 -- Input data generation ##
+## Task 0 -- Input data generation and environment setup ##
 * Please refer to this [input generation guide](input_generation/Readme.md) to prepare inputs for selected region
 * Following instructions to prepare inputs needed for the selected region (or use data files shared by the team, POC: XiaodanXu@lbl.gov)
+* Using pre-generated baseline inputs from [San Francisco Bay Area](input_data/inputs_BayArea.zip) and [Austin Area](input_data/Inputs_Austin.zip)
+* Make sure Python and R are accessible through bash.  You can check the status of Python and R using the following scripts:
+    ```
+    Python3 --version
+    ```
+    and,
+    ```
+    R --version
+    ```
 
 ## Task 1 -- Synthetic firm generation ##
 * Define input path and files under the [configure file](utils/config.R)
-* Open master run file in [R master file](utils/run_firm_generation_master_R.R) and define the path to project
-
-```
-path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/utils/'
-setwd(path2code)
-```
-
-* Run through the rest of code in R (will eventually merge this part into SynthFirm_run.py!)
 
 ## Task 2 -- Synthetic B2B flow generation ##
 * Define input path and files under the [configure file](SynthFirm.conf)
@@ -50,7 +51,12 @@ setwd(path2code)
     ```
     python SynthFirm_run.py --config 'SynthFirm.conf'
     ```
-
+  * The firm generation step is executed in R using the master run file in [R master file](utils/run_firm_generation_master_R.R), users need to make sure the right path to project is defined in this file:
+  ```
+  path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/utils/'
+  setwd(path2code)
+  ```
+  * The rest steps are done in Python using values defined in the [configure file](SynthFirm.conf)
   * Check output following the prompt on screen
 * You are done, cheers!
 

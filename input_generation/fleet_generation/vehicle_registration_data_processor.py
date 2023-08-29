@@ -27,9 +27,9 @@ min_size_lookup = {'0-2':1, '3-5':3, '6-10':6,
                    '11-50':11, '51-100':51, '101-1000':101, 
                    '>1000':1001}
 
-input_data_file = 'CA_MDHDbybizID.csv'  # define vehicle input file
-selected_state = 'CA'
-output_dir = 'inputs_BayArea/fleet/'
+input_data_file = 'TEXAS_MDHDbybiz.csv'  # define vehicle input file
+selected_state = 'TX'
+output_dir = 'inputs_Austin/fleet/'
 
 registration_data = read_csv('PrivateData/registration/' + input_data_file)
 

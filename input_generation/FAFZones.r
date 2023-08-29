@@ -20,9 +20,9 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-region_name = 'BayArea'
-state_name = 'CA'
-study_area_faf <- c(64, 62, 65, 69) # this is a critical step in selecting study area boundary
+region_name = 'Austin'
+state_name = 'TX'
+study_area_faf <- c(481, 488, 489) # this is a critical step in selecting study area boundary
 regional_analysis = 1 # 0 - national analysis, 1 - regional analysis
 # Users can refer to 'CFS_FAF_LOOKUP.csv' for description of FAF zones and select zone IDs that covers study area
 

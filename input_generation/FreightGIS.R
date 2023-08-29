@@ -20,8 +20,8 @@ path2file <-
 setwd(path2file)
 
 # load inputs
-state_name = 'CA'
-region_name = 'BayArea'
+state_name = 'TX'
+region_name = 'Austin'
 file_name = paste0('inputs_', region_name, '/', state_name, '_bg.geojson')
 state_df = sf::st_read(file_name)
 

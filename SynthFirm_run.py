@@ -9,6 +9,9 @@ import gc
 import warnings
 import configparser
 from sklearn.utils import shuffle
+import rpy2
+# import rpy2.robjects as robjects
+import subprocess
 
 # import SynthFirm modules
 from utils.Step6_Supplier_Selection import supplier_selection
@@ -55,7 +58,11 @@ SynthFirm Business-to-business (B2B) flow generation"
     # print(region_code_str)
 
     # load module to run
- 
+
+    run_firm_generation = config.getboolean('ENVIRONMENT', 'enable_firm_generation') 
+    if run_firm_generation:
+        print('including synthetic firm generation in the pipeline...')
+        
     run_supplier_selection = config.getboolean('ENVIRONMENT', 'enable_supplier_selection') 
     if run_supplier_selection:
         print('including supplier selection in the pipeline...')
@@ -137,7 +144,13 @@ SynthFirm Business-to-business (B2B) flow generation"
     # print(mode_choice_spec)
     print('SynthFirm run for ' + scenario_name + ' start!')
     print('----------------------------------------------')
-    ##### Step 6 -  supplier selection 
+
+    ##### Step 1 to 5 -  synthetic firm generation
+    if run_firm_generation:
+        # robjects.r.source("/utils/run_firm_generation_master_R.R", encoding="utf-8")
+        subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
+
+    ##### Step 6 -  supplier selection         
     if run_supplier_selection:
         supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                             shipment_distance_lookup_file, cost_by_location_file,
