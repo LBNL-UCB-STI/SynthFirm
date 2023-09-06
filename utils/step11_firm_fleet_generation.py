@@ -38,7 +38,7 @@ def split_dataframe(df, chunk_size = 100000):
 ########### define inputs ################
 print('loading fleet inputs...')
 
-scenario_name = 'Ref_highp6'
+scenario_name = 'HOP_highp6'
 input_dir = 'inputs_SF/'
 output_dir = 'outputs_SF/'
 firm_name = 'synthetic_firms_with_location.csv'

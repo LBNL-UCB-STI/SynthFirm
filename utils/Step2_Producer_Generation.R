@@ -15,7 +15,7 @@
 # try update file name
 print("Generating synthetic producers...")
 
-output_dir <- paste0(path2file, "/outputs_", scenario)
+output_dir <- paste0(path2file, "/outputs_", out_scenario)
 
 firms <- data.table::fread(paste0(output_dir, '/', synthetic_firms_no_location_file), h = T) # 8,396, 679 FIRMS
 mesozone_faf_lookup <- data.table::fread(paste0(path2file, "/inputs_", scenario, '/', zonal_id_file), h = T)

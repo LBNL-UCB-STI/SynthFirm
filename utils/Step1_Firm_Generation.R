@@ -24,7 +24,7 @@ employment_per_firm <-
 employment_per_firm_gapfill <-
   data.table::fread(paste0(path2file, "/SynthFirm_parameters/", employment_per_firm_gapfill_file), h = T)
 
-output_dir <- paste0(path2file, "/outputs_", scenario)
+output_dir <- paste0(path2file, "/outputs_", out_scenario)
 if (!dir.exists(output_dir)){
   dir.create(output_dir)
 }else{

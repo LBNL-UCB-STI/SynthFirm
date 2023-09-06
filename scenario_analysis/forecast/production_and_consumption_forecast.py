@@ -19,17 +19,17 @@ warnings.filterwarnings("ignore")
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 forecast_year = '2040'
 # load inputs
-firms_baseline = read_csv('outputs/synthetic_firms_v2.csv')
-production_baseline = read_csv('outputs/synthetic_producers_V2.csv')
-consumer_baseline = read_csv('outputs/synthetic_consumers_V2.csv')
+firms_baseline = read_csv('outputs_SF/synthetic_firms.csv')
+production_baseline = read_csv('outputs_SF/synthetic_producers.csv')
+consumer_baseline = read_csv('outputs_SF/synthetic_consumers.csv')
 
-future_production = read_csv('inputs/total_commodity_production_' + forecast_year + '.csv')
-future_consumption = read_csv('inputs/total_commodity_attraction_' + forecast_year + '.csv')
+future_production = read_csv('inputs_SF/total_commodity_production_' + forecast_year + '.csv')
+future_consumption = read_csv('inputs_SF/total_commodity_attraction_' + forecast_year + '.csv')
 
 #load parameters
-mesozone_to_faf_lookup = read_csv("inputs/zonal_id_lookup_final.csv")
-sctg_lookup = read_csv('inputs/SCTG_Groups_revised.csv')
-industry_commodity_lookup = read_csv('inputs/corresp_naics6_n6io_sctg_revised.csv')
+mesozone_to_faf_lookup = read_csv("inputs_SF/zonal_id_lookup_final.csv")
+sctg_lookup = read_csv('inputs_SF/SCTG_Groups_revised.csv')
+industry_commodity_lookup = read_csv('inputs_SF/corresp_naics6_n6io_sctg_revised.csv')
 
 # <codecell>
 
@@ -165,7 +165,7 @@ consumption_domestic_adj_factor = pd.merge(consumption_baseline_domestic_agg,
                                           right_on = ['dms_dest', 'SCTG_Code'],
                                           how = 'outer')
 
-consumption_domestic_adj_factor.head(5)
+# consumption_domestic_adj_factor.head(5)
 
 consumption_domestic_adj_factor.loc[:, forecast_tonnage] = \
     consumption_domestic_adj_factor.loc[:, forecast_tonnage].fillna(0)
@@ -289,9 +289,9 @@ consumption = pd.concat([consumption_domestic_projected[consumption_attr],
 production_to_check_sctg2 = production.loc[production['Commodity_SCTG'].isin([16,17,18,19,20,22,23])]
 production_to_check_sctg2 = production_to_check_sctg2.loc[production_to_check_sctg2['Zone']< 20000]
 # print(production_to_check_sctg2.OutputCapacitylb.sum()/2000/1000)
-firms.to_csv('outputs_aus_' +forecast_year + '/forecasted_firms.csv', index = False)
-production.to_csv('outputs_aus_' +forecast_year + '/forecasted_production.csv', index = False)
-consumption.to_csv('outputs_aus_' +forecast_year + '/forecasted_consumption.csv', index = False)
+firms.to_csv('outputs_SF_' +forecast_year + '/forecasted_firms.csv', index = False)
+production.to_csv('outputs_SF_' +forecast_year + '/forecasted_production.csv', index = False)
+consumption.to_csv('outputs_SF_' +forecast_year + '/forecasted_consumption.csv', index = False)
 
 # <codecell>
 
@@ -304,4 +304,4 @@ consumption = consumption[['SCTG_Group', 'Commodity_SCTG', 'BuyerID', 'Zone', 'N
 sctg_groups = sctg_lookup.SCTG_Group.unique()
 for sg in sctg_groups:
     consumption_out = consumption.loc[consumption['SCTG_Group'] == sg]
-    consumption_out.to_csv('outputs_aus_' +forecast_year + '/forecasted_consumption_sctg' + str(sg) + '.csv', index = False)
+    consumption_out.to_csv('outputs_SF_' +forecast_year + '/forecasted_consumption_sctg' + str(sg) + '.csv', index = False)

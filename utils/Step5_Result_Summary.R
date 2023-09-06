@@ -11,7 +11,7 @@
 # setwd(path2file)
 print("Generating summary statistics for synthetic firms...")
 
-output_dir <- paste0(path2file, "/outputs_", scenario)
+output_dir <- paste0(path2file, "/outputs_", out_scenario)
 
 
 firms <- data.table::fread(paste0(output_dir, '/', synthetic_firms_no_location_file), h = T) # 8,396, 679 FIRMS

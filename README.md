@@ -28,6 +28,7 @@
     ```
     file_path = /Users/xiaodanxu/Documents/SynthFirm.nosync # path to project data
     scenario_name = BayArea # scenario name, must be consistent with firm generation to allow for models searching for the I-O paths
+    out_scenario_name = BayArea # scenario name for output, can be different from input scenario name, but must be consistent with firm generation configs
     parameter_path = SynthFirm_parameters # parameter directory
     region_code = 62, 64, 65, 69 # list of FAF zone from the study region, for more information about the zonal id, please reference this guide: https://faf.ornl.gov/faf5/data/FAF5%20User%20Guide.pdf
     ```

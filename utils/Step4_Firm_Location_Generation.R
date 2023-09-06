@@ -14,7 +14,7 @@ registerDoParallel(cores=number_of_cores)
 # path2file <-
 #   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 # setwd(path2file)
-output_dir <- paste0(path2file, "/outputs_", scenario)
+output_dir <- paste0(path2file, "/outputs_", out_scenario)
 sf_use_s2(FALSE)
 firms <- data.table::fread(paste0(output_dir, '/', synthetic_firms_no_location_file), h = T) # 8,396, 679 FIRMS
 mesozone_shapefile <- st_read(paste0(path2file, "/inputs_", scenario, '/', scenario, '_freight.geojson'))

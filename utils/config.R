@@ -6,6 +6,7 @@ number_of_cores <- 8 # register number of cores for location generation
 
 ## define scenario name
 scenario <- 'BayArea' # scenario name, the same as input generation process
+out_scenario <- 'BayArea'
 
 ## define model inputs 
 

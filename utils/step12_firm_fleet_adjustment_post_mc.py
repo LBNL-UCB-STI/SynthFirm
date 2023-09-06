@@ -34,8 +34,8 @@ def split_dataframe(df, chunk_size = 100000):
     return chunks
 
 # load input
-scenario_name = 'Ref_highp6'
-analysis_year = '2018'
+scenario_name = 'HOP_highp6'
+analysis_year = '2050'
 output_dir = 'outputs_SF/'
 input_dir = 'inputs_SF/'
 # dir_to_outputs = 'outputs_aus_2050'
@@ -281,7 +281,7 @@ for veh in list_of_veh_tech:
     if veh not in firms_with_fleet_out.columns:
         firms_with_fleet_out[veh] = 0
         
-firms_with_fleet_out = firms_with_fleet_out.drop(columns=['veh_capacity', 'Unnamed: 0'])
+firms_with_fleet_out = firms_with_fleet_out.drop(columns=['veh_capacity'])
 firms_output = pd.concat([firms_with_fleet_out, firms_without_adj])
 
 

@@ -43,10 +43,11 @@ SynthFirm Business-to-business (B2B) flow generation"
     config.read(conf_file)
     # print(config['ENVIRONMENT']['file_path'])
     scenario_name = config['ENVIRONMENT']['scenario_name']
+    out_scenario_name = config['ENVIRONMENT']['out_scenario_name']
     file_path = config['ENVIRONMENT']['file_path']
     parameter_dir = config['ENVIRONMENT']['parameter_path']
     input_dir = 'inputs_' + scenario_name
-    output_dir = 'outputs_' + scenario_name
+    output_dir = 'outputs_' + out_scenario_name
 
     input_path = os.path.join(file_path, input_dir)
     output_path = os.path.join(file_path, output_dir)

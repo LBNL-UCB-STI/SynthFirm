@@ -11,6 +11,8 @@ import numpy as np
 # import constants_sf as c
 import os
 import warnings
+from multiprocessing import Pool
+
 warnings.filterwarnings('ignore')
 #import math
 
@@ -22,7 +24,11 @@ def choice_model_variable_generator(data, mode_choice_spec, distance_travel_time
                                        labels = mode_choice_spec['weight_bin_label'], 
                                        right = True,
                                        include_lowest = True)
+    data.loc[:, 'weight_bin'] = data.loc[:, 'weight_bin'].astype(str)
     data.loc[:, 'weight_bin'] = data.loc[:, 'weight_bin'].astype(int)
+    # data.loc[:, 'weight_bin'] = pd.factorize(data.loc[:, 'weight_bin'])[0]
+    # print(data['weight_bin'].dtype)
+    # print(data[['TruckLoad', 'weight_bin']].head(5))
     # dummy variables for commodity
     data.loc[:, 'Bulk_val'] = 1 * (data.loc[:, 'SCTG_Group'] == 1) + \
         0 * (data.loc[:, 'SCTG_Group'] != 1)
@@ -88,6 +94,7 @@ def choice_model_variable_generator(data, mode_choice_spec, distance_travel_time
 
 def mode_choice_utility_generator(data, mode_choice_param, list_of_alternative): # compute utility and probability by mode
     data = pd.merge(data, mode_choice_param, on = 'Alternative', how = 'left')
+    # print(data['weight_bin'].dtype)
     data.loc[:, 'Utility'] = data.loc[:, 'constant'] * data.loc[:, 'Const'] + \
     data.loc[:, 'weight_bin'] * data.loc[:, 'Weight'] + \
     data.loc[:, 'Distance'] * data.loc[:, 'Dist'] + \
@@ -138,6 +145,78 @@ def split_dataframe(df, chunk_size = 10 ** 6):
     return chunks
 # change to data dir
 
+def process_chunk(args):
+    modeled_OD_by_sctg, i, allparams = args
+    mesozone_lookup, distance_travel_time_skim,list_of_alternative,file_name, mode_choice_spec_glb,mode_choice_param,output_dir, sctg=allparams
+
+    print('process chunk id ' + str(i))
+    # select domestic shipment
+
+    modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg.SellerNAICS.astype(str).str[:2] # generate 2-digit NAICS code
+    modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg['NAICS_code'].astype(int)
+    modeled_OD_by_sctg["shipment_id"] = modeled_OD_by_sctg.index + 1 # generate shipment ID for matching
+    modeled_OD_by_sctg = pd.concat([modeled_OD_by_sctg, 
+                                     pd.DataFrame(columns = list_of_alternative)], 
+                                    sort=False) # append mode choice
+    modeled_OD_by_sctg.loc[:, list_of_alternative] = 1
+ 
+     
+     # convert data to long format, generate variables for mode choice
+    modeled_OD_by_sctg_long = pd.melt(modeled_OD_by_sctg, id_vars=['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID', 'SellerZone',
+        'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 'shipment_id', 'orig_FAFID', 'dest_FAFID', 'UnitCost'], 
+         value_vars=list_of_alternative,
+         var_name='Alternative', value_name='constant')  # convert wide dataframe to long       
+     # modeled_OD_by_sctg_long.loc[modeled_OD_by_sctg_long['TruckLoad'] > c.max_shipment_load, 'TruckLoad'] = c.max_shipment_load
+
+     ##### generate variables for mode choice model #####     
+    modeled_OD_by_sctg_long = \
+         choice_model_variable_generator(modeled_OD_by_sctg_long, mode_choice_spec_glb, distance_travel_time_skim)  
+
+     ##### compute utilities and probabilities #####
+    print('start mode choice generation')
+    mode_choice_results = \
+        mode_choice_utility_generator(modeled_OD_by_sctg_long, mode_choice_param, list_of_alternative)        
+     
+    mode_choice_results.loc[:, 'mode_choice'] = mode_choice_results.apply(
+    lambda row: mode_choice_simulator(list_of_alternative, row[list_of_alternative]),axis=1)
+    mode_choice_results.loc[:, 'Other'] = 0
+    mode_choice_results.loc[mode_choice_results['mode_choice'] == 'Other', 'Other'] = 1
+    mode_choice_results.loc[mode_choice_results['mode_choice'] != 'Other', 'probability'] = mode_choice_results.apply(
+    lambda row: row[row['mode_choice']], axis=1)
+     
+    mode_choice_results = mode_choice_results.loc[:, ['shipment_id', 'mode_choice','probability']]
+     
+    print('start writing output')
+ 
+    modeled_OD_by_sctg = pd.merge(modeled_OD_by_sctg, mode_choice_results, on = 'shipment_id', how = 'left')
+    modeled_OD_by_sctg = pd.merge(modeled_OD_by_sctg, distance_travel_time_skim, left_on = ['orig_FAFID', 'dest_FAFID', 'mode_choice'], 
+                                   right_on = ['orig_FAFID', 'dest_FAFID', 'Alternative'], how = 'left')
+    modeled_OD_by_sctg = modeled_OD_by_sctg[['BuyerID', 'BuyerZone', 
+                                              'BuyerNAICS', 'SellerID', 'SellerZone',
+                                              'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 
+                                              'shipment_id', 'orig_FAFID', 'dest_FAFID', 'mode_choice', 
+                                              'probability', 'Distance', 'Travel_time']]
+    int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'SCTG_Group', 'NAICS_code', 'shipment_id',
+    'orig_FAFID', 'dest_FAFID']
+    modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(int)
+    float_var = ['TruckLoad', 'probability', 'Distance', 'Travel_time']
+    modeled_OD_by_sctg.loc[:, float_var] = modeled_OD_by_sctg.loc[:, float_var].astype(float)
+    i += 1
+    # combined_modeled_OD_by_sctg = pd.concat([combined_modeled_OD_by_sctg, modeled_OD_by_sctg])
+    # break
+    # cut_off_point = 1000 * c.max_ton_lookup[sctg]
+    # combined_modeled_OD_by_sctg.loc[combined_modeled_OD_by_sctg['TruckLoad'] > cut_off_point, 'TruckLoad'] = cut_off_point
+
+
+    ##### writing output ######
+    # combined_modeled_OD_by_sctg.to_csv(c.input_dir + 'sample_mode_choice.csv')
+    mc_out_dir = os.path.join(output_dir, sctg)
+    if not os.path.exists(mc_out_dir):
+        os.makedirs(mc_out_dir)
+    out_file_name = 'reassigned_' + file_name + '_' + str(i) + '.zip'
+        # combined_modeled_OD_by_sctg.to_csv(c.input_dir + 'sample_mode_choice.csv')
+    modeled_OD_by_sctg.to_csv(os.path.join(mc_out_dir, out_file_name)) # writing output
+
 # os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 #define parameter file names
 def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file, 
@@ -146,6 +225,7 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
     
     print('Assign mode choice to each shipment...')
     # load parameter
+    mode_choice_spec_glb = mode_choice_spec
     mode_choice_param = read_csv(mode_choice_param_file, sep = ',')
     mesozone_lookup = read_csv(mesozone_to_faf_file, sep = ',')
     # value_density_lookup = read_csv(c.param_dir + c.value_density_file, sep = ',')
@@ -155,12 +235,11 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
     output_dir = output_path
     ###### Functions used for mode choice variable generation and simulation #####
     
-    
-    
+        
     # aggregated output data
     # mode_choide_by_commodity = None
     chunk_size = 10 ** 6
-    
+    njob = 0
     ###### processing OD flow and generate mode choice ##########
     for k in range(5):
         sctg = 'sctg' + str(k + 1)
@@ -169,79 +248,101 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
         # sctg_id = int(sctg[4])
         file_start = 'shipment_' + sctg
         filelist = [file for file in os.listdir(output_dir) if file.startswith(file_start)]
-        all_modeled_OD_by_sctg = pd.concat([read_csv(os.path.join(output_dir, f), low_memory=False) for f in filelist ])
-        all_modeled_OD_by_sctg.reset_index(inplace = True)
-        chunks_of_flows = split_dataframe(all_modeled_OD_by_sctg, chunk_size)
-        # OD_file_to_load = sctg + '_OD.csv'
-        file_name = sctg + '_OD'
         i = 0
-        for modeled_OD_by_sctg in chunks_of_flows:
-            print('process chunk id ' + str(i))        
-            # select domestic shipment
+        for f in filelist:
+            print(f)
+            all_modeled_OD_by_sctg = read_csv(os.path.join(output_dir, f), low_memory=False) 
+            all_modeled_OD_by_sctg.reset_index(inplace = True)
+            chunks_of_flows = split_dataframe(all_modeled_OD_by_sctg, chunk_size)
+        # OD_file_to_load = sctg + '_OD.csv'
+            file_name = sctg + '_OD'
+            # all_modeled_OD_by_sctg = pd.concat([read_csv(os.path.join(output_dir, f), low_memory=False) for f in filelist ])
+            # all_modeled_OD_by_sctg.reset_index(inplace = True)
+            # chunks_of_flows = split_dataframe(all_modeled_OD_by_sctg, chunk_size)
+            # # OD_file_to_load = sctg + '_OD.csv'
+            # file_name = sctg + '_OD'
+
+            # parallel run mode choice
+            allparams= mesozone_lookup, distance_travel_time_skim,list_of_alternative,file_name, mode_choice_spec_glb,mode_choice_param,output_dir, sctg 
+
+            jobs=[]
+            for modeled_OD_by_sctg in chunks_of_flows:
+                jobs.append( (modeled_OD_by_sctg, i, allparams))
+                i+=1
+    
+            print(len(jobs))
+            njob+=len(jobs)
+            pl=Pool(2)
+            pl.map(process_chunk, jobs)
+            # process_chunk(jobs[0])
+        # break
+        # for modeled_OD_by_sctg in chunks_of_flows:
+        #     print('process chunk id ' + str(i))        
+        #     # select domestic shipment
          
-            modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg.SellerNAICS.astype(str).str[:2] # generate 2-digit NAICS code
-            modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg['NAICS_code'].astype(int)
-            modeled_OD_by_sctg["shipment_id"] = modeled_OD_by_sctg.index + 1 # generate shipment ID for matching
-            modeled_OD_by_sctg = pd.concat([modeled_OD_by_sctg, 
-                                            pd.DataFrame(columns = list_of_alternative)], 
-                                           sort=False) # append mode choice
-            modeled_OD_by_sctg.loc[:, list_of_alternative] = 1
+        #     modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg.SellerNAICS.astype(str).str[:2] # generate 2-digit NAICS code
+        #     modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg['NAICS_code'].astype(int)
+        #     modeled_OD_by_sctg["shipment_id"] = modeled_OD_by_sctg.index + 1 # generate shipment ID for matching
+        #     modeled_OD_by_sctg = pd.concat([modeled_OD_by_sctg, 
+        #                                     pd.DataFrame(columns = list_of_alternative)], 
+        #                                    sort=False) # append mode choice
+        #     modeled_OD_by_sctg.loc[:, list_of_alternative] = 1
     
             
-            # convert data to long format, generate variables for mode choice
-            modeled_OD_by_sctg_long = pd.melt(modeled_OD_by_sctg, id_vars=['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID', 'SellerZone',
-               'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 'shipment_id', 'orig_FAFID', 'dest_FAFID', 'UnitCost'], 
-                value_vars=list_of_alternative,
-                var_name='Alternative', value_name='constant')  # convert wide dataframe to long       
-            # modeled_OD_by_sctg_long.loc[modeled_OD_by_sctg_long['TruckLoad'] > c.max_shipment_load, 'TruckLoad'] = c.max_shipment_load
+        #     # convert data to long format, generate variables for mode choice
+        #     modeled_OD_by_sctg_long = pd.melt(modeled_OD_by_sctg, id_vars=['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID', 'SellerZone',
+        #        'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 'shipment_id', 'orig_FAFID', 'dest_FAFID', 'UnitCost'], 
+        #         value_vars=list_of_alternative,
+        #         var_name='Alternative', value_name='constant')  # convert wide dataframe to long       
+        #     # modeled_OD_by_sctg_long.loc[modeled_OD_by_sctg_long['TruckLoad'] > c.max_shipment_load, 'TruckLoad'] = c.max_shipment_load
 
-            ##### generate variables for mode choice model #####     
-            modeled_OD_by_sctg_long = \
-                choice_model_variable_generator(modeled_OD_by_sctg_long, mode_choice_spec, distance_travel_time_skim)  
+        #     ##### generate variables for mode choice model #####     
+        #     modeled_OD_by_sctg_long = \
+        #         choice_model_variable_generator(modeled_OD_by_sctg_long, mode_choice_spec, distance_travel_time_skim)  
 
-            ##### compute utilities and probabilities #####
-            print('start mode choice generation')
-            mode_choice_results = \
-                mode_choice_utility_generator(modeled_OD_by_sctg_long, mode_choice_param, list_of_alternative)        
+        #     ##### compute utilities and probabilities #####
+        #     print('start mode choice generation')
+        #     mode_choice_results = \
+        #         mode_choice_utility_generator(modeled_OD_by_sctg_long, mode_choice_param, list_of_alternative)        
             
-            mode_choice_results.loc[:, 'mode_choice'] = mode_choice_results.apply(
-            lambda row: mode_choice_simulator(list_of_alternative, row[list_of_alternative]),axis=1)
-            mode_choice_results.loc[:, 'Other'] = 0
-            mode_choice_results.loc[mode_choice_results['mode_choice'] == 'Other', 'Other'] = 1
-            mode_choice_results.loc[mode_choice_results['mode_choice'] != 'Other', 'probability'] = mode_choice_results.apply(
-            lambda row: row[row['mode_choice']], axis=1)
+        #     mode_choice_results.loc[:, 'mode_choice'] = mode_choice_results.apply(
+        #     lambda row: mode_choice_simulator(list_of_alternative, row[list_of_alternative]),axis=1)
+        #     mode_choice_results.loc[:, 'Other'] = 0
+        #     mode_choice_results.loc[mode_choice_results['mode_choice'] == 'Other', 'Other'] = 1
+        #     mode_choice_results.loc[mode_choice_results['mode_choice'] != 'Other', 'probability'] = mode_choice_results.apply(
+        #     lambda row: row[row['mode_choice']], axis=1)
             
-            mode_choice_results = mode_choice_results.loc[:, ['shipment_id', 'mode_choice','probability']]
+        #     mode_choice_results = mode_choice_results.loc[:, ['shipment_id', 'mode_choice','probability']]
             
-            print('start writing output')
+        #     print('start writing output')
     
-            modeled_OD_by_sctg = pd.merge(modeled_OD_by_sctg, mode_choice_results, on = 'shipment_id', how = 'left')
-            modeled_OD_by_sctg = pd.merge(modeled_OD_by_sctg, distance_travel_time_skim, left_on = ['orig_FAFID', 'dest_FAFID', 'mode_choice'], 
-                                          right_on = ['orig_FAFID', 'dest_FAFID', 'Alternative'], how = 'left')
-            modeled_OD_by_sctg = modeled_OD_by_sctg[['BuyerID', 'BuyerZone', 
-                                                     'BuyerNAICS', 'SellerID', 'SellerZone',
-                                                     'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 
-                                                     'shipment_id', 'orig_FAFID', 'dest_FAFID', 'mode_choice', 
-                                                     'probability', 'Distance', 'Travel_time']]
-            int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'SCTG_Group', 'NAICS_code', 'shipment_id',
-           'orig_FAFID', 'dest_FAFID']
-            modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(int)
-            float_var = ['TruckLoad', 'probability', 'Distance', 'Travel_time']
-            modeled_OD_by_sctg.loc[:, float_var] = modeled_OD_by_sctg.loc[:, float_var].astype(float)
-            i += 1
-            # combined_modeled_OD_by_sctg = pd.concat([combined_modeled_OD_by_sctg, modeled_OD_by_sctg])
-            # break
-            # cut_off_point = 1000 * c.max_ton_lookup[sctg]
-            # combined_modeled_OD_by_sctg.loc[combined_modeled_OD_by_sctg['TruckLoad'] > cut_off_point, 'TruckLoad'] = cut_off_point
+        #     modeled_OD_by_sctg = pd.merge(modeled_OD_by_sctg, mode_choice_results, on = 'shipment_id', how = 'left')
+        #     modeled_OD_by_sctg = pd.merge(modeled_OD_by_sctg, distance_travel_time_skim, left_on = ['orig_FAFID', 'dest_FAFID', 'mode_choice'], 
+        #                                   right_on = ['orig_FAFID', 'dest_FAFID', 'Alternative'], how = 'left')
+        #     modeled_OD_by_sctg = modeled_OD_by_sctg[['BuyerID', 'BuyerZone', 
+        #                                              'BuyerNAICS', 'SellerID', 'SellerZone',
+        #                                              'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 
+        #                                              'shipment_id', 'orig_FAFID', 'dest_FAFID', 'mode_choice', 
+        #                                              'probability', 'Distance', 'Travel_time']]
+        #     int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'SCTG_Group', 'NAICS_code', 'shipment_id',
+        #    'orig_FAFID', 'dest_FAFID']
+        #     modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(int)
+        #     float_var = ['TruckLoad', 'probability', 'Distance', 'Travel_time']
+        #     modeled_OD_by_sctg.loc[:, float_var] = modeled_OD_by_sctg.loc[:, float_var].astype(float)
+        #     i += 1
+        #     # combined_modeled_OD_by_sctg = pd.concat([combined_modeled_OD_by_sctg, modeled_OD_by_sctg])
+        #     # break
+        #     # cut_off_point = 1000 * c.max_ton_lookup[sctg]
+        #     # combined_modeled_OD_by_sctg.loc[combined_modeled_OD_by_sctg['TruckLoad'] > cut_off_point, 'TruckLoad'] = cut_off_point
     
     
-            ##### writing output ######
-            mc_out_dir = os.path.join(output_dir, sctg)
-            if not os.path.exists(mc_out_dir):
-                os.makedirs(mc_out_dir)
-            out_file_name = 'reassigned_' + file_name + '_' + str(i) + '.zip'
-            # combined_modeled_OD_by_sctg.to_csv(c.input_dir + 'sample_mode_choice.csv')
-            modeled_OD_by_sctg.to_csv(os.path.join(mc_out_dir, out_file_name)) # writing output
+        #     ##### writing output ######
+        #     mc_out_dir = os.path.join(output_dir, sctg)
+        #     if not os.path.exists(mc_out_dir):
+        #         os.makedirs(mc_out_dir)
+        #     out_file_name = 'reassigned_' + file_name + '_' + str(i) + '.zip'
+        #     # combined_modeled_OD_by_sctg.to_csv(c.input_dir + 'sample_mode_choice.csv')
+        #     modeled_OD_by_sctg.to_csv(os.path.join(mc_out_dir, out_file_name)) # writing output
         #     break
         # break
     print('end of mode choice generation')
