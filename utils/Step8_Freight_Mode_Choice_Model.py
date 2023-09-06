@@ -80,8 +80,11 @@ def choice_model_variable_generator(data, mode_choice_spec, distance_travel_time
     data.loc[truck_criteria & (data['Cost_val'] < 10), 'Cost_val'] = 10
     
     # 4. parcel
-    data.loc[data['Alternative'] == 'Parcel', 'Cost_val'] =  \
-        np.exp(3.58 + 0.015 * data.loc[data['Alternative'] == 'Parcel', 'TruckLoad'] / mode_choice_spec['lb_to_ton'])
+    parcel_criteria_1 = (data['Alternative'] == 'Parcel') & (data['TruckLoad'] <= 0.15)
+    parcel_criteria_2 = (data['Alternative'] == 'Parcel') & (data['TruckLoad'] > 0.15)
+    data.loc[parcel_criteria_1, 'Cost_val'] =  \
+        np.exp(3.58 + 0.015 * data.loc[parcel_criteria_1, 'TruckLoad'] / mode_choice_spec['lb_to_ton'])
+    data.loc[parcel_criteria_2, 'Cost_val'] = 100000 # set shipping cost upper bound
     # 4. parcel cost
     
     ###### assign mode availability ######
@@ -115,7 +118,10 @@ def mode_choice_utility_generator(data, mode_choice_param, list_of_alternative):
         
         #will add new items once we have the coeff
     data.loc[:, 'Utility'].fillna(0, inplace = True)   
-    data.loc[:, 'Utility_exp'] = np.exp(data.loc[:, 'Utility'])
+    data.loc[:, 'Utility'] = data.loc[:, 'Utility'].astype(float)
+
+    # data.loc[:, 'Utility_exp'] = np.exp(data.loc[:, 'Utility'])
+    data.loc[:, 'Utility_exp'] = np.exp(data.loc[:, 'Utility'].to_numpy().astype(np.float32))
     data.loc[:, 'Utility_exp'] = data.loc[:, 'Utility_exp'] * data.loc[:, 'mode_available']
     global data_to_check
     data_to_check = data
@@ -150,6 +156,7 @@ def process_chunk(args):
     mesozone_lookup, distance_travel_time_skim,list_of_alternative,file_name, mode_choice_spec_glb,mode_choice_param,output_dir, sctg=allparams
 
     print('process chunk id ' + str(i))
+    # print('total shipment in this batch ' + str(len(modeled_OD_by_sctg)))
     # select domestic shipment
 
     modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg.SellerNAICS.astype(str).str[:2] # generate 2-digit NAICS code
@@ -201,7 +208,7 @@ def process_chunk(args):
     modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(int)
     float_var = ['TruckLoad', 'probability', 'Distance', 'Travel_time']
     modeled_OD_by_sctg.loc[:, float_var] = modeled_OD_by_sctg.loc[:, float_var].astype(float)
-    i += 1
+    # i += 1
     # combined_modeled_OD_by_sctg = pd.concat([combined_modeled_OD_by_sctg, modeled_OD_by_sctg])
     # break
     # cut_off_point = 1000 * c.max_ton_lookup[sctg]
@@ -274,7 +281,7 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
             njob+=len(jobs)
             pl=Pool(2)
             pl.map(process_chunk, jobs)
-            # process_chunk(jobs[0])
+            # process_chunk(jobs[2])
         # break
         # for modeled_OD_by_sctg in chunks_of_flows:
         #     print('process chunk id ' + str(i))        
