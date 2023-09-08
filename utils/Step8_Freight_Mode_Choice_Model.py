@@ -84,7 +84,7 @@ def choice_model_variable_generator(data, mode_choice_spec, distance_travel_time
     parcel_criteria_2 = (data['Alternative'] == 'Parcel') & (data['TruckLoad'] > 0.15)
     data.loc[parcel_criteria_1, 'Cost_val'] =  \
         np.exp(3.58 + 0.015 * data.loc[parcel_criteria_1, 'TruckLoad'] / mode_choice_spec['lb_to_ton'])
-    data.loc[parcel_criteria_2, 'Cost_val'] = 100000 # set shipping cost upper bound
+    data.loc[parcel_criteria_2, 'Cost_val'] = 1000 # set shipping cost upper bound
     # 4. parcel cost
     
     ###### assign mode availability ######
@@ -183,9 +183,10 @@ def process_chunk(args):
     print('start mode choice generation')
     mode_choice_results = \
         mode_choice_utility_generator(modeled_OD_by_sctg_long, mode_choice_param, list_of_alternative)        
-     
+
     mode_choice_results.loc[:, 'mode_choice'] = mode_choice_results.apply(
-    lambda row: mode_choice_simulator(list_of_alternative, row[list_of_alternative]),axis=1)
+    lambda row: mode_choice_simulator(list_of_alternative, row[list_of_alternative].to_numpy().astype(np.float32)),axis=1)
+    # mode_choice_results.to_csv('mode_choice_to_check.csv')
     mode_choice_results.loc[:, 'Other'] = 0
     mode_choice_results.loc[mode_choice_results['mode_choice'] == 'Other', 'Other'] = 1
     mode_choice_results.loc[mode_choice_results['mode_choice'] != 'Other', 'probability'] = mode_choice_results.apply(
@@ -238,7 +239,7 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
     # value_density_lookup = read_csv(c.param_dir + c.value_density_file, sep = ',')
     distance_travel_time_skim = read_csv(distance_travel_skim_file, sep = ',')
     list_of_alternative = mode_choice_param['Alternative'].tolist()
-    chunk_size = 10 ** 6  # process large data by chunk
+    # chunk_size = 10 ** 5  # process large data by chunk
     output_dir = output_path
     ###### Functions used for mode choice variable generation and simulation #####
     
@@ -278,10 +279,11 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
                 i+=1
     
             print(len(jobs))
+            
             njob+=len(jobs)
             pl=Pool(2)
             pl.map(process_chunk, jobs)
-            # process_chunk(jobs[2])
+            # process_chunk(jobs[0])
         # break
         # for modeled_OD_by_sctg in chunks_of_flows:
         #     print('process chunk id ' + str(i))        

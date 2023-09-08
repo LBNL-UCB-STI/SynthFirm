@@ -66,7 +66,7 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
             truck_out_path = os.path.join(output_dir, truck_only_dir)
             if not os.path.exists(truck_out_path):
                 os.makedirs(truck_out_path)
-            truck_output_file = 'truck_only_OD_' + sctg + '_' + str(iterator) + '.csv'
+            truck_output_file = 'truck_only_OD_' + sctg + '_' + str(iterator) + '.csv.zip'
             truck_output.to_csv(os.path.join(truck_out_path, truck_output_file), index = False)
     
             
