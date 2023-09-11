@@ -34,9 +34,9 @@ def split_dataframe(df, chunk_size = 100000):
     return chunks
 
 # load input
-scenario_name = 'HOP_highp6'
-analysis_year = '2050'
-output_dir = 'outputs_SF/'
+scenario_name = 'Ref_highp6'
+analysis_year = '2018'
+output_dir = 'outputs_SF_2040/'
 input_dir = 'inputs_SF/'
 # dir_to_outputs = 'outputs_aus_2050'
 result_dir = output_dir + analysis_year + '/' + scenario_name
@@ -62,7 +62,7 @@ payload_capacity = {'Class 4-6 Vocational': 4,
 ########## pre-processing data #######
 print('Formating data and load B2B flow...')
 # filter vehicle composition data
-analysis_year = 2018
+analysis_year = int(analysis_year) # convert to integer
 vehicle_type_by_state = \
 vehicle_type_by_state.loc[vehicle_type_by_state['Year'] == analysis_year]
 
@@ -78,11 +78,20 @@ for i in range(5):
     sctg = i + 1
     sctg_code = 'sctg' + str(sctg)
     file_dir = output_dir + sctg_code + '_truck/'
-    filelist = [file for file in os.listdir(file_dir) if (file.endswith('.csv'))]
+    filelist = [file for file in os.listdir(file_dir) if (file.endswith('.csv.zip'))]
     print(sctg_code)
-    combined_csv = pd.concat([read_csv(file_dir + f, low_memory=False) for f in filelist ])
-    combined_csv = combined_csv.loc[combined_csv['mode_choice'] == 'Private Truck']
-    combined_b2b_flow = pd.concat([combined_b2b_flow, combined_csv])
+    n = 50 # chunk size  _-> save results for  every 50 files
+    filelist_chunk = [filelist[i * n:(i + 1) * n] for i in range((len(filelist) + n - 1) // n )] 
+    j = 0
+    for chunk in filelist_chunk:
+        print('loading chunk ' + str(j))
+        combined_csv = pd.concat([read_csv(file_dir + f) for f in chunk ])
+        # combined_csv = pd.concat([read_csv(file_dir + f) for f in filelist ])
+        combined_csv = combined_csv.loc[combined_csv['mode_choice'] == 'Private Truck']
+        combined_csv = combined_csv.groupby(['SellerID'])[['TruckLoad']].sum()
+        combined_csv = combined_csv.reset_index()
+        combined_b2b_flow = pd.concat([combined_b2b_flow, combined_csv])
+        j += 1
 #     break
 
 selected_firms_with_load = combined_b2b_flow.groupby(['SellerID'])[['TruckLoad']].sum()
@@ -230,6 +239,8 @@ index_var = ['esizecat', 'CBPZONE', 'FAFZONE', 'Industry_NAICS6_Make',
             'st', 'stname', 'EV_powertrain (if any)', 'fleet_id', 'veh_capacity']
 
 avail_veh_tech = firms_with_fleet_out.veh_type.unique()
+print('firm fleet after adjustment:')
+print(firms_with_fleet_out.groupby(['veh_type'])['number_of_veh'].sum())
 firms_with_fleet_out = firms_with_fleet_out.pivot(values = 'number_of_veh',
                                index = index_var, columns = 'veh_type')
 firms_with_fleet_out = firms_with_fleet_out.reset_index()
@@ -252,29 +263,34 @@ firms_with_fleet_short.groupby('BusID')['pdf'].cumsum()
 for i in range(5):
     sctg = i + 1
     sctg_code = 'sctg' + str(sctg)
+    print(sctg_code)
     file_dir = output_dir + sctg_code + '_truck/'
 
-    filelist = [file for file in os.listdir(file_dir) if (file.endswith('.csv'))]
-    print(sctg_code)
-    combined_csv = pd.concat([read_csv(file_dir + f, low_memory=False) for f in filelist ])
-    private_truck = combined_csv.loc[combined_csv['mode_choice'] == 'Private Truck']
-    for_hire_truck = combined_csv.loc[combined_csv['mode_choice'] != 'Private Truck']
-    sample_size = len(private_truck)
-    if sample_size > 0:
-        private_truck.loc[:, 'rand'] = pd.Series(np.random.uniform(size = sample_size))
-        private_truck = pd.merge(private_truck, firms_with_fleet_short,
-                                left_on = 'SellerID', right_on = 'BusID',
-                                how = 'left')
-        private_truck.loc[:, 'indicator'] = 0
-        criteria = (private_truck.loc[:, 'rand'] < private_truck.loc[:, 'cdf'])
-        private_truck.loc[criteria, 'indicator'] = 1
-        private_truck = private_truck.loc[private_truck['indicator'] == 1]
-        private_truck = private_truck.drop_duplicates(subset = 'shipment_id', keep = 'first')
-        # print(sample_size, len(private_truck))
-        private_truck = private_truck.drop(columns=['rand',	'BusID', 'veh_capacity', 'pdf', 'cdf', 'indicator'])
-        private_truck.to_csv(result_dir +  '/private_truck_shipment_' + sctg_code +  '.csv')
-    if len(for_hire_truck) > 0:
-        for_hire_truck.to_csv(result_dir +  '/for_hire_truck_shipment_' + sctg_code + '.csv')
+    filelist = [file for file in os.listdir(file_dir) if (file.endswith('.csv.zip'))]
+    n = 50 # chunk size  _-> save results for  every 50 files
+    filelist_chunk = [filelist[i * n:(i + 1) * n] for i in range((len(filelist) + n - 1) // n )] 
+    j = 0
+    for chunk in filelist_chunk:
+        combined_csv = pd.concat([read_csv(file_dir + f) for f in chunk ])
+        private_truck = combined_csv.loc[combined_csv['mode_choice'] == 'Private Truck']
+        for_hire_truck = combined_csv.loc[combined_csv['mode_choice'] != 'Private Truck']
+        sample_size = len(private_truck)
+        if sample_size > 0:
+            private_truck.loc[:, 'rand'] = pd.Series(np.random.uniform(size = sample_size))
+            private_truck = pd.merge(private_truck, firms_with_fleet_short,
+                                    left_on = 'SellerID', right_on = 'BusID',
+                                    how = 'left')
+            private_truck.loc[:, 'indicator'] = 0
+            criteria = (private_truck.loc[:, 'rand'] < private_truck.loc[:, 'cdf'])
+            private_truck.loc[criteria, 'indicator'] = 1
+            private_truck = private_truck.loc[private_truck['indicator'] == 1]
+            private_truck = private_truck.drop_duplicates(subset = 'shipment_id', keep = 'first')
+            # print(sample_size, len(private_truck))
+            private_truck = private_truck.drop(columns=['rand',	'BusID', 'veh_capacity', 'pdf', 'cdf', 'indicator'])
+            private_truck.to_csv(result_dir +  '/private_truck_shipment_' + sctg_code + '_' + str(j) + '.csv')
+        if len(for_hire_truck) > 0:
+            for_hire_truck.to_csv(result_dir +  '/for_hire_truck_shipment_' + sctg_code  + '_' + str(j) + '.csv')
+        j += 1
 
 # fill in columns that are not selected
 for veh in list_of_veh_tech:

@@ -38,10 +38,11 @@ def split_dataframe(df, chunk_size = 100000):
 ########### define inputs ################
 print('loading fleet inputs...')
 
-scenario_name = 'HOP_highp6'
+analysis_year = 2018
+scenario_name = 'Ref_highp6'
 input_dir = 'inputs_SF/'
-output_dir = 'outputs_SF/'
-firm_name = 'synthetic_firms_with_location.csv'
+output_dir = 'outputs_SF_2040/'
+firm_name = 'forecasted_firms_with_location.csv'
 firms = read_csv(output_dir + firm_name)
 
 private_fleet = read_csv(input_dir + 'fleet/CA_private_fleet_size_distribution_V2.csv')
@@ -62,7 +63,7 @@ state_fips_lookup = read_csv(input_dir + 'us-state-ansi-fips.csv')
 ############## pre-processing data ################
 print('initial fleet composition generation...')
 # filter vehicle composition data
-analysis_year = 2050
+
 vehicle_type_by_state = \
 vehicle_type_by_state.loc[vehicle_type_by_state['Year'] == analysis_year]
 
@@ -367,6 +368,10 @@ while abs(new_scale - 1) > 0.05:
 print('number of private vehicles after scaling = ')
 print(firms_with_fleet_adj['number_of_veh'].sum())  
 
+firms_with_fleet_adj_check = firms_with_fleet_adj.groupby('veh_type')[['number_of_veh']].sum()
+print('fleet composition after scaling = ')
+print(firms_with_fleet_adj_check)
+
 # <codecell>
 
 ############# assign EV type #############
@@ -488,7 +493,7 @@ for veh in list_of_veh_tech:
     if veh not in leasing_with_fleet_out.columns:
         leasing_with_fleet_out[veh] = 0
         
-result_dir = output_dir + '/' + str(analysis_year) + '/' + scenario_name
+result_dir = output_dir + str(analysis_year) + '/' + scenario_name
 isExist = os.path.exists(result_dir)
 if not isExist:
    # Create a new directory because it does not exist
