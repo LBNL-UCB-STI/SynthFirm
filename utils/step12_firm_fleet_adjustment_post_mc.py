@@ -35,7 +35,7 @@ def split_dataframe(df, chunk_size = 100000):
 
 # load input
 scenario_name = 'Ref_highp6'
-analysis_year = '2018'
+analysis_year = '2040'
 output_dir = 'outputs_SF_2040/'
 input_dir = 'inputs_SF/'
 # dir_to_outputs = 'outputs_aus_2050'

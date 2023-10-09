@@ -38,7 +38,7 @@ def split_dataframe(df, chunk_size = 100000):
 ########### define inputs ################
 print('loading fleet inputs...')
 
-analysis_year = 2018
+analysis_year = 2040
 scenario_name = 'Ref_highp6'
 input_dir = 'inputs_SF/'
 output_dir = 'outputs_SF_2040/'
