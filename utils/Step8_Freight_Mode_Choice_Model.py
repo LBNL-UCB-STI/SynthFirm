@@ -26,6 +26,17 @@ def choice_model_variable_generator(data, mode_choice_spec, distance_travel_time
                                        include_lowest = True)
     data.loc[:, 'weight_bin'] = data.loc[:, 'weight_bin'].astype(str)
     data.loc[:, 'weight_bin'] = data.loc[:, 'weight_bin'].astype(int)
+    
+    data.loc[:, 'weight_bin_1'] = 0
+    data.loc[data['weight_bin'] == 1, 'weight_bin_1'] = 1
+    data.loc[:, 'weight_bin_2'] = 0
+    data.loc[data['weight_bin'] == 2, 'weight_bin_2'] = 1
+    data.loc[:, 'weight_bin_3'] = 0
+    data.loc[data['weight_bin'] == 3, 'weight_bin_3'] = 1
+    data.loc[:, 'weight_bin_4'] = 0
+    data.loc[data['weight_bin'] == 4, 'weight_bin_4'] = 1
+    data.loc[:, 'weight_bin_5'] = 0
+    data.loc[data['weight_bin'] == 5, 'weight_bin_5'] = 1
     # data.loc[:, 'weight_bin'] = pd.factorize(data.loc[:, 'weight_bin'])[0]
     # print(data['weight_bin'].dtype)
     # print(data[['TruckLoad', 'weight_bin']].head(5))
@@ -99,7 +110,10 @@ def mode_choice_utility_generator(data, mode_choice_param, list_of_alternative):
     data = pd.merge(data, mode_choice_param, on = 'Alternative', how = 'left')
     # print(data['weight_bin'].dtype)
     data.loc[:, 'Utility'] = data.loc[:, 'constant'] * data.loc[:, 'Const'] + \
-    data.loc[:, 'weight_bin'] * data.loc[:, 'Weight'] + \
+    data.loc[:, 'weight_bin_2'] * data.loc[:, 'Weight_2'] + \
+    data.loc[:, 'weight_bin_3'] * data.loc[:, 'Weight_3'] + \
+    data.loc[:, 'weight_bin_4'] * data.loc[:, 'Weight_4'] + \
+    data.loc[:, 'weight_bin_5'] * data.loc[:, 'Weight_5'] + \
     data.loc[:, 'Distance'] * data.loc[:, 'Dist'] + \
     data.loc[:, 'Bulk_val'] * data.loc[:, 'Bulk'] + \
     data.loc[:, 'Fuel_fert_val'] * data.loc[:, 'Fuel_fert'] + \
