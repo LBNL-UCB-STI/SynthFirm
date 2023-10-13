@@ -1,12 +1,12 @@
 # Config file to run SynthFirm firm generation and 
 
 ## define path to project directory
-path2file <- "/Users/xiaodanxu/Documents/SynthFirm.nosync" # path to project folder
-number_of_cores <- 8 # register number of cores for location generation
+path2file <- "." # path to project folder
+number_of_cores <- 4 # register number of cores for location generation
 
 ## define scenario name
-scenario <- 'BayArea' # scenario name, the same as input generation process
-out_scenario <- 'BayArea'
+scenario <- 'Austin' # scenario name, the same as input generation process
+out_scenario <- 'Austin'
 
 ## define model inputs 
 
