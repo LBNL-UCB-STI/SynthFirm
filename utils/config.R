@@ -2,11 +2,11 @@
 
 ## define path to project directory
 path2file <- "." # path to project folder
-number_of_cores <- 4 # register number of cores for location generation
+number_of_cores <- 8 # register number of cores for location generation
 
 ## define scenario name
-scenario <- 'Austin' # scenario name, the same as input generation process
-out_scenario <- 'Austin'
+scenario <- 'BayArea' # scenario name, the same as input generation process
+out_scenario <- 'BayArea'
 
 ## define model inputs 
 
