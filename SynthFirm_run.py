@@ -46,6 +46,8 @@ SynthFirm Business-to-business (B2B) flow generation"
     out_scenario_name = config['ENVIRONMENT']['out_scenario_name']
     file_path = config['ENVIRONMENT']['file_path']
     parameter_dir = config['ENVIRONMENT']['parameter_path']
+    number_of_processes = config['ENVIRONMENT'].get('number_of_processes')
+    number_of_processes = int(number_of_processes) if number_of_processes else 0
     input_dir = 'inputs_' + scenario_name
     output_dir = 'outputs_' + out_scenario_name
 
@@ -168,7 +170,7 @@ SynthFirm Business-to-business (B2B) flow generation"
     if run_mode_choice:
         mode_choice_model(mode_choice_param_file, mesozone_to_faf_file, 
                           distance_travel_skim_file, mode_choice_spec,
-                          output_path)
+                          output_path, number_of_processes)
         
     ##### Step 9 - post mode choice analysis and result summary
     if run_post_analysis:
