@@ -1,7 +1,7 @@
 # Config file to run SynthFirm firm generation and 
 
 ## define path to project directory
-path2file <- "/Users/xiaodanxu/Documents/SynthFirm.nosync" # path to project folder
+path2file <- "." # path to project folder
 number_of_cores <- 8 # register number of cores for location generation
 
 ## define scenario name

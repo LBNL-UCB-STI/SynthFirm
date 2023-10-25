@@ -229,7 +229,7 @@ def process_chunk(args):
 #define parameter file names
 def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file, 
                       distance_travel_skim_file, mode_choice_spec,
-                      output_path):
+                      output_path, number_of_processes):
     
     print('Assign mode choice to each shipment...')
     # load parameter
@@ -281,7 +281,7 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
             print(len(jobs))
             
             njob+=len(jobs)
-            pl=Pool(2)
+            pl=Pool(processes=number_of_processes if number_of_processes > 0 else None)
             pl.map(process_chunk, jobs)
             # process_chunk(jobs[0])
         # break
