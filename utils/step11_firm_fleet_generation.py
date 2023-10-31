@@ -38,16 +38,16 @@ def split_dataframe(df, chunk_size = 100000):
 ########### define inputs ################
 print('loading fleet inputs...')
 
-analysis_year = 2040
-scenario_name = 'Ref_highp6'
-input_dir = 'inputs_SF/'
-output_dir = 'outputs_SF_2040/'
-firm_name = 'forecasted_firms_with_location.csv'
+analysis_year = 2018
+scenario_name = 'TDA_low'
+input_dir = 'inputs/'
+output_dir = 'outputs_aus_2018/'
+firm_name = 'synthetic_firms_with_location.csv'
 firms = read_csv(output_dir + firm_name)
 
-private_fleet = read_csv(input_dir + 'fleet/CA_private_fleet_size_distribution_V2.csv')
-for_hire_fleet = read_csv(input_dir + 'fleet/CA_for_hire_fleet_size_distribution_V2.csv')
-for_lease_fleet = read_csv(input_dir + 'fleet/CA_for_lease_fleet_size_distribution_V2.csv')
+private_fleet = read_csv(input_dir + 'fleet/TX_private_fleet_size_distribution_V2.csv')
+for_hire_fleet = read_csv(input_dir + 'fleet/TX_for_hire_fleet_size_distribution_V2.csv')
+for_lease_fleet = read_csv(input_dir + 'fleet/TX_for_lease_fleet_size_distribution_V2.csv')
 cargo_type_distribution = read_csv(input_dir + "fleet/probability_of_cargo_group.csv")
 
 # forecast values
