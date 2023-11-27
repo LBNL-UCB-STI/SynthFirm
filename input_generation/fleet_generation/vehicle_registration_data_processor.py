@@ -27,9 +27,9 @@ min_size_lookup = {'0-2':1, '3-5':3, '6-10':6,
                    '11-50':11, '51-100':51, '101-1000':101, 
                    '>1000':1001}
 
-input_data_file = 'TEXAS_MDHDbybiz.csv'  # define vehicle input file
-selected_state = 'TX'
-output_dir = 'inputs_Austin/fleet/'
+input_data_file = 'WASHINGTON_MDHDbybiz.csv'  # define vehicle input file
+selected_state = 'WA'
+output_dir = 'inputs_Seattle/fleet/'
 
 registration_data = read_csv('PrivateData/registration/' + input_data_file)
 
@@ -98,7 +98,7 @@ fuel_filter_mdt = (registration_data.loc[:, 'vin_gvw'].isin(medium_duty_class) )
 (registration_data.loc[:, 'fuel'].isin(mdv_fuels))
 
 registration_data = registration_data.loc[fuel_filter_hdt | fuel_filter_mdt]
-print(len(registration_data))
+print(registration_data.totcount.sum())
 
 #create join vehicle type
 registration_data.loc[:, 'vehicle type'] = registration_data.loc[:, 'fuel'] + ' ' + \
@@ -182,7 +182,7 @@ for_lease_truck_by_firm = pd.pivot_table(for_lease_carriers, index = 'business_n
 for_lease_truck_by_firm = for_lease_truck_by_firm.reset_index()
 for_lease_truck_by_firm = for_lease_truck_by_firm.fillna(0)
 for_lease_truck_by_firm.loc[:, 'totcount'] = for_lease_truck_by_firm.loc[:, list_of_vehicle_type].sum(axis = 1)
-
+truck_count[int_vars]
 print('total for-lease carriers ', len(for_lease_truck_by_firm))
 print('total for-lease trucks ', for_lease_truck_by_firm['totcount'].sum())
 print('max for-lease trucks in a firm', for_lease_truck_by_firm['totcount'].max())
