@@ -24,7 +24,8 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-selected_state = 'WA'
+selected_state = c('WA', 'OR')
+output_state = 'WA'
 selected_year = 2017
 region_name = 'Seattle'
 
@@ -101,11 +102,11 @@ state_bg_df = get_acs(
 
 state_bg_df_filtered <- state_bg_df %>% filter(! grepl('Block Group 0', NAME)) # with population
 list_of_geoid <- unique(state_bg_df_filtered$GEOID)
-bg_name = paste0('inputs_', region_name, '/', selected_state, '_bg.geojson')
+bg_name = paste0('inputs_', region_name, '/', output_state, '_bg.geojson')
 sf::st_write(state_bg_df_filtered, bg_name)
 
 state_wac_filtered <- state_wac %>% filter(GEOID %in% list_of_geoid)
-output_name = paste0('inputs_', region_name, '/', selected_state, '_naics.csv')
+output_name = paste0('inputs_', region_name, '/', output_state, '_naics.csv')
 data.table::fwrite(state_wac_filtered, output_name)
 
 
