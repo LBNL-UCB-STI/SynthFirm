@@ -20,9 +20,9 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-region_name = 'Austin'
-state_name = 'TX'
-study_area_faf <- c(481, 488, 489) # this is a critical step in selecting study area boundary
+region_name = 'Seattle'
+state_name = 'WA'
+study_area_faf <- c(531, 532, 539, 411) # this is a critical step in selecting study area boundary
 regional_analysis = 1 # 0 - national analysis, 1 - regional analysis
 # Users can refer to 'CFS_FAF_LOOKUP.csv' for description of FAF zones and select zone IDs that covers study area
 
@@ -78,7 +78,7 @@ file_name = paste0('inputs_', region_name, '/', region_name, '_FAFCNTY.csv')
 data.table::fwrite(faf_all, file_name) 
 
 # load CBP cpmplete county file from Census.gov, example: https://www.census.gov/data/datasets/2017/econ/cbp/2017-cbp.html
-f1 = data.table::fread("RawData/cbp16co.txt",
+f1 = data.table::fread("RawData/CBP/cbp16co.txt",
                        colClasses = list(
                          character = c("fipstate", "fipscty", "naics", "censtate",
                                        "cencty")
