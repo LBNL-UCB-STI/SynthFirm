@@ -1,0 +1,6 @@
+﻿Model,Accuracy,Sample size
+RF,0.91,49417
+XGBoost,0.87,49417
+Catboost,0.91,49417
+bMNL,0.73,49415
+aMNL,0.74,49415
