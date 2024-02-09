@@ -16,7 +16,7 @@ click 'CFS 2017 PUF CSV [118.8 MB]' and the download will start
 
 ## Main modules
 
-*  **MNL data preparation:** ['CFS2017_Austin_dataprep_for_biogeme.ipynb'](CFS2017_Austin_dataprep_for_biogeme.ipynb) includes data cleaning and variable generation steps to prepare the dataset for MNL and ML estimation.
+*  **MNL and ML data preparation:** ['CFS2017_Austin_dataprep_for_biogeme.ipynb'](CFS2017_Austin_dataprep_for_biogeme.ipynb) includes data cleaning and variable generation steps to prepare the dataset for MNL and ML estimation.
 
 * **MNL model specification and estimation:** ['CFS2017_biogeme_MNL_Austin_MLpaper_clean.ipynb'](CFS2017_biogeme_MNL_Austin_MLpaper_clean.ipynb) specifies both the baseline and advanced MNL models and generates estimation results using Biogeme package. 
 
