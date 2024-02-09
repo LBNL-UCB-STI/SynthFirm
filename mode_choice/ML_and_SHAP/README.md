@@ -16,19 +16,19 @@ click 'CFS 2017 PUF CSV [118.8 MB]' and the download will start
 
 ## Main modules
 
-*  **MNL data prepration** ['CFS2017_Austin_dataprep_for_biogeme.ipynb'](CFS2017_Austin_dataprep_for_biogeme.ipynb) includes data cleaning and variable generation steps to prepare the dataset for biogeme.
+*  **MNL data prepration:** ['CFS2017_Austin_dataprep_for_biogeme.ipynb'](CFS2017_Austin_dataprep_for_biogeme.ipynb) includes data cleaning and variable generation steps to prepare the dataset for biogeme.
 
-* **MNL model specification and estimation**['CFS2017_biogeme_MNL_Austin_MLpaper_clean.ipynb'](CFS2017_biogeme_MNL_Austin_MLpaper_clean.ipynb) specifies both the baseline and advanced MNL models and generates estimation results using Biogeme package. 
+* **MNL model specification and estimation:** ['CFS2017_biogeme_MNL_Austin_MLpaper_clean.ipynb'](CFS2017_biogeme_MNL_Austin_MLpaper_clean.ipynb) specifies both the baseline and advanced MNL models and generates estimation results using Biogeme package. 
 
-* **ML model training and SHAP interpretations**['MachineLearningMethod_2017_training.ipynb'](MachineLearningMethod_2017_training.ipynb) trains various machine learning models and generate SHAP intepretations for best-performing ML models.
+* **ML model training and SHAP interpretations:** ['MachineLearningMethod_2017_training.ipynb'](MachineLearningMethod_2017_training.ipynb) trains various machine learning models and generate SHAP intepretations for best-performing ML models.
 
 ## Data exploration and results visualization
 
-* **Mode split visualization**['plot_sample_size_pie.ipynb'](plot_sample_size_pie.ipynb) provides mode split visualizations for Austin freight mode choice.
+* **Mode split visualization:** ['plot_sample_size_pie.ipynb'](plot_sample_size_pie.ipynb) provides mode split visualizations for Austin freight mode choice.
 
-* **Exploratory data analysis (EDA)**['mode_choice_explore_austin.ipynb'](mode_choice_explore_austin.ipynb) provides EDA results for Austin freight mode choice.
+* **Exploratory data analysis (EDA):** ['mode_choice_explore_austin.ipynb'](mode_choice_explore_austin.ipynb) provides EDA results for Austin freight mode choice.
 
-* **Performance measures (with output from main modules)**['accuracy_plot.ipynb'](accuracy_plot.ipynb) provides performance measures for MNL and ML models.
+* **Performance measures (with output from main modules):** ['accuracy_plot.ipynb'](accuracy_plot.ipynb) provides performance measures for MNL and ML models.
 
 ## Useful Links
 
