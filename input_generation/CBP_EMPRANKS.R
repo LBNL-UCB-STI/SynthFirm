@@ -70,15 +70,29 @@ rank_vars = c(
 selected_file = paste0('inputs_', selected_region, '/', selected_region, '_FAFCNTY.csv')
 f1 = data.table::fread(selected_file,colClasses = list(character=c("ANSI_ST","ANSI_CNTY","ST_CNTY")), h=T)
 
+f1_in_study_area <- f1 %>% filter(CBPZONE>=1000)
+study_area_faf <- unique(f1_in_study_area$FAFID)
+
+f3 = f1 %>% filter(FAFID %in% study_area_faf) %>% select(ST_CNTY,CBPZONE1)
+
 naics_file_name = paste0('inputs_', selected_region, '/', selected_state, '_naics.csv') # employment data
 f2 = data.table::fread(naics_file_name,colClasses = list(character=c("GEOID","metalayer_id")),h=T)
 f2 = f2 %>% select(-c(metalayer_id))
 
 naics_long = reshape2::melt(f2, id.vars=c("GEOID"))
 f2_rank = f2
+
+# naics_df4 = f2_rank
+f2_rank = f2_rank %>% mutate(cnty_id = substr(GEOID, 1, 5))
+f2_rank = f2_rank %>% left_join(f3, by=c("cnty_id"="ST_CNTY")) #employment within study area
+f2_rank = na.omit(f2_rank)
+f2_rank$MESOZONE = seq(1,length(unique(f2_rank$GEOID)))
+
+naics_df6 = f2_rank
 #df_length = as.integer(nrow(f2_rank))
 f2_rank[f2_rank == 0] <- NA
 f2_rank <- f2_rank %>%
+  group_by(cnty_id) %>% 
   mutate(n11 = rank(n11, ties.method = "first",na='keep'),
          n21 = rank(n21, ties.method = "first",na='keep'),
          n22 = rank(n22, ties.method = "first",na='keep'),
@@ -100,28 +114,31 @@ f2_rank <- f2_rank %>%
          n81 = rank(n81, ties.method = "first",na='keep'),
          n92 = rank(n92, ties.method = "first",na='keep'))
 
-f2_rank <- f2_rank %>%
-  mutate(n11 = cut(n11, quantile(n11, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n21 = cut(n21, quantile(n21, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n22 = cut(n22, quantile(n22, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n23 = cut(n23, quantile(n23, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n3133 = cut(n3133, quantile(n3133, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n42 = cut(n42, quantile(n42, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n4445 = cut(n4445, quantile(n4445, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n4849 = cut(n4849, quantile(n4849, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n51 = cut(n51, quantile(n51, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n52 = cut(n52, quantile(n52, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n53 = cut(n53, quantile(n53, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n54 = cut(n54, quantile(n54, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n55 = cut(n55, quantile(n55, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n56 = cut(n56, quantile(n56, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n61 = cut(n61, quantile(n61, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n62 = cut(n62, quantile(n62, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n71 = cut(n71, quantile(n71, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n72 = cut(n72, quantile(n72, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n81 = cut(n81, quantile(n81, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
-         n92 = cut(n92, quantile(n92, probs=0:10/10, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE)
-         )  
+# rank from small to large, with rank = 1 means smallest value within group
+
+# f2_rank <- f2_rank %>%
+#   group_by(cnty_id) %>% 
+#   mutate(n11 = cut(n11, quantile(n11, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n21 = cut(n21, quantile(n21, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n22 = cut(n22, quantile(n22, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n23 = cut(n23, quantile(n23, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n3133 = cut(n3133, quantile(n3133, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n42 = cut(n42, quantile(n42, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n4445 = cut(n4445, quantile(n4445, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n4849 = cut(n4849, quantile(n4849, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n51 = cut(n51, quantile(n51, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n52 = cut(n52, quantile(n52, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n53 = cut(n53, quantile(n53, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n54 = cut(n54, quantile(n54, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n55 = cut(n55, quantile(n55, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n56 = cut(n56, quantile(n56, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n61 = cut(n61, quantile(n61, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n62 = cut(n62, quantile(n62, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n71 = cut(n71, quantile(n71, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n72 = cut(n72, quantile(n72, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n81 = cut(n81, quantile(n81, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE),
+#          n92 = cut(n92, quantile(n92, probs=0:8/8, na.rm=TRUE), include.lowest=TRUE, labels=FALSE, na.rm=TRUE)
+#         )  
 
   
 # naics_df2 = naics_long %>% group_by(GEOID) %>% summarize(totemp = sum(value))
@@ -131,28 +148,19 @@ f2_rank <- f2_rank %>%
 # 
 # naics_df3 = naics_df3 %>% group_by(GEOID) %>% mutate(percrank = floor(10*rank(pct)/length(pct)))
 # naics_df4 = reshape2::dcast(naics_df3, GEOID ~ variable, value.var = "percrank")
-naics_df4 = f2_rank
-naics_df4 = naics_df4 %>% mutate(cnty_id = substr(GEOID, 1, 5))
 
-f1_in_study_area <- f1 %>% filter(CBPZONE>=1000)
-study_area_faf <- unique(f1_in_study_area$FAFID)
-
-
-f3 = f1 %>% filter(FAFID %in% study_area_faf) %>% select(ST_CNTY,CBPZONE1)
-
-naics_df5 = naics_df4 %>% left_join(f3, by=c("cnty_id"="ST_CNTY")) #employment within study area
 #naics_df6 = na.omit(naics_df5)
-naics_df5$MESOZONE = seq(1,length(unique(naics_df5$GEOID)))
+# naics_df5$MESOZONE = seq(1,length(unique(naics_df5$GEOID)))
 #naics_df6$n99 = floor(runif(nrow(naics_df6),0,10))
 #naics_df6[naics_df6==0] <- NA
-naics_df7 = naics_df5 %>% select(CBPZONE1,MESOZONE,all_of(naics))
-names(naics_df7)[3:22] = rank_vars
+naics_df7 = f2_rank %>% select(CBPZONE1,MESOZONE,all_of(naics))
+names(naics_df7)[4:23] = rank_vars
 naics_df7 = naics_df7 %>% rename(COUNTY = CBPZONE1)
 
 output_path = paste0('inputs_', selected_region, '/data_mesozone_emprankings.csv')
 data.table::fwrite(naics_df7, output_path)
 output_path_2 = paste0('inputs_', selected_region, '/MESOZONE_GEOID_LOOKUP.csv')
-data.table::fwrite(naics_df5[,c("CBPZONE1","GEOID","MESOZONE")], output_path_2)
+data.table::fwrite(naics_df6[,c("CBPZONE1","GEOID","MESOZONE")], output_path_2)
 
 
 
