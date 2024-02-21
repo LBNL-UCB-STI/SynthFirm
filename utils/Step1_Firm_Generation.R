@@ -10,13 +10,13 @@
 # path2file <-
 #   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 # setwd(path2file)
-# 
+#
 print("Start synthetic firm generation...")
 
 # cbp <- data.table::fread(paste0(path2file, "/inputs_", scenario, '/', cbp_file), h = T)
 # mzemp <-
 #   data.table::fread(paste0(path2file, "/inputs_", scenario, '/', mzemp_file), h = T)
-# 
+#
 # c_n6_n6io_sctg <-
 #   data.table::fread(paste0(path2file, "/SynthFirm_parameters/", c_n6_n6io_sctg_file), h = T)
 # employment_per_firm <-
