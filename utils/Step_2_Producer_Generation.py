@@ -166,7 +166,6 @@ iowhl = iowhl.reset_index()
 print(iowhl.loc[:, 'ProValWhl'].sum())
 # 10533 row
 
-  
  
  #remove wholesale records from io table
 io_no_wholesale = \
@@ -178,7 +177,14 @@ io_with_wholesale = pd.merge(io_no_wholesale, iowhl,
 # some industry only transact with wholesaler, make sure those transactions are captured using outer join
 io_with_wholesale.fillna(0, inplace=True)
 io_with_wholesale.loc[:, 'ProVal_with_whl'] = \
-    io_with_wholesale.loc[:, 'ProVal'] + io_with_wholesale.loc[:, 'ProValWhl'] 
+    io_with_wholesale.loc[:, 'ProVal'] + io_with_wholesale.loc[:, 'ProValWhl'] / wholesalecostfactor
+
+
+from_wholesale = io_with_wholesale['Industry_NAICS6_Make'].str[:2] == "42"
+io_with_wholesale.loc[from_wholesale, 'ProVal_with_whl'] = \
+    io_with_wholesale.loc[from_wholesale, 'ProVal'] + \
+        io_with_wholesale.loc[from_wholesale, 'ProValWhl']
+
 
  # <codecell>    
 #add the wholesales with the correct capacities in value and tons
@@ -260,4 +266,215 @@ producer_emp = \
 
 producer_emp = producer_emp.reset_index()    
 
-# 27085 * 4
+io_with_wholesale_agg = \
+    io_with_wholesale.groupby(['Industry_NAICS6_Make'])[['ProVal_with_whl']].sum()
+io_with_wholesale_agg = io_with_wholesale_agg.reset_index()
+
+prodval = \
+  pd.merge(producer_emp, io_with_wholesale_agg, 
+           on = "Industry_NAICS6_Make", how = 'left')
+# 27085 * 5
+
+prodval_with_loc = \
+    pd.merge(prodval, 
+             producer_value_fraction_by_location, 
+             on = ["Commodity_SCTG", "FAFZONE"], how = 'left') # 27,085
+
+prodval_with_loc = \
+    prodval_with_loc.rename(columns = {'ProVal_with_whl': 'ProVal'})
+
+prodval_with_loc['value_fraction'].fillna(0, inplace = True)
+
+prodval_with_loc.loc[:, 'value_fraction'] = \
+    prodval_with_loc.loc[:, 'value_fraction'] / \
+        prodval_with_loc.groupby(['Industry_NAICS6_Make', 'Commodity_SCTG'])['value_fraction'].transform('sum')
+
+
+prodval_with_loc.loc[:, 'ProVal'] = \
+    prodval_with_loc.loc[:, 'ProVal'] * prodval_with_loc.loc[:, 'value_fraction'] 
+
+prodval_with_loc.loc[:, 'ValEmp'] = \
+    prodval_with_loc.loc[:, 'ProVal'] / prodval_with_loc.loc[:, 'Emp'] 
+
+# <codecell>
+
+producers_with_value = \
+  pd.merge(producers, 
+           prodval_with_loc[['Industry_NAICS6_Make', 'Commodity_SCTG', 'FAFZONE', 'ValEmp']], 
+           on = ['Industry_NAICS6_Make', 'Commodity_SCTG', 'FAFZONE'],
+           how = 'left') # 424,120 producers
+
+producers_with_value.loc[:, 'ProdVal'] = \
+    producers_with_value.loc[:, 'ValEmp'] * producers_with_value.loc[:, 'Emp']
+
+# total production = 12,759,317
+
+#sum(producers$ProdVal)
+# [1] 12,585,516
+
+# <codecell>
+###################################################################
+#### step 5 - adding foreign producers (will drop in future) ######
+###################################################################
+
+io_total = io.groupby(['Industry_NAICS6_Make'])[['ProVal']].sum()
+io_total = io_total.reset_index()
+
+producer_emp = \
+    producers.groupby(['Industry_NAICS6_Make'])[['Emp']].sum()
+producer_emp = producer_emp.reset_index()
+
+for_prod = for_prod.rename(columns = {'Commodity_NAICS6': 'Industry_NAICS6_CBP'})
+for_prod = \
+  pd.merge(for_prod, 
+        c_n6_n6io_sctg[['Industry_NAICS6_CBP', 'Industry_NAICS6_Make', 'Commodity_SCTG']], 
+        on = "Industry_NAICS6_CBP", how = 'left') #Merge in the I/O NAICS codes and SCTG codes, size = 27786 * 8
+for_prod = for_prod.loc[for_prod['Commodity_SCTG'] > 0]
+
+
+
+for_prod.loc[:, 'ProdVal'] = for_prod.loc[:, 'USImpVal']/ (10 ** 6) # convert to million dollars
+# <codecell>
+for_prod_agg = \
+for_prod.groupby(['Industry_NAICS6_Make', 'CBPZONE', 'FAFZONE', 'Commodity_SCTG'])[['ProdVal']].sum()
+for_prod_agg = for_prod_agg.reset_index()
+
+prodval = \
+  pd.merge(producer_emp, io_total,
+           on = "Industry_NAICS6_Make", how = 'left')
+  
+  
+prodval.loc[:, 'ValEmp'] = prodval.loc[:, 'ProVal'] / prodval.loc[:, 'Emp'] 
+#production value per employee (in Million of Dollars)
+
+for_prod_agg = \
+  pd.merge(for_prod_agg, prodval[['Industry_NAICS6_Make', 'ValEmp']], 
+           on = "Industry_NAICS6_Make", how = 'left') #
+  
+for_prod_agg['ValEmp'].fillna(0, inplace = True)
+
+for_prod_agg.loc[:, 'ValEmp'] = foreignprodcostfactor
+
+for_prod_agg.loc[:, 'Emp'] = \
+np.round(for_prod_agg.loc[:, 'ProdVal']/ for_prod_agg.loc[:, 'ValEmp'], 0)
+
+
+emp_bins = [0, 19, 99, 499, 1000, 2499, 4999, for_prod_agg.loc[:, 'Emp'].max()]
+emp_bin_label = [1, 2, 3, 4, 5, 6, 7]
+
+for_prod_agg.loc[for_prod_agg['Emp']< 1, 'Emp'] = 1
+for_prod_agg.loc[:, 'esizecat'] = pd.cut(for_prod_agg.loc[:, 'Emp'], 
+                                         bins = emp_bins, 
+                                         right=True, 
+                                         labels=emp_bin_label)
+
+
+#producers' output in POUNDS (units costs converted to pounds)
+unitcost.loc[:, 'UnitCost'] /=  2000
+for_prod_agg = pd.merge(for_prod_agg, unitcost, 
+                        on = "Commodity_SCTG", how = 'left')
+
+
+#update unit cost using foreign producer adjustment
+for_prod_agg.loc[:, 'UnitCost'] *= foreignprodcostfactor
+for_prod_agg.loc[:,  'ProdCap'] = \
+    for_prod_agg.loc[:,'ProdVal'] * (10**6) / for_prod_agg.loc[:, 'UnitCost'] # ProdVal was in $M, ProdCap in pound
+    
+
+capacity_ub = 5 * 10 ** 8 # define upper bound capacity per firm in pound
+for_prod_agg.loc[:, 'est'] = 1
+for_prod_agg.loc[for_prod_agg['ProdCap'] > capacity_ub, 'est'] = \
+    np.ceil(for_prod_agg.loc[for_prod_agg['ProdCap'] > capacity_ub, 'ProdCap']/capacity_ub)
+
+for_prod_agg.loc[for_prod_agg['est']> 1, 'ProdVal'] = \
+    for_prod_agg.loc[for_prod_agg['est']> 1, 'ProdVal'] / for_prod_agg.loc[for_prod_agg['est']> 1, 'est'] # update ProdVal for multiple firms
+    
+for_prod_agg.loc[for_prod_agg['est']> 1, 'ProdCap'] = \
+    for_prod_agg.loc[for_prod_agg['est']> 1, 'ProdCap'] / for_prod_agg.loc[for_prod_agg['est']> 1, 'est'] # update ProdCap for multiple firms
+
+# <codecell>
+
+for_prod_rep = pd.DataFrame(np.repeat(for_prod_agg.values, for_prod_agg.est, axis=0))
+for_prod_rep.columns = for_prod_agg.columns
+# 24,554 foreign firms
+for_prod_rep = for_prod_rep.drop(columns = ['est'])
+
+for_prod_rep.loc[:, 'MESOZONE'] = for_prod_rep.loc[:, 'CBPZONE'] + 30000
+max_id = int(firms.loc[:, 'BusID'].max())
+for_prod_rep.loc[:, 'BusID'] = max_id + for_prod_rep.reset_index().index + 1
+# size = 24,554 * 13
+
+
+#################################################
+#### step 6 - finalize producer generation ######
+#################################################
+
+producers_with_value = pd.merge(producers_with_value, unitcost, 
+                          on = "Commodity_SCTG", how = 'left')
+
+
+producers_with_value.loc[:, 'ProdCap'] = \
+    producers_with_value.loc[:, 'ProdVal'] * (10**6) / \
+        producers_with_value.loc[:, 'UnitCost'] 
+# ProdVal was in $M
+
+wholesalers_with_value = pd.merge(wholesalers_with_value, 
+                                  unitcost, 
+                                  on = "Commodity_SCTG",
+                                  how = 'left')
+# factor up unitcost to reflect wholesalers margin
+wholesalers_with_value.loc[:, 'ProdCap'] = \
+    wholesalers_with_value.loc[:, 'ProdVal'] * (10**6) / \
+        wholesalers_with_value.loc[:, 'UnitCost'] 
+# ProdVal was in $M
+
+# <codecell>
+
+output_var = ["SellerID", "Zone", "NAICS", "SCTG", "Size", "OutputCapacitylb", "NonTransportUnitCost"]
+
+# combine producers
+producers_output = \
+    producers_with_value[["BusID", "MESOZONE", "Industry_NAICS6_Make", "Commodity_SCTG", "Emp", "ProdCap", "UnitCost"]]
+for_prod_output = \
+    for_prod_rep[["BusID", "MESOZONE", "Industry_NAICS6_Make", "Commodity_SCTG", "Emp", "ProdCap", "UnitCost"]]
+
+producers_output = pd.concat([producers_output, for_prod_output])
+producers_output.column = output_var
+
+# size = 445266 * 7
+
+# Add in wholesalers to producers
+wholesalers_output = \
+    wholesalers_with_value[["BusID", "MESOZONE", "Industry_NAICS6_Make", 'Commodity_SCTG', "Emp", "ProdCap", "UnitCost"]]
+wholesalers_output.columns = output_var
+producers_output = pd.concat([producers_output, wholesalers_output])
+
+
+
+# writing output
+print('Total number of producers:')
+print(len(producers_output))
+
+print('Total number of wholesalers (among producers):')
+print(len(wholesalers_output))
+
+producers_output.to_csv(os.path.join(file_path, output_dir, synthetic_wholesaler_file), index = False)
+wholesalers_output.to_csv(os.path.join(file_path, output_dir, synthetic_producer_file), index = False)
+io_with_wholesale.to_csv(os.path.join(file_path, output_dir, io_filtered_file), index = False)
+
+sctg_lookup_sel = sctg_lookup[['SCTG_Code', 'SCTG_Group', 'SCTG_Name']] 
+sctg_lookup_sel = sctg_lookup_sel.rename(columns = {'SCTG_Code': 'Commodity_SCTG'})
+producers_output = pd.merge(producers_output, 
+                            sctg_lookup_sel, 
+                            on = "Commodity_SCTG", 
+                            how = 'left')
+# <codecell>
+for i in range(5):
+  print("Processing SCTG Group " + str(i+1))
+  
+  g1_prods = producers_output.loc[producers_output['SCTG_Group'] == i+1] 
+  g1_prods = g1_prods[['SCTG_Group', 'Commodity_SCTG', 'SellerID', 'Zone', 'NAICS', 'OutputCapacitylb']]
+  g1_prods.to_csv(os.path.join(file_path, output_dir, synthetic_producer_by_sctg_filehead + str(i+1) + ".csv"), index = False)
+ 
+
+print('Producer generation is done!')

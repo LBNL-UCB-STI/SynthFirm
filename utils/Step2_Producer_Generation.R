@@ -7,7 +7,7 @@
 path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/utils/'
 source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
 source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
-source('config.R')  # load input settings
+source(paste0(path2code,'config.R'))  # load input settings
 
 path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
