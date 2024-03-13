@@ -144,14 +144,14 @@ wholesale_flow.loc[:, 'ProValPctUse'] = wholesale_flow.loc[:, 'ProVal']/ \
 wholesale_flow.groupby(['Industry_NAICS6_Make_y', 'Industry_NAICS6_Use_y'])['ProVal'].transform('sum')
 
 wholesalecostfactor = (whlcons + whlprod) / whlcons # assume zero inventory -> all commodity purchased will be sold
-
+print(wholesalecostfactor)
 wholesale_flow.loc[:, 'CellValue'] = wholesale_flow.loc[:, 'ProValPctUse'] * wholesale_flow.loc[:, 'ProValFromWhl'] 
 
 wholesale_flow.loc[:, 'CellValue'] *= whlcons/whlprod # scale value to cost of good
 wholesale_flow.loc[:, 'CellValue'] *= wholesalecostfactor # add margin
 wholesale_flow.loc[:, 'CellValue'] = np.round(wholesale_flow.loc[:, 'CellValue'], 0)
 wholesale_flow = wholesale_flow.loc[wholesale_flow['CellValue'] > 0]
-print(wholesale_flow.loc[:, 'CellValue'].sum())
+# print(wholesale_flow.loc[:, 'CellValue'].sum())
 
 wholesale_flow = \
     wholesale_flow[['Industry_NAICS6_Make_x', 'Industry_NAICS6_Use_y', 'Commodity_SCTG', 'Industry_NAICS6_Make_y', 'CellValue']]
@@ -163,7 +163,7 @@ wholesale_flow.columns =['Industry_NAICS6_Make', 'Industry_NAICS6_Use', 'SCTG', 
 
 iowhl = wholesale_flow.groupby(['Industry_NAICS6_Make', 'Industry_NAICS6_Use'])[['ProValWhl']].sum()
 iowhl = iowhl.reset_index()
-print(iowhl.loc[:, 'ProValWhl'].sum())
+# print(iowhl.loc[:, 'ProValWhl'].sum())
 # 10533 row
 
  
@@ -192,23 +192,23 @@ io_with_wholesale.loc[from_wholesale, 'ProVal_with_whl'] = \
 wholesalers = firms.loc[firms['Industry_NAICS6_Make'].str[:2] == "42",] 
 # 413,532 wholesaler simulated
 
-whlval = wholesale_flow.groupby(['NAICS_whl', 'SCTG'])[['ProValWhl']].sum()
+whlval = wholesale_flow.groupby(['Industry_NAICS6_Make', 'NAICS_whl', 'SCTG'])[['ProValWhl']].sum()
 whlval = whlval.reset_index()
-whlval.columns = ['Industry_NAICS6_Make', 'Commodity_SCTG', 'ProVal']
+whlval.columns = ['InputCommodity', 'Industry_NAICS6_Make', 'Commodity_SCTG', 'ProVal']
 # 270 rows
 list_of_wholesaler_naics = whlval['Industry_NAICS6_Make'].unique()
 wholesalers = wholesalers.drop(columns = ['Commodity_SCTG'])
 wholesalers_with_sctg = None
 
 for whl_naics in list_of_wholesaler_naics:
-    print(whl_naics)
+    # print(whl_naics)
     con_firms = wholesalers.loc[wholesalers['Industry_NAICS6_Make'] == whl_naics]
     sample_size = len(con_firms)
     con_io = whlval.loc[whlval['Industry_NAICS6_Make'] == whl_naics]
     con_io.loc[:, 'probability'] = con_io.loc[:, 'ProVal'] / con_io.loc[:, 'ProVal'].sum()
     sample_naics_make = con_io.sample(n = sample_size, replace=True, weights = con_io['probability'],random_state=1)
     sample_naics_make = sample_naics_make.reset_index()
-    con_firms = pd.concat([con_firms.reset_index(), sample_naics_make[['Commodity_SCTG']]], axis = 1)
+    con_firms = pd.concat([con_firms.reset_index(), sample_naics_make[['InputCommodity', 'Commodity_SCTG']]], axis = 1)
     wholesalers_with_sctg = pd.concat([wholesalers_with_sctg, con_firms])
 
 # 308235 wholesalers in the output that sell commodities
@@ -220,6 +220,11 @@ wholesale_emp = \
     wholesalers_with_sctg.groupby(['Industry_NAICS6_Make', 'Commodity_SCTG', 'FAFZONE'])[['Emp']].sum()
 
 wholesale_emp = wholesale_emp.reset_index()
+
+whlval = wholesale_flow.groupby(['NAICS_whl', 'SCTG'])[['ProValWhl']].sum()
+whlval = whlval.reset_index()
+whlval.columns = ['Industry_NAICS6_Make', 'Commodity_SCTG', 'ProVal']
+
 whlval_with_loc = \
   pd.merge(wholesale_emp, whlval, 
   on = ["Industry_NAICS6_Make", 'Commodity_SCTG'], how = 'left')
@@ -296,7 +301,6 @@ prodval_with_loc.loc[:, 'ProVal'] = \
 prodval_with_loc.loc[:, 'ValEmp'] = \
     prodval_with_loc.loc[:, 'ProVal'] / prodval_with_loc.loc[:, 'Emp'] 
 
-# <codecell>
 
 producers_with_value = \
   pd.merge(producers, 
@@ -334,7 +338,7 @@ for_prod = for_prod.loc[for_prod['Commodity_SCTG'] > 0]
 
 
 for_prod.loc[:, 'ProdVal'] = for_prod.loc[:, 'USImpVal']/ (10 ** 6) # convert to million dollars
-# <codecell>
+
 for_prod_agg = \
 for_prod.groupby(['Industry_NAICS6_Make', 'CBPZONE', 'FAFZONE', 'Commodity_SCTG'])[['ProdVal']].sum()
 for_prod_agg = for_prod_agg.reset_index()
@@ -439,18 +443,27 @@ for_prod_output = \
     for_prod_rep[["BusID", "MESOZONE", "Industry_NAICS6_Make", "Commodity_SCTG", "Emp", "ProdCap", "UnitCost"]]
 
 producers_output = pd.concat([producers_output, for_prod_output])
-producers_output.column = output_var
+# producers_output.column = output_var
 
-# size = 445266 * 7
+# size = 445,266 * 7
 
 # Add in wholesalers to producers
 wholesalers_output = \
     wholesalers_with_value[["BusID", "MESOZONE", "Industry_NAICS6_Make", 'Commodity_SCTG', "Emp", "ProdCap", "UnitCost"]]
-wholesalers_output.columns = output_var
-producers_output = pd.concat([producers_output, wholesalers_output])
+# size = 308,235 * 7
 
-
-
+# wholesalers_output.columns = output_var
+producers_output = pd.concat([producers_output, wholesalers_output], axis = 0)
+# size = 753,501 firms
+renaming_dict = {"BusID": "SellerID",
+                 "MESOZONE": "Zone", 
+                 "Industry_NAICS6_Make": "NAICS",
+                 "Commodity_SCTG": "SCTG",
+                 "Emp": "Size",
+                 "ProdCap": "OutputCapacitylb",
+                 "UnitCost": "NonTransportUnitCost"}
+producers_output = producers_output.rename(columns = renaming_dict)
+wholesalers_with_value = wholesalers_with_value.rename(columns = renaming_dict)
 # writing output
 print('Total number of producers:')
 print(len(producers_output))
@@ -458,22 +471,22 @@ print(len(producers_output))
 print('Total number of wholesalers (among producers):')
 print(len(wholesalers_output))
 
-producers_output.to_csv(os.path.join(file_path, output_dir, synthetic_wholesaler_file), index = False)
-wholesalers_output.to_csv(os.path.join(file_path, output_dir, synthetic_producer_file), index = False)
+wholesalers_with_value.to_csv(os.path.join(file_path, output_dir, synthetic_wholesaler_file), index = False)
+producers_output.to_csv(os.path.join(file_path, output_dir, synthetic_producer_file), index = False)
 io_with_wholesale.to_csv(os.path.join(file_path, output_dir, io_filtered_file), index = False)
 
 sctg_lookup_sel = sctg_lookup[['SCTG_Code', 'SCTG_Group', 'SCTG_Name']] 
-sctg_lookup_sel = sctg_lookup_sel.rename(columns = {'SCTG_Code': 'Commodity_SCTG'})
+sctg_lookup_sel = sctg_lookup_sel.rename(columns = {'SCTG_Code': 'SCTG'})
 producers_output = pd.merge(producers_output, 
                             sctg_lookup_sel, 
-                            on = "Commodity_SCTG", 
+                            on = "SCTG", 
                             how = 'left')
 # <codecell>
 for i in range(5):
   print("Processing SCTG Group " + str(i+1))
   
   g1_prods = producers_output.loc[producers_output['SCTG_Group'] == i+1] 
-  g1_prods = g1_prods[['SCTG_Group', 'Commodity_SCTG', 'SellerID', 'Zone', 'NAICS', 'OutputCapacitylb']]
+  g1_prods = g1_prods[['SCTG_Group', 'SCTG', 'SellerID', 'Zone', 'NAICS', 'Size', 'OutputCapacitylb', 'NonTransportUnitCost']]
   g1_prods.to_csv(os.path.join(file_path, output_dir, synthetic_producer_by_sctg_filehead + str(i+1) + ".csv"), index = False)
  
 
