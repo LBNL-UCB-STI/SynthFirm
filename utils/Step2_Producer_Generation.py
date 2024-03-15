@@ -65,8 +65,6 @@ io_filtered_file = "data_2017io_filtered.csv" # processed I-O table, after dropp
 # define result directory
 result_dir = os.path.join(file_path, output_dir)
 
-
-
 # <codecell>
 ########################################################
 #### step 2 - Creation of Producers database ###########
@@ -227,14 +225,15 @@ whlval.columns = ['Industry_NAICS6_Make', 'Commodity_SCTG', 'ProVal']
 
 whlval_with_loc = \
   pd.merge(wholesale_emp, whlval, 
-  on = ["Industry_NAICS6_Make", 'Commodity_SCTG'], how = 'left')
-  
+  on = ["Industry_NAICS6_Make", 'Commodity_SCTG'], how = 'inner')
+ 
+
 producer_value_fraction_by_location = \
     producer_value_fraction_by_location.rename(columns = {'FAF':'FAFZONE'})
 whlval_with_loc = \
     pd.merge(whlval_with_loc,
              producer_value_fraction_by_location[['Commodity_SCTG', 'FAFZONE', 'value_fraction']],
-             on = ["Commodity_SCTG", "FAFZONE"], how = 'left') # 31,656
+             on = ["Commodity_SCTG", "FAFZONE"], how = 'inner') # 21,811
 
 whlval_with_loc.loc[:, 'value_fraction'] = \
     whlval_with_loc.loc[:, 'value_fraction'] / \
@@ -249,10 +248,13 @@ wholesalers_with_value = \
   pd.merge(wholesalers_with_sctg, 
            whlval_with_loc[['Industry_NAICS6_Make', 'ValEmp', 'Commodity_SCTG', 'FAFZONE']], 
            on = ['Industry_NAICS6_Make', "Commodity_SCTG", 'FAFZONE'],
-           how = 'left') #merge the value per employee back on to businesses
+           how = 'inner') #merge the value per employee back on to businesses
 
 wholesalers_with_value.loc[:, 'ProdVal'] = \
     wholesalers_with_value.loc[:, 'ValEmp']  * wholesalers_with_value.loc[:, 'Emp'] #calculate production value for each establishment, 
+
+# 305,935 wholesaler --> 
+# if a zone doesn't have observed wholesale shipment from CFS, the seller will be removed
 
 #======= this markes as the end of wholesaler generation ============#
 
@@ -277,13 +279,13 @@ io_with_wholesale_agg = io_with_wholesale_agg.reset_index()
 
 prodval = \
   pd.merge(producer_emp, io_with_wholesale_agg, 
-           on = "Industry_NAICS6_Make", how = 'left')
+           on = "Industry_NAICS6_Make", how = 'inner')
 # 27085 * 5
 
 prodval_with_loc = \
     pd.merge(prodval, 
              producer_value_fraction_by_location, 
-             on = ["Commodity_SCTG", "FAFZONE"], how = 'left') # 27,085
+             on = ["Commodity_SCTG", "FAFZONE"], how = 'inner') # 27,085
 
 prodval_with_loc = \
     prodval_with_loc.rename(columns = {'ProVal_with_whl': 'ProVal'})
@@ -306,7 +308,7 @@ producers_with_value = \
   pd.merge(producers, 
            prodval_with_loc[['Industry_NAICS6_Make', 'Commodity_SCTG', 'FAFZONE', 'ValEmp']], 
            on = ['Industry_NAICS6_Make', 'Commodity_SCTG', 'FAFZONE'],
-           how = 'left') # 424,120 producers
+           how = 'inner') # 388,808 producers
 
 producers_with_value.loc[:, 'ProdVal'] = \
     producers_with_value.loc[:, 'ValEmp'] * producers_with_value.loc[:, 'Emp']

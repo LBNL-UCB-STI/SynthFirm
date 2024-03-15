@@ -159,7 +159,7 @@ firms_out_boundary = firms.loc[firms['CBPZONE'] <= 999, essential_attr]
 firms_out_boundary.loc[:, 'MESOZONE'] = \
     firms_out_boundary.loc[:, 'CBPZONE']  + 20000
 
-# <codecell>    
+  
 firms_in_boundary = \
     firms.loc[firms['CBPZONE'] > 999, essential_attr]
 
@@ -209,7 +209,14 @@ for ct in unique_counties:
                                                        weights = firms_in_boundary_sel['EmpRank'],
                                                        replace = False, random_state = 1)
     firms_in_boundary_sel = \
-        firms_in_boundary_sel.drop(columns = ['index',  'industry', 'EmpRank'])
+        firms_in_boundary_sel.drop(columns = ['index', 'industry', 'EmpRank'])
+    firms_in_boundary_sel.loc[:, 'MESOZONE'].fillna(method = 'ffill', inplace = True)
+    # for firms with no emp ranking, forward fill it with locations from nearest industry
+    # check na
+    firms_with_na = firms_in_boundary_sel.loc[firms_in_boundary_sel['MESOZONE'].isna()]
+    if len(firms_with_na) > 0:
+        print(str(len(firms_with_na)) + 'firms failed to have zone assigned')
+        # break
     firms_in_boundary_out = pd.concat([firms_in_boundary_out, firms_in_boundary_sel])
     # break
 

@@ -108,7 +108,7 @@ emp = consumers.groupby(['Industry_NAICS6_Use', 'Industry_NAICS6_Make', 'FAFZONE
 emp = emp.reset_index()
 emp_with_io = pd.merge(emp, io_filered, 
                        on = ["Industry_NAICS6_Use", "Industry_NAICS6_Make"],
-                       how = 'left')
+                       how = 'inner')
 emp_with_io = pd.merge(emp_with_io, naics_by_sctg_fration, 
                        on = "Industry_NAICS6_Make", how = 'left')
 
@@ -120,7 +120,7 @@ consumer_value_fraction_by_location = \
 
 io_with_loc = pd.merge(emp_with_io,
                        consumer_value_fraction_by_location[['FAFZONE', 'Commodity_SCTG', 'value_fraction']], 
-                       on = ["Commodity_SCTG", 'FAFZONE'], how = 'left')
+                       on = ["Commodity_SCTG", 'FAFZONE'], how = 'inner')
 
 #generate consumption value per employee
 io_with_loc.loc[:, 'value_fraction_scaled'] = \
@@ -130,7 +130,7 @@ io_with_loc.loc[:, 'value_fraction_scaled'] = \
 io_with_loc.loc[:, 'ProVal'] = io_with_loc.loc[:, 'ProVal'] * io_with_loc.loc[:, 'value_fraction_scaled']
 io_with_loc.loc[:, 'ValEmp'] = io_with_loc.loc[:, 'ProVal'] / io_with_loc.loc[:, 'Emp']
 #production value per employee (in Million of Dollars)
-# 599,933 rows
+# 599,163 rows
 
 # <codecell>
 
@@ -149,7 +149,7 @@ consumers = \
   
 consumers.loc[:, 'ConVal'] = consumers.loc[:, 'ValEmp'] * consumers.loc[:, 'Emp']
 
-#8,631,831 consumers * SCTG
+#8,627,725 consumers * SCTG
 
 # <codecell>
 # Calculate the purchase amount and convert to tons needed - this is production value
@@ -298,7 +298,7 @@ sample_consumers = consumers_out.loc[consumers_out['BuyerID'] <= 100]
 
 print('Total number of consumers is:')
 print(len(consumers_out))
-# 8,982,667
+# 8,968,556
 
 consumers_out.to_csv(os.path.join(file_path, output_dir, synthetic_consumer_file), index = False)
 sample_consumers.to_csv(os.path.join(file_path, output_dir, sample_synthetic_consumer_file), index = False)
