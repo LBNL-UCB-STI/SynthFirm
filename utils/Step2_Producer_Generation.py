@@ -460,7 +460,7 @@ producers_output = pd.concat([producers_output, wholesalers_output], axis = 0)
 renaming_dict = {"BusID": "SellerID",
                  "MESOZONE": "Zone", 
                  "Industry_NAICS6_Make": "NAICS",
-                 "Commodity_SCTG": "SCTG",
+                 # "Commodity_SCTG": "SCTG",
                  "Emp": "Size",
                  "ProdCap": "OutputCapacitylb",
                  "UnitCost": "NonTransportUnitCost"}
@@ -478,17 +478,17 @@ producers_output.to_csv(os.path.join(file_path, output_dir, synthetic_producer_f
 io_with_wholesale.to_csv(os.path.join(file_path, output_dir, io_filtered_file), index = False)
 
 sctg_lookup_sel = sctg_lookup[['SCTG_Code', 'SCTG_Group', 'SCTG_Name']] 
-sctg_lookup_sel = sctg_lookup_sel.rename(columns = {'SCTG_Code': 'SCTG'})
+sctg_lookup_sel = sctg_lookup_sel.rename(columns = {'SCTG_Code': 'Commodity_SCTG'})
 producers_output = pd.merge(producers_output, 
                             sctg_lookup_sel, 
-                            on = "SCTG", 
+                            on = "Commodity_SCTG", 
                             how = 'left')
 # <codecell>
 for i in range(5):
   print("Processing SCTG Group " + str(i+1))
   
   g1_prods = producers_output.loc[producers_output['SCTG_Group'] == i+1] 
-  g1_prods = g1_prods[['SCTG_Group', 'SCTG', 'SellerID', 'Zone', 'NAICS', 'Size', 'OutputCapacitylb', 'NonTransportUnitCost']]
+  g1_prods = g1_prods[['SCTG_Group', 'Commodity_SCTG', 'SellerID', 'Zone', 'NAICS', 'Size', 'OutputCapacitylb', 'NonTransportUnitCost']]
   g1_prods.to_csv(os.path.join(file_path, output_dir, synthetic_producer_by_sctg_filehead + str(i+1) + ".csv"), index = False)
  
 
