@@ -42,6 +42,7 @@ analysis_year = 2018
 scenario_name = 'Ref_highp6'
 input_dir = 'inputs_Seattle/'
 output_dir = 'outputs_Seattle/'
+param_dir = 'SynthFirm_parameters/'
 firm_name = 'synthetic_firms_with_location.csv'
 firms = read_csv(output_dir + firm_name)
 
@@ -56,7 +57,7 @@ vehicle_type_by_state = read_csv(input_dir + 'fleet/'  + scenario_name + '/fleet
 # ev_fraction = read_csv('inputs/fleet/' + scenario_name + '/EV_fraction_by_type.csv')
 ev_availability = read_csv(input_dir + 'fleet/'  + scenario_name + '/EV_availability.csv')
 
-state_fips_lookup = read_csv(input_dir + 'us-state-ansi-fips.csv')
+state_fips_lookup = read_csv(param_dir + 'us-state-ansi-fips.csv')
 
 # <codecell>
 

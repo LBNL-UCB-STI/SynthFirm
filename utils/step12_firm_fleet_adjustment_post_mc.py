@@ -38,6 +38,7 @@ scenario_name = 'Ref_highp6'
 analysis_year = '2018'
 output_dir = 'outputs_Seattle/'
 input_dir = 'inputs_Seattle/'
+param_dir = 'SynthFirm_parameters/'
 # dir_to_outputs = 'outputs_aus_2050'
 result_dir = output_dir + analysis_year + '/' + scenario_name
     
@@ -52,7 +53,7 @@ national_fleet_composition = read_csv(input_dir + 'fleet/' + scenario_name + '/T
 vehicle_type_by_state = read_csv(input_dir + 'fleet/'  + scenario_name + '/fleet_composition_by_state.csv')
 ev_availability = read_csv(input_dir + 'fleet/'  + scenario_name + '/EV_availability.csv')
 
-state_fips_lookup = read_csv(input_dir + 'us-state-ansi-fips.csv')
+state_fips_lookup = read_csv(param_dir + 'us-state-ansi-fips.csv')
 
 payload_capacity = {'Class 4-6 Vocational': 4,
                    'Class 7&8 Tractor': 18,
