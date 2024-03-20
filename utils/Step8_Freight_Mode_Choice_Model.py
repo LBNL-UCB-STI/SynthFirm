@@ -217,9 +217,9 @@ def process_chunk(args):
                                               'BuyerNAICS', 'SellerID', 'SellerZone',
                                               'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 
                                               'shipment_id', 'orig_FAFID', 'dest_FAFID', 'mode_choice', 
-                                              'probability', 'Distance', 'Travel_time']]
+                                              'probability', 'Distance', 'Travel_time', 'Commodity_SCTG']]
     int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'SCTG_Group', 'NAICS_code', 'shipment_id',
-    'orig_FAFID', 'dest_FAFID']
+    'orig_FAFID', 'dest_FAFID', 'Commodity_SCTG']
     modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(int)
     float_var = ['TruckLoad', 'probability', 'Distance', 'Travel_time']
     modeled_OD_by_sctg.loc[:, float_var] = modeled_OD_by_sctg.loc[:, float_var].astype(float)
