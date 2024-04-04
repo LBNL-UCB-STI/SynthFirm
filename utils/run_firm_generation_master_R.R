@@ -1,6 +1,6 @@
 
 rm(list = ls())
-path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/'
+path2code <- '.'
 setwd(path2code)
 source('utils/step0_SynthFirm_starter.R') # load packages
 # source('scenario/scenario_variables.R')  # load environmental variable

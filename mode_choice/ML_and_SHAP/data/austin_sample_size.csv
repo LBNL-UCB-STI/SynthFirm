@@ -1,0 +1,6 @@
+﻿Mode,Sample size,shipment count,Fraction of count (%),shipment load,Fraction of load (%)
+Air,1886,4500537,0.70%,23975,0.00%
+For-hire Truck,104817,114426358,18.30%,411547156,46.10%
+Parcel,63921,355679349,56.90%,1513785,0.20%
+Private Truck,72369,148993826,23.80%,344770487,38.60%
+Rail/IMX,4080,1419718,0.20%,135143696,15.10%

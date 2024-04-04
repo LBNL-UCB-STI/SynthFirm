@@ -1,0 +1,36 @@
+﻿Model,Freight Mode,Precision,Recall,F1-Score,Sample size
+RF,Air,1,1,1,378
+RF,For-hire truck,0.9,0.88,0.89,20964
+RF,Parcel,1,1,1,12785
+RF,Private truck,0.83,0.86,0.85,14474
+RF,Rail/IMX,1,1,1,816
+RF,macro average,0.95,0.95,0.95,49417
+RF,weighted average,0.91,0.91,0.91,49417
+XGBoost,Air,1,1,1,378
+XGBoost,For-hire truck,0.88,0.82,0.85,20964
+XGBoost,Parcel,1,1,1,12785
+XGBoost,Private truck,0.76,0.84,0.8,14474
+XGBoost,Rail/IMX,1,1,1,816
+XGBoost,macro average,0.93,0.93,0.93,49417
+XGBoost,weighted average,0.88,0.87,0.88,49417
+CatBoost,Air,1,1,1,378
+CatBoost,For-hire truck,0.9,0.88,0.89,20964
+CatBoost,Parcel,1,1,1,12785
+CatBoost,Private truck,0.83,0.86,0.84,14474
+CatBoost,Rail/IMX,1,1,1,816
+CatBoost,macro average,0.95,0.95,0.95,49417
+CatBoost,weighted average,0.91,0.91,0.91,49417
+bMNL,Air,1,0,0.01,377
+bMNL,For-hire truck,0.81,0.62,0.7,20964
+bMNL,Parcel,0.74,0.91,0.82,12784
+bMNL,Private truck,0.65,0.77,0.71,14474
+bMNL,Rail/IMX,0.89,0.55,0.68,816
+bMNL,macro average,0.82,0.57,0.58,49415
+bMNL,weighted average,0.75,0.73,0.73,49415
+aMNL,Air,1,0,0.01,377
+aMNL,For-hire truck,0.8,0.64,0.71,20964
+aMNL,Parcel,0.75,0.91,0.82,12784
+aMNL,Private truck,0.66,0.77,0.71,14474
+aMNL,Rail/IMX,0.89,0.57,0.7,816
+aMNL,macro average,0.82,0.58,0.59,49415
+aMNL,weighted average,0.75,0.74,0.73,49415
