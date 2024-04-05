@@ -31,10 +31,10 @@ shipment_load_attr = 'tons_' + str(analysis_year)
 shipment_tonmile_attr = 'tmiles_' + str(analysis_year)
 shipment_value_attr = 'value_' + str(analysis_year)
 
-base_year = 2017
-shipment_load_base = 'tons_' + str(base_year)
-shipment_tonmile_base = 'tmiles_' + str(base_year)
-shipment_value_base = 'value_' + str(base_year)
+# base_year = 2017
+# shipment_load_base = 'tons_' + str(base_year)
+# shipment_tonmile_base = 'tmiles_' + str(base_year)
+# shipment_value_base = 'value_' + str(base_year)
 
 
 # load FAF5 data
@@ -53,20 +53,19 @@ faf_data = pd.merge(faf_data, sctg_group_lookup, left_on = 'sctg2',
 # <codecell>
 
 # total production
-aggr_var = [shipment_load_base, shipment_tonmile_base, shipment_value_base, 
-            shipment_load_attr, shipment_tonmile_attr, shipment_value_attr]
+aggr_var = [shipment_load_attr, shipment_tonmile_attr, shipment_value_attr]
 faf_production = faf_data.groupby(['dms_orig', 'SCTG_Code', 'SCTG_Name'])[aggr_var].sum()
 faf_production = faf_production.reset_index()
 
 converstion_factor = 10**6/(1000*2000)
-value_density_base = 'value_density_' + str(base_year)
+# value_density_base = 'value_density_' + str(base_year)
 value_density_attr = 'value_density_' + str(analysis_year)
 
-faf_production.loc[:, value_density_base] = faf_production.loc[:, shipment_value_base] * converstion_factor / \
-faf_production.loc[:, shipment_load_base]
+# faf_production.loc[:, value_density_base] = faf_production.loc[:, shipment_value_base] * \
+#     converstion_factor / faf_production.loc[:, shipment_load_base]
 
-faf_production.loc[:, value_density_attr] = faf_production.loc[:, shipment_value_attr] * converstion_factor / \
-faf_production.loc[:, shipment_load_attr]
+faf_production.loc[:, value_density_attr] = faf_production.loc[:, shipment_value_attr] * \
+    converstion_factor / faf_production.loc[:, shipment_load_attr]
 
 # print(len(faf_production))
 # print(len(faf_production.dms_orig.unique()))
@@ -78,8 +77,8 @@ faf_production.loc[:, shipment_load_attr]
 faf_attraction = faf_data.groupby(['dms_dest', 'SCTG_Code', 'SCTG_Name'])[aggr_var].sum()
 faf_attraction = faf_attraction.reset_index()
 
-faf_attraction.loc[:, value_density_base] = faf_attraction.loc[:, shipment_value_base] * converstion_factor / \
-faf_attraction.loc[:, shipment_load_base]
+# faf_attraction.loc[:, value_density_base] = faf_attraction.loc[:, shipment_value_base] * converstion_factor / \
+# faf_attraction.loc[:, shipment_load_base]
 
 faf_attraction.loc[:, value_density_attr] = faf_attraction.loc[:, shipment_value_attr] * converstion_factor / \
 faf_attraction.loc[:, shipment_load_attr]
