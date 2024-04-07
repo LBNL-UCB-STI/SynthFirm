@@ -59,10 +59,10 @@ carrier_type_lookup = {'FOR HIRE': 'FOR HIRE',
 
 # Process Polk registration data by state --> current fleet composition
 fleet_by_state = read_csv('PrivateData/registration/MDHDbyState.csv')
-file_name = 'PrivateData/registration/TDA_results/BEAMFreightSensitivity_HOPmod.xlsx'
-list_of_scenarios = ['HOP_highp2', 'HOP_highp4', 'HOP_highp6',
-                    'HOP_highp8', 'HOP_highp10']
-output_dir = 'inputs_BayArea/fleet/'
+file_name = 'PrivateData/registration/TDA_results/BEAMFreightSensitivity_Ref.xlsx'
+list_of_scenarios = ['Ref_highp2', 'Ref_highp4', 'Ref_highp6',
+                    'Ref_highp8', 'Ref_highp10']
+output_dir = 'inputs_Seattle/fleet/'
 
 # <codecell>
 

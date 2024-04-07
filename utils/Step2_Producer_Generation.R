@@ -4,14 +4,14 @@
 #Create producers/suppliers database
 #-----------------------------------------------------------------------------------
 # rm(list = ls())
-# path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/utils/'
-# source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
-#source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
-#source('config.R')  # load input settings 
+path2code <- '/Users/xiaodanxu/Documents/GitHub/SynthFirm/utils/'
+source(paste0(path2code, 'step0_SynthFirm_starter.R')) # load packages
+source(paste0(path2code, 'scenario/scenario_variables.R'))  # load environmental variable
+source(paste0(path2code,'config.R'))  # load input settings
 
-# path2file <-
-#   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
-# setwd(path2file)
+path2file <-
+  "/Users/xiaodanxu/Documents/SynthFirm.nosync"
+setwd(path2file)
 # try update file name
 print("Generating synthetic producers...")
 

@@ -40,14 +40,15 @@ print('loading fleet inputs...')
 
 analysis_year = 2018
 scenario_name = 'Ref_highp6'
-input_dir = 'inputs_SF/'
-output_dir = 'outputs_SF_2040/'
-firm_name = 'forecasted_firms_with_location.csv'
+input_dir = 'inputs_Seattle/'
+output_dir = 'outputs_Seattle/'
+param_dir = 'SynthFirm_parameters/'
+firm_name = 'synthetic_firms_with_location.csv'
 firms = read_csv(output_dir + firm_name)
 
-private_fleet = read_csv(input_dir + 'fleet/CA_private_fleet_size_distribution_V2.csv')
-for_hire_fleet = read_csv(input_dir + 'fleet/CA_for_hire_fleet_size_distribution_V2.csv')
-for_lease_fleet = read_csv(input_dir + 'fleet/CA_for_lease_fleet_size_distribution_V2.csv')
+private_fleet = read_csv(input_dir + 'fleet/WA_private_fleet_size_distribution.csv')
+for_hire_fleet = read_csv(input_dir + 'fleet/WA_for_hire_fleet_size_distribution.csv')
+for_lease_fleet = read_csv(input_dir + 'fleet/WA_for_lease_fleet_size_distribution.csv')
 cargo_type_distribution = read_csv(input_dir + "fleet/probability_of_cargo_group.csv")
 
 # forecast values
@@ -56,7 +57,7 @@ vehicle_type_by_state = read_csv(input_dir + 'fleet/'  + scenario_name + '/fleet
 # ev_fraction = read_csv('inputs/fleet/' + scenario_name + '/EV_fraction_by_type.csv')
 ev_availability = read_csv(input_dir + 'fleet/'  + scenario_name + '/EV_availability.csv')
 
-state_fips_lookup = read_csv(input_dir + 'us-state-ansi-fips.csv')
+state_fips_lookup = read_csv(param_dir + 'us-state-ansi-fips.csv')
 
 # <codecell>
 

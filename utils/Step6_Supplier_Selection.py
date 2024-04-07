@@ -58,7 +58,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
     producer = pd.merge(producer, mesozone_to_faf_lookup, 
                         left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
     producer.loc[:, 'FAFID'] = producer.loc[:, 'FAFID'].replace(np.nan, 0)
-    producer = producer[['SellerID', 'Zone', 'NAICS', 'OutputCommodity', 'Commodity_SCTG', 'OutputCapacitylb', 'FAFID']]
+    producer = producer[['SellerID', 'Zone', 'NAICS', 'Commodity_SCTG', 'OutputCapacitylb', 'FAFID']]
     int_vars = ['SellerID', 'Zone', 'OutputCapacitylb', 'FAFID']
     producer.loc[:, int_vars] = producer.loc[:, int_vars].astype(int)
     consumer = pd.merge(consumer, sctg_group,
@@ -109,7 +109,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
             if sctg == 5:
                 supplier = producer.loc[producer['OutputCapacitylb'] > 0] # allow less stringent rule for other commodity
             else:
-                supplier = producer.loc[(producer['OutputCommodity'] == com) & (producer['OutputCapacitylb'] > 0)]
+                supplier = producer.loc[(producer['NAICS'] == com) & (producer['OutputCapacitylb'] > 0)]
     
             supplier.loc[:, 'supply_rank'] = pd.cut(supplier.loc[:, 'OutputCapacitylb'], 
                                                     bins = cut_off, labels = label, right = True, include_lowest = True)
@@ -151,7 +151,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                                                                       bins = nbreaks, labels = nlabels, right = True)
                     supplier_pool = pd.merge(supplier_pool, shipment_by_distance_bin_distribution, 
                                     left_on = 'distance_bin', right_on = 'IDs', how = 'left')
-                    supplier_pool = supplier_pool[['SellerID', 'Zone', 'NAICS', 'OutputCommodity', 'Commodity_SCTG',
+                    supplier_pool = supplier_pool[['SellerID', 'Zone', 'NAICS', 'Commodity_SCTG',
                                                    'OutputCapacitylb', 'supply_rank', 'Distance', 'UnitCost', 'SHIPMT_WGHT', 'probability']]
                     # for chunk in chunks_of_buyers: 
                     #     # print(len(chunk))
@@ -170,7 +170,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                     else:
                         paired_buyer_supplier = pd.merge(selected_buyer_by_level, selected_supplier,
                                                     left_on = ["InputCommodity", "Commodity_SCTG"], 
-                                                    right_on = ["OutputCommodity", "Commodity_SCTG"], 
+                                                    right_on = ["NAICS", "Commodity_SCTG"], 
                                                     how = 'left')
                
                     paired_buyer_supplier = paired_buyer_supplier.loc[paired_buyer_supplier['BuyerID'] != paired_buyer_supplier['SellerID']]

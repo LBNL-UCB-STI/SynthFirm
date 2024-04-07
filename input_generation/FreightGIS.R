@@ -20,8 +20,8 @@ path2file <-
 setwd(path2file)
 
 # load inputs
-state_name = 'TX'
-region_name = 'Austin'
+state_name = 'WA'
+region_name = 'Seattle'
 file_name = paste0('inputs_', region_name, '/', state_name, '_bg.geojson')
 state_df = sf::st_read(file_name)
 
@@ -65,7 +65,7 @@ bg_df = bind_rows(region_bg,faf2)
 
 box = c(xmin = -179.23109, ymin = 10, xmax = -66.96466, ymax = 71.365162) # U.S. boundary for plot, no remote island
 bg_df <- st_crop(bg_df, box)
-plot(st_geometry(bg_df))
+#plot(st_geometry(bg_df))
 region_map_out <- paste0('inputs_', region_name, '/', region_name, '_freight.geojson')
 sf::st_write(bg_df, region_map_out)
 
@@ -73,6 +73,6 @@ sf::st_write(bg_df, region_map_out)
 
 
 freight_centroid <- st_centroid(bg_df)
-plot(st_geometry(freight_centroid), col = 'red', add = TRUE)
+#plot(st_geometry(freight_centroid), col = 'red', add = TRUE)
 centroid_map_out <- paste0('inputs_', region_name, '/', region_name, '_freight_centroids.geojson')
 sf::st_write(freight_centroid, centroid_map_out)

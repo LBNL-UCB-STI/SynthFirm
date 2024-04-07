@@ -22,7 +22,7 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-region_name = 'Austin'
+region_name = 'Seattle'
 naics_code <-
   data.table::fread('RawData/corresp_naics6_n6io_sctg_revised.csv', h = T)
 cbp_data <-
@@ -182,3 +182,4 @@ print(paste('firms before imputation', old_est))
 print(paste('firms after imputation', total_est))
 print(paste('employees before imputation', old_emp))
 print(paste('firms after imputation', total_emp))
+
