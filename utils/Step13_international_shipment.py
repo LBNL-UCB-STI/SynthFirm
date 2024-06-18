@@ -54,7 +54,7 @@ port_level_export = read_csv(os.path.join(file_path, input_dir, port_level_expor
 
 # import by port
 
-var_to_group = ['CBP Port Location', 'is_airport', 'CFS_CODE', 'CFS_NAME']
+var_to_group = ['CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME']
 import_by_port = port_level_import.groupby(var_to_group)[['Customs Value (Gen) ($US)']].sum()
 import_by_port.columns = ['import value']
 import_by_port.loc[:, 'import value'] /= 10 ** 6 # convert value to million
