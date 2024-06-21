@@ -32,6 +32,9 @@ source_type_hpms = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.x
                                 sheet_name = 'source_type_HPMS')
 source_type_population = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
                                 sheet_name = 'source_type_population')
+
+hpms_vmt = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
+                                sheet_name = 'HPMS_VMT')
 age_distribution = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
                                 sheet_name = 'AGE_distribution')
 fuel_type_distribution = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
@@ -53,12 +56,13 @@ commercial_only = 1 # 1 = yes, 0 = no
 source_type_population_year = \
     source_type_population.loc[source_type_population['yearID'] == analysis_year]
 source_type_population_year = source_type_population_year.drop(columns = 'yearID')
-
-if commercial_only == 1:
-    source_type_population_year = \
-        source_type_population_year.loc[source_type_population_year['sourceTypeID'].isin(selected_type)]
-    source_type_hpms = \
-        source_type_hpms.loc[source_type_hpms['sourceTypeID'].isin(selected_type)]
+hpms_vmt_year = hpms_vmt.loc[hpms_vmt['yearID'] == analysis_year]
+hpms_vmt_year = hpms_vmt_year[['HPMSVtypeID', 'HPMSBaseYearVMT']]
+# if commercial_only == 1:
+#     source_type_population_year = \
+#         source_type_population_year.loc[source_type_population_year['sourceTypeID'].isin(selected_type)]
+#     source_type_hpms = \
+#         source_type_hpms.loc[source_type_hpms['sourceTypeID'].isin(selected_type)]
         
 age_distribution_year = \
     age_distribution.loc[age_distribution['yearID'] == analysis_year]
@@ -68,6 +72,8 @@ age_distribution_year.loc[:, 'modelYearID'] = \
 # generate VMT fraction by vehicle type and age
 fleet_mix_by_hpms = pd.merge(source_type_hpms, hpms_definition,
                               on = 'HPMSVtypeID', how = 'left')
+fleet_mix_by_hpms = pd.merge(fleet_mix_by_hpms, hpms_vmt_year,
+                              on = 'HPMSVtypeID', how = 'left')
 fleet_mix_by_hpms = pd.merge(fleet_mix_by_hpms, source_type_population_year,
                               on = 'sourceTypeID', how = 'left')
 fleet_mix_by_hpms = pd.merge(fleet_mix_by_hpms, age_distribution_year,
@@ -76,16 +82,40 @@ fleet_mix_by_hpms = pd.merge(fleet_mix_by_hpms, age_distribution_year,
 fleet_mix_by_hpms.loc[:, 'population_by_year'] =  \
     fleet_mix_by_hpms.loc[:, 'sourceTypePopulation'] * \
         fleet_mix_by_hpms.loc[:, 'ageFraction']
+        
+     
+# <codecell>
+
+# calculate VMT fraction
 fleet_mix_by_hpms = pd.merge(fleet_mix_by_hpms, RMAR_factor,
                               on = ['sourceTypeID', 'ageID'], 
                               how = 'left') 
+print('base year total VMT:')
+print(hpms_vmt_year['HPMSBaseYearVMT'].sum())
 fleet_mix_by_hpms.loc[:, 'weighted_vmt_rate'] =  \
     fleet_mix_by_hpms.loc[:, 'population_by_year'] * \
         fleet_mix_by_hpms.loc[:, 'relativeMAR']
         
-fleet_mix_by_hpms.loc[:, 'vmt_fraction'] =  \
+fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] =  \
     fleet_mix_by_hpms.loc[:, 'weighted_vmt_rate'] / \
-        fleet_mix_by_hpms.loc[:, 'weighted_vmt_rate'].sum()
+        fleet_mix_by_hpms.groupby('HPMSVtypeID')['weighted_vmt_rate'].transform('sum')
+        
+fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] = \
+    fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms']* \
+        fleet_mix_by_hpms.loc[:, 'HPMSBaseYearVMT'] 
+
+print('base year total VMT after allocation:')
+print(fleet_mix_by_hpms['weighted_vmt_by_hpms'].sum())        
+moves_vmt_by_st = fleet_mix_by_hpms.groupby('sourceTypeName')['weighted_vmt_by_hpms'].sum()
+moves_vmt_by_st.to_csv(os.path.join(path_to_moves, 'moves_vmt_check.csv'))   
+# <codecell>
+if commercial_only == 1:
+    fleet_mix_by_hpms = \
+        fleet_mix_by_hpms.loc[fleet_mix_by_hpms['sourceTypeID'].isin(selected_type)]
+# calculate VMT fraction
+fleet_mix_by_hpms.loc[:, 'vmt_fraction'] =  \
+    fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] / \
+        fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'].sum()
 fleet_mix_by_hpms = fleet_mix_by_hpms[['sourceTypeID', 
                                         'ageID',
                                         'HPMSVtypeID', 
@@ -94,9 +124,10 @@ fleet_mix_by_hpms = fleet_mix_by_hpms[['sourceTypeID',
                                         'sourceTypePopulation',
                                         'ageFraction', 
                                         'modelYearID',
-                                        'population_by_year', 
-                                        'relativeMAR',
-                                        'weighted_vmt_rate',
+                                        'population_by_year',
+                                        'weighted_vmt_by_hpms',
+                                        # 'relativeMAR',
+                                        # 'weighted_vmt_rate',
                                         'vmt_fraction']]
 if commercial_only == 1:
     fleet_mix_by_hpms.to_csv(os.path.join(path_to_moves, 'MOVES_VMT_fraction_com_only.csv'), 
@@ -146,6 +177,9 @@ fleet_mix_with_fuel = pd.merge(fleet_mix_by_hpms, fuel_type_agg_frac,
 
 fleet_mix_with_fuel.loc[:, 'vmt_fraction'] = \
     fleet_mix_with_fuel.loc[:, 'vmt_fraction'] * fleet_mix_with_fuel.loc[:, 'stmyFraction']
+    
+fleet_mix_with_fuel.loc[:, 'weighted_vmt_by_hpms'] = \
+    fleet_mix_with_fuel.loc[:, 'weighted_vmt_by_hpms'] * fleet_mix_with_fuel.loc[:, 'stmyFraction']
 print(len(fleet_mix_with_fuel))
 print(fleet_mix_with_fuel.loc[:, 'vmt_fraction'].sum())
 
@@ -156,6 +190,3 @@ else:
     fleet_mix_with_fuel.to_csv(os.path.join(path_to_moves, 'MOVES_VMT_fraction_with_fuel_alltypes.csv'), 
                                           index = False)
 
-# <codecell>
-
-# result visualization

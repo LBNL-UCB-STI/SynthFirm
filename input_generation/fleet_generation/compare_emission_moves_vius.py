@@ -42,6 +42,12 @@ list_of_pollutant = ['Energy use', 'CO_2e',
                     'CO', 'NO_x', 'NH_3', 'SO_2', 
                     'NO_2', 'VOC', 'PM_2.5', 'PM_10']
 
+MOVES_fuel_lookup = {1: 'Gasoline', 
+                    2: 'Diesel',
+                    3: 'CNG',
+                    5: 'Other',
+                    9: 'Electricity'}
+
 age_bin = [-1, 3, 5, 7, 9, 14, 19, 31]
 
 age_bin_label = ['age<=3', '3<age<=5','5<age<=7', 
@@ -366,6 +372,7 @@ for pol in list_of_pollutant:
     pp = title_lookup[pol]
     unit = unit_lookup[pol]
     plot_clustered_stacked([df1, df2],["MOVES", "VIUS"], pp, 'Emissions rate', unit)
+    plt.tight_layout()
     plt.savefig(os.path.join(path_to_moves, 'plot', 'emission_rate_by_age_bin_' + pol + '.png'),
                 dpi = 300, bbox_inches = 'tight')
     plt.show()
@@ -421,6 +428,7 @@ emission_by_source_type = pd.pivot_table(combined_emission,
                                                index = ['Source', 'pollutant', 'avgSpeedBinID'], 
                                                columns = 'sourceTypeName',
                                                values= 'emissions', aggfunc = 'sum')
+emission_by_source_type = emission_by_source_type[order_of_col]
 emission_by_source_type = emission_by_source_type.reset_index()
 
 
@@ -439,7 +447,9 @@ for pol in list_of_pollutant:
     df2 = emission_to_plot.loc['VIUS']
     pp = title_lookup[pol]
     unit = unit_lookup[pol]
+    
     plot_clustered_stacked([df1, df2],["MOVES", "VIUS"], pp, 'Emissions rate', unit)
+    plt.tight_layout()
     plt.savefig(os.path.join(path_to_moves, 'plot', 'emission_rate_by_source_type_' + pol + '.png'),
                 dpi = 300, bbox_inches = 'tight')
     plt.show()
@@ -475,11 +485,7 @@ for pol in list_of_pollutant:
     
 # <codecell>
 # plot emission by fuel type
-MOVES_fuel_lookup = {1: 'Gasoline', 
-                    2: 'Diesel',
-                    3: 'CNG',
-                    5: 'Other',
-                    9: 'Electricity'}
+
 
 combined_emission.loc[:, 'fuelTypeName'] = \
     combined_emission.loc[:, 'fuelTypeID'].map(MOVES_fuel_lookup)
