@@ -454,6 +454,7 @@ emission_by_hauling_mode = pd.pivot_table(combined_emission_sel,
 emission_by_hauling_mode = emission_by_hauling_mode.reset_index()
 
 order_of_col_2 = ['Single Unit Trucks', 'Combination Trucks']
+figsize = (3.5, 5)
 for pol in list_of_pollutant:
     # ax = plt.subplot(a, b, i)
     emission_to_plot = \

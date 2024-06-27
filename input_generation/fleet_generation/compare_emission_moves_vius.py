@@ -109,7 +109,7 @@ speed_bin_definition = pd.read_excel(os.path.join(path_to_moves, 'moves_definiti
 
 # filter non-name attributes
 speed_bin_definition = \
-    speed_bin_definition[['avgSpeedBinID', 'avgSpeedBinDesc']]
+    speed_bin_definition[['avgSpeedBinID', 'avgBinSpeed','avgSpeedBinDesc']]
     
 HPMS_definition = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
                                 sheet_name = 'HPMS_definition')
@@ -216,10 +216,14 @@ speed_distribution_by_st = pd.merge(speed_distribution_by_st, source_type_defini
 speed_distribution_by_st = pd.merge(speed_distribution_by_st, speed_bin_definition,
                                     on = 'avgSpeedBinID', how = 'left')
 
-sns.barplot(speed_distribution_by_st, x = 'avgSpeedBinDesc', y = 'op_vmt_fraction',
+speed_distribution_by_st.loc[:, 'weighted_speed'] = \
+    speed_distribution_by_st.loc[:, 'op_vmt_fraction'] * speed_distribution_by_st.loc[:, 'avgBinSpeed']
+
+print(speed_distribution_by_st.groupby('sourceTypeName')['weighted_speed'].sum())
+sns.barplot(speed_distribution_by_st, x = 'avgBinSpeed', y = 'op_vmt_fraction',
             hue = 'sourceTypeName', palette = 'plasma_r')
 plt.xticks(rotation = 60, ha = 'right')
-plt.xlabel('Speed bin')
+plt.xlabel('Average bin speed (mph)')
 plt.ylabel('Fraction of VMT')
 plt.savefig(os.path.join(path_to_moves, 'plot', 'speed_distribution_by_source_type.png'),
             dpi = 300, bbox_inches = 'tight')
@@ -364,9 +368,9 @@ for pol in list_of_pollutant:
     # ax = plt.subplot(a, b, i)
     emission_to_plot = \
     emission_by_age_bin.loc[emission_by_age_bin['pollutant'] == pol]
-    emission_to_plot = emission_to_plot.drop(columns = ['pollutant', 'avgSpeedBinID'])
+    emission_to_plot = emission_to_plot.drop(columns = ['pollutant', 'avgSpeedBinID','avgSpeedBinDesc'])
     emission_to_plot = emission_to_plot.set_index(
-        ['Source', 'avgSpeedBinDesc'])
+        ['Source', 'avgBinSpeed'])
     df1 = emission_to_plot.loc['MOVES']
     df2 = emission_to_plot.loc['VIUS']
     pp = title_lookup[pol]
@@ -440,9 +444,9 @@ for pol in list_of_pollutant:
     # ax = plt.subplot(a, b, i)
     emission_to_plot = \
     emission_by_source_type.loc[emission_by_source_type['pollutant'] == pol]
-    emission_to_plot = emission_to_plot.drop(columns = ['pollutant', 'avgSpeedBinID'])
+    emission_to_plot = emission_to_plot.drop(columns = ['pollutant', 'avgSpeedBinID', 'avgSpeedBinDesc'])
     emission_to_plot = emission_to_plot.set_index(
-        ['Source', 'avgSpeedBinDesc'])
+        ['Source', 'avgBinSpeed'])
     df1 = emission_to_plot.loc['MOVES']
     df2 = emission_to_plot.loc['VIUS']
     pp = title_lookup[pol]

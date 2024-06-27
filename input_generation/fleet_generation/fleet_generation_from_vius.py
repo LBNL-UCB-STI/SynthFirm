@@ -49,7 +49,7 @@ age_bin_label = ['age<=3', '3<age<=5','5<age<=7',
                  '7<age<=9', '9<age<=14', '14<age<=19', 'age>=20']
 
 # load vius data
-vius_data_path = 'vius_2021_com_crosswalk_20240419.csv'
+vius_data_path = 'vius_2021_com_crosswalk_20240624.csv'
 vius_fleet = read_csv(os.path.join(path_to_vius, vius_data_path))
 vius_fleet.head(5)
 
