@@ -20,9 +20,12 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-region_name = 'Seattle'
-state_name = 'WA'
-study_area_faf <- c(531, 532, 539, 411) # this is a critical step in selecting study area boundary
+region_name = 'BayArea'
+state_name = 'CA'
+
+# this is a critical step in selecting study area boundary
+# study_area_faf <- c(531, 532, 539, 411) # Seattle 
+study_area_faf <- c(62, 64, 65, 69) #sf ones
 regional_analysis = 1 # 0 - national analysis, 1 - regional analysis
 # Users can refer to 'CFS_FAF_LOOKUP.csv' for description of FAF zones and select zone IDs that covers study area
 

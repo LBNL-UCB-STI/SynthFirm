@@ -24,10 +24,10 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-selected_state = c('WA', 'OR')
-output_state = 'WA'
+selected_state = c('CA')
+output_state = 'CA'
 selected_year = 2017
-region_name = 'Seattle'
+region_name = 'BayArea'
 
 
 ####### BEGINNING OF CENSUS DATA PROCESSES ######

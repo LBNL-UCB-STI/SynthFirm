@@ -22,8 +22,8 @@ print("Start international shipment generation...")
 ########################################################
 
 # load model config temporarily here
-scenario_name = 'Seattle'
-out_scenario_name = 'Seattle'
+scenario_name = 'BayArea'
+out_scenario_name = 'BayArea'
 file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
@@ -53,7 +53,67 @@ port_level_export = read_csv(os.path.join(file_path, input_dir, port_level_expor
 # <codecell>
 
 ########################################################
-#### step 2 - Create list of port and values ###########
+#### step 2 - Generate list of shipments ###############
+########################################################
+
+# append shipment size
+sctg_lookup_short = sctg_lookup[['SCTG_Code', 'SCTG_Group']]
+int_shipment_size_short = \
+    int_shipment_size[['SCTG', 'CFS_CODE', 'median_weight_ton']]
+    
+regional_import = \
+    regional_import.rename(columns = {'sctg2': 'SCTG_Code'})
+    
+regional_export = \
+    regional_export.rename(columns = {'sctg2': 'SCTG_Code'})
+
+int_shipment_size_short = \
+    int_shipment_size_short.rename(columns = {'SCTG': 'SCTG_Code'})
+   
+regional_import_by_size = pd.merge(regional_import,
+                                   int_shipment_size_short,
+                                   on = ['SCTG_Code', 'CFS_CODE'], how = 'left')
+
+
+regional_export_by_size = pd.merge(regional_export,
+                                   int_shipment_size_short,
+                                   on = ['SCTG_Code', 'CFS_CODE'], how = 'left')
+
+
+
+# <codecell>
+# generate shipment count
+regional_import_by_size.loc[:, "ship_count"] = \
+    regional_import_by_size.loc[:, "tons_2017"] * 1000 / \
+            regional_import_by_size.loc[:, "median_weight_ton"] 
+regional_import_by_size.loc[:, "ship_count"] = \
+    np.round(regional_import_by_size.loc[:, "ship_count"], 0)
+    
+regional_import_by_size.loc[regional_import_by_size["ship_count"] < 1, "ship_count"] = 1
+
+# import count can be really large, trim off the long tail
+cut_off = np.round(regional_import_by_size["ship_count"].quantile(0.999), 0)
+print(cut_off)
+regional_import_by_size.loc[regional_import_by_size["ship_count"] >= cut_off, "ship_count"] = cut_off      
+
+regional_export_by_size.loc[:, "ship_count"] = \
+    regional_export_by_size.loc[:, "tons_2017"] * 1000 / \
+            regional_export_by_size.loc[:, "median_weight_ton"] 
+regional_export_by_size.loc[:, "ship_count"] = \
+    np.round(regional_export_by_size.loc[:, "ship_count"], 0)
+regional_export_by_size.loc[regional_export_by_size["ship_count"] < 1, "ship_count"] = 1
+
+            
+print('Total import shipments before scaling:')
+print(regional_import_by_size.loc[:, "ship_count"].sum())
+
+print('Total export shipments before scaling:')
+print(regional_export_by_size.loc[:, "ship_count"].sum())
+# <codecell>
+
+
+########################################################
+#### step 3 - Create list of port and values ###########
 ########################################################
 
 # import by port
@@ -112,12 +172,17 @@ print(export_by_port['export_frac'].min(), export_by_port['export_frac'].max())
 #### step 3 - Disaggregate FAF value to port ###########
 ########################################################
 
+
+total_import_shipment = regional_import_by_size.loc[:, "ship_count"].sum()
+
+total_export_shipment = regional_export_by_size.loc[:, "ship_count"].sum()
+
 # FAF value grouped by foreign country, domestic destination and sctg for entire region
 print('total import before disaggregation:')
 print(regional_import['value_2017'].sum())
-agg_var_in = ['CFS_CODE', 'CFS_NAME', 'dms_dest', 'sctg2']
+agg_var_in = ['CFS_CODE', 'CFS_NAME', 'dms_dest', 'SCTG_Code']
 regional_import_agg = \
-    regional_import.groupby(agg_var_in)[['tons_2017', 'value_2017']].sum()
+    regional_import_by_size.groupby(agg_var_in)[['tons_2017', 'value_2017', 'ship_count']].sum()
 regional_import_agg = regional_import_agg.reset_index()
 regional_import_agg = \
     regional_import_agg.loc[regional_import_agg['value_2017'] > 0]
@@ -125,11 +190,11 @@ regional_import_agg = \
 # FAF value grouped by foreign country, domestic destination and sctg for entire region
 
 
-agg_var_out = ['CFS_CODE', 'CFS_NAME', 'dms_orig', 'sctg2']
+agg_var_out = ['CFS_CODE', 'CFS_NAME', 'dms_orig', 'SCTG_Code']
 print('total export before disaggregation:')
 print(regional_export['value_2017'].sum())
 regional_export_agg = \
-    regional_export.groupby(agg_var_out)[['tons_2017', 'value_2017']].sum()    
+    regional_export_by_size.groupby(agg_var_out)[['tons_2017', 'value_2017', 'ship_count']].sum()    
 regional_export_agg = regional_export_agg.reset_index()
 regional_export_agg = \
     regional_export_agg.loc[regional_export_agg['value_2017'] > 0]
@@ -141,11 +206,26 @@ import_by_port_by_dest = pd.merge(import_by_port,
 
 import_by_port_by_dest.loc[:, 'value_2017'] *= import_by_port_by_dest.loc[:, 'import_frac']
 import_by_port_by_dest.loc[:, 'tons_2017'] *= import_by_port_by_dest.loc[:, 'import_frac']
+import_by_port_by_dest.loc[:, 'ship_count'] *= import_by_port_by_dest.loc[:, 'import_frac']
+
+import_by_port_by_dest = import_by_port_by_dest.loc[import_by_port_by_dest['ship_count']  >= 1]
+import_by_port_by_dest.loc[:, 'ship_count'] = np.round(import_by_port_by_dest.loc[:, 'ship_count'], 0)
+
 import_by_port_by_dest.loc[:, 'value_density'] = \
-    import_by_port_by_dest.loc[:, 'value_2017'] / import_by_port_by_dest.loc[:, 'tons_2017'] /2
+    import_by_port_by_dest.loc[:, 'value_2017'] / import_by_port_by_dest.loc[:, 'tons_2017'] * 1000
+import_by_port_by_dest.loc[:, "TruckLoad"] = import_by_port_by_dest.loc[:, "tons_2017"] * 1000  / \
+            import_by_port_by_dest.loc[:, "ship_count"] # unit is ton
+
 # $/ton
-print('total impprt after disaggregation:')
+
+print('total import shipment after disaggregation:')
+print(import_by_port_by_dest['ship_count'].sum()) 
+
+print('total import value (million $) after disaggregation:')
 print(import_by_port_by_dest['value_2017'].sum())    
+
+print('total import tonnage after disaggregation:')
+print(import_by_port_by_dest['tons_2017'].sum() * 1000)  
 
 export_by_port_by_orig = pd.merge(export_by_port,
                                   regional_export_agg,
@@ -153,119 +233,64 @@ export_by_port_by_orig = pd.merge(export_by_port,
 
 export_by_port_by_orig.loc[:, 'value_2017'] *= export_by_port_by_orig.loc[:, 'export_frac']
 export_by_port_by_orig.loc[:, 'tons_2017'] *= export_by_port_by_orig.loc[:, 'export_frac']
-export_by_port_by_orig.loc[:, 'value_density'] = \
-    export_by_port_by_orig.loc[:, 'value_2017'] / export_by_port_by_orig.loc[:, 'tons_2017'] /2
+export_by_port_by_orig.loc[:, 'ship_count'] *= export_by_port_by_orig.loc[:, 'export_frac']
+export_by_port_by_orig = export_by_port_by_orig.loc[export_by_port_by_orig['ship_count']  >= 1]
+export_by_port_by_orig.loc[:, 'ship_count'] = np.round(export_by_port_by_orig.loc[:, 'ship_count'], 0)
 
-print('total impprt after disaggregation:')
+export_by_port_by_orig.loc[:, 'value_density'] = \
+    export_by_port_by_orig.loc[:, 'value_2017'] / export_by_port_by_orig.loc[:, 'tons_2017'] * 1000
+export_by_port_by_orig.loc[:, "TruckLoad"] = export_by_port_by_orig.loc[:, "tons_2017"] * 1000  / \
+            export_by_port_by_orig.loc[:, "ship_count"] # unit is ton
+
+print('total export shipment after disaggregation:')
+print(export_by_port_by_orig['ship_count'].sum())  
+
+print('total export value (million $) after disaggregation:')
 print(export_by_port_by_orig['value_2017'].sum()) 
+
+print('total export tonnage after disaggregation:')
+print(export_by_port_by_orig['tons_2017'].sum() * 1000)  
+
 
 
 # <codecell>
+# import_count_by_sctg = \
+#     import_by_shipment_size.groupby('SCTG_Code')[["ship_count"]].sum()
+# import_count_by_sctg = import_count_by_sctg.reset_index()
 
-########################################################
-#### step 4 - Generate list of shipments ###############
-########################################################
 
-# append shipment size
-sctg_lookup_short = sctg_lookup[['SCTG_Code', 'SCTG_Group']]
-int_shipment_size_short = \
-    int_shipment_size[['SCTG', 'CFS_CODE', 'median_weight_ton']]
-    
-import_by_port_by_dest = \
-    import_by_port_by_dest.rename(columns = {'sctg2': 'SCTG_Code'})
-    
-export_by_port_by_orig = \
-    export_by_port_by_orig.rename(columns = {'sctg2': 'SCTG_Code'})
+# export_count_by_sctg = \
+#     export_by_shipment_size.groupby('SCTG_Code')[["ship_count"]].sum()
+# export_count_by_sctg = export_count_by_sctg.reset_index()
 
-int_shipment_size_short = \
-    int_shipment_size_short.rename(columns = {'SCTG': 'SCTG_Code'})
-   
-import_by_shipment_size = pd.merge(import_by_port_by_dest,
-                                   int_shipment_size_short,
-                                   on = ['SCTG_Code', 'CFS_CODE'], how = 'left')
-import_by_shipment_size = pd.merge(import_by_shipment_size,
-                                   sctg_lookup_short,
-                                   on = ['SCTG_Code'], how = 'left')
-
-export_by_shipment_size = pd.merge(export_by_port_by_orig,
-                                   int_shipment_size_short,
-                                   on = ['SCTG_Code', 'CFS_CODE'], how = 'left')
-export_by_shipment_size = pd.merge(export_by_shipment_size,
-                                   sctg_lookup_short,
-                                   on = ['SCTG_Code'], how = 'left')
-
-# <codecell> 
-
-# generate shipment count
-import_by_shipment_size.loc[:, "ship_count"] = \
-    import_by_shipment_size.loc[:, "tons_2017"] * 1000 / \
-            import_by_shipment_size.loc[:, "median_weight_ton"] 
-            
-import_by_shipment_size.loc[:, "ship_count"] = \
-    np.round(import_by_shipment_size.loc[:, "ship_count"], 0)
-import_by_shipment_size.loc[import_by_shipment_size["ship_count"] < 1, "ship_count"] = 1
-            
-export_by_shipment_size.loc[:, "ship_count"] = \
-    export_by_shipment_size.loc[:, "tons_2017"] * 1000 / \
-            export_by_shipment_size.loc[:, "median_weight_ton"] 
-export_by_shipment_size.loc[:, "ship_count"] = \
-    np.round(export_by_shipment_size.loc[:, "ship_count"], 0)
-export_by_shipment_size.loc[export_by_shipment_size["ship_count"] < 1, "ship_count"] = 1
-
-print('Total import shipments:')
-print(import_by_shipment_size.loc[:, "ship_count"].sum())
-
-print('Total export shipments:')
-print(export_by_shipment_size.loc[:, "ship_count"].sum())
 # <codecell>
 
 # create separate row for each shipment
-def split_dataframe(df, chunk_size = 10 ** 6): 
-    chunks = list()
-    num_chunks = len(df) // chunk_size + 1
-    for i in range(num_chunks):
-        chunks.append(df[i*chunk_size:(i+1)*chunk_size])
-    return chunks
+# def split_dataframe(df, chunk_size = 10 ** 6): 
+#     chunks = list()
+#     num_chunks = len(df) // chunk_size + 1
+#     for i in range(num_chunks):
+#         chunks.append(df[i*chunk_size:(i+1)*chunk_size])
+#     return chunks
 
 chunk_size = 10 ** 5
 import_attr = ['CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME',
-       'dms_dest', 'SCTG_Code', 'TruckLoad', 'value_2017', 'value_density', 'SCTG_Group']
+       'dms_dest', 'SCTG_Code', 'TruckLoad', 'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
 export_attr = ['CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME',
-       'dms_orig', 'SCTG_Code', 'TruckLoad', 'value_2017', 'value_density', 'SCTG_Group']
+       'dms_orig', 'SCTG_Code', 'TruckLoad', 'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
 # output_dir = os.path.join(file_path, output_dir, )
 
+import_by_port_by_dest = pd.merge(import_by_port_by_dest,
+                                   sctg_lookup_short,
+                                   on = ['SCTG_Code'], how = 'left')
+
 output_path = os.path.join(file_path, output_dir)
-for k in range(5):
-    sctg = 'sctg' + str(k + 1)
-    sctg_id = k+1
-    print('generate shipment size for SCTG group ' + sctg)
-    import_selected = import_by_shipment_size.loc[import_by_shipment_size['SCTG_Group'] == sctg_id]
-    export_selected = export_by_shipment_size.loc[export_by_shipment_size['SCTG_Group'] == sctg_id]
-    chunks_of_import = split_dataframe(import_selected, chunk_size)
-    chunks_of_export = split_dataframe(export_selected, chunk_size)
-# separate import and write output
-    q = 1
-    for chunk in chunks_of_import:
-        import_chunk_dup = pd.DataFrame(np.repeat(chunk.values, 
-                                                  chunk.ship_count, axis=0))
-        import_chunk_dup.columns = chunk.columns
-        import_chunk_dup.loc[:, "TruckLoad"] = 2000 * import_chunk_dup.loc[:, "tons_2017"] / \
-            import_chunk_dup.loc[:, "ship_count"] # unit is lb
-        import_chunk_dup = import_chunk_dup[import_attr]
-        out_file_name = 'import_' + sctg + '_od' + str(q) + '.csv.zip'
-        import_chunk_dup.to_csv(os.path.join(output_path, out_file_name), index = False)
-        q += 1
-    
-    # separate export and write output
-    q = 1
-    for chunk in chunks_of_export:
-        export_chunk_dup = pd.DataFrame(np.repeat(chunk.values, 
-                                                  chunk.ship_count, axis=0))
-        export_chunk_dup.columns = chunk.columns
-        export_chunk_dup.loc[:, "TruckLoad"] = 2000 * export_chunk_dup.loc[:, "tons_2017"] / \
-            export_chunk_dup.loc[:, "ship_count"] # unit is lb
-        export_chunk_dup = export_chunk_dup[export_attr]
-        out_file_name = 'export_' + sctg + '_od' + str(q) + '.csv.zip'
-        export_chunk_dup.to_csv(os.path.join(output_path, out_file_name), index = False)
-        q += 1
-    
+import_output = import_by_port_by_dest[import_attr]
+import_output.to_csv(os.path.join(output_path, 'import_od.csv'), index = False)
+
+export_by_port_by_orig = pd.merge(export_by_port_by_orig,
+                                   sctg_lookup_short,
+                                   on = ['SCTG_Code'], how = 'left')
+export_output = export_by_port_by_orig[export_attr]
+export_output.to_csv(os.path.join(output_path, 'export_od.csv'), index = False)
+
