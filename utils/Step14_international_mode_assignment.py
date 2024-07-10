@@ -415,9 +415,9 @@ if not os.path.exists(int_out_dir):
     os.makedirs(int_out_dir)
 
 import_output_file = 'import_OD_with_mode.csv'
-import_output_mode_assigned.to_csv(os.path.join(int_out_dir, import_output_file))
+import_output_with_mode_skim.to_csv(os.path.join(int_out_dir, import_output_file))
 
 export_output_file = 'export_OD_with_mode.csv'
-export_output_mode_assigned.to_csv(os.path.join(int_out_dir, export_output_file))
+export_output_with_mode_skim.to_csv(os.path.join(int_out_dir, export_output_file))
 # import_output_mode_assigned.loc[:, list_of_alternative] = \
 #     np.round(import_output_mode_assigned.loc[:, list_of_alternative].mul(import_output_mode_assigned.loc[:, 'ship_count']), 0)        
