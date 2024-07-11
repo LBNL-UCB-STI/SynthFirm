@@ -204,13 +204,14 @@ import_by_port_by_dest = pd.merge(import_by_port,
                                   regional_import_agg,
                                   on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
 
+print(len(import_by_port_by_dest))
 import_by_port_by_dest.loc[:, 'value_2017'] *= import_by_port_by_dest.loc[:, 'import_frac']
 import_by_port_by_dest.loc[:, 'tons_2017'] *= import_by_port_by_dest.loc[:, 'import_frac']
 import_by_port_by_dest.loc[:, 'ship_count'] *= import_by_port_by_dest.loc[:, 'import_frac']
 
 import_by_port_by_dest = import_by_port_by_dest.loc[import_by_port_by_dest['ship_count']  >= 1]
 import_by_port_by_dest.loc[:, 'ship_count'] = np.round(import_by_port_by_dest.loc[:, 'ship_count'], 0)
-
+print(len(import_by_port_by_dest))
 import_by_port_by_dest.loc[:, 'value_density'] = \
     import_by_port_by_dest.loc[:, 'value_2017'] / import_by_port_by_dest.loc[:, 'tons_2017'] * 1000
 import_by_port_by_dest.loc[:, "TruckLoad"] = import_by_port_by_dest.loc[:, "tons_2017"] * 1000  / \
@@ -227,16 +228,18 @@ print(import_by_port_by_dest['value_2017'].sum())
 print('total import tonnage after disaggregation:')
 print(import_by_port_by_dest['tons_2017'].sum() * 1000)  
 
+
+# <codecell>
 export_by_port_by_orig = pd.merge(export_by_port,
                                   regional_export_agg,
                                   on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
-
+print(len(export_by_port_by_orig))
 export_by_port_by_orig.loc[:, 'value_2017'] *= export_by_port_by_orig.loc[:, 'export_frac']
 export_by_port_by_orig.loc[:, 'tons_2017'] *= export_by_port_by_orig.loc[:, 'export_frac']
 export_by_port_by_orig.loc[:, 'ship_count'] *= export_by_port_by_orig.loc[:, 'export_frac']
 export_by_port_by_orig = export_by_port_by_orig.loc[export_by_port_by_orig['ship_count']  >= 1]
 export_by_port_by_orig.loc[:, 'ship_count'] = np.round(export_by_port_by_orig.loc[:, 'ship_count'], 0)
-
+print(len(export_by_port_by_orig))
 export_by_port_by_orig.loc[:, 'value_density'] = \
     export_by_port_by_orig.loc[:, 'value_2017'] / export_by_port_by_orig.loc[:, 'tons_2017'] * 1000
 export_by_port_by_orig.loc[:, "TruckLoad"] = export_by_port_by_orig.loc[:, "tons_2017"] * 1000  / \

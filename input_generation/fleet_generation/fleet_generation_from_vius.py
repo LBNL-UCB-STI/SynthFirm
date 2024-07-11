@@ -311,7 +311,8 @@ VIUS_fuel_distribution = \
 
 VIUS_fuel_distribution.columns = ['sample_size', 'TABWEIGHT']    
 VIUS_fuel_distribution = VIUS_fuel_distribution.reset_index()
-
+print('total sample before filter')
+print(VIUS_fuel_distribution['sample_size'].sum())
 # drop unavailable fuel - source type combo in MOVES
 criteria_1 = (VIUS_fuel_distribution['fuelTypeID'] != 5)
 criteria_2 = (VIUS_fuel_distribution['fuelTypeID'] == 3) & (VIUS_fuel_distribution['sourceTypeID'] == 32)
@@ -319,7 +320,8 @@ criteria_3 = (VIUS_fuel_distribution['fuelTypeID'] == 1) & (VIUS_fuel_distributi
 VIUS_fuel_distribution = VIUS_fuel_distribution.loc[criteria_1]
 VIUS_fuel_distribution = VIUS_fuel_distribution.loc[~criteria_2]
 VIUS_fuel_distribution = VIUS_fuel_distribution.loc[~criteria_3]
-
+print('total sample after filter')
+print(VIUS_fuel_distribution['sample_size'].sum())
 VIUS_fuel_distribution.loc[:, 'fuel_fraction'] = \
     VIUS_fuel_distribution['TABWEIGHT'] / \
         VIUS_fuel_distribution.groupby(['sourceTypeID', 'AgeBin'])['TABWEIGHT'].transform('sum')
