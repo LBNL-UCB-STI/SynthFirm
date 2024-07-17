@@ -53,13 +53,13 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
             modeled_OD_by_sctg = read_csv(os.path.join(b2b_dir, file), sep = ',')
     #         print(modeled_OD_by_sctg.columns)
             list_of_var = ['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID',
-               'SellerZone', 'SellerNAICS', 'TruckLoad', 'SCTG_Group', 
+               'SellerZone', 'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group', 
                'shipment_id', 'orig_FAFID', 'dest_FAFID', 
                'mode_choice', 'probability', 'Distance', 'Travel_time']
     #         print(modeled_OD_by_sctg.head(5))
             truck_output = modeled_OD_by_sctg.loc[modeled_OD_by_sctg['mode_choice'].isin(truck_mode), list_of_var]
             int_var = ['BuyerID', 'BuyerZone', 'SellerID',
-               'SellerZone', 'SCTG_Group', 
+               'SellerZone', 'Commodity_SCTG', 'SCTG_Group', 
                'shipment_id', 'orig_FAFID', 'dest_FAFID']
             truck_output.loc[:, int_var] = truck_output.loc[:, int_var].astype(int)
             truck_only_dir = sctg + '_truck'

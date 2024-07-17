@@ -132,6 +132,7 @@ firms = pd.merge(firms, emp_adj,
                  on = ['Industry_NAICS6_CBP', 'CBPZONE', 'FAFZONE'],
                  how = 'left')
 firms.loc[:, 'emp_per_est'] *= firms.loc[:, 'emp_adj']
+# firms.loc[:, 'emp_per_est'] =np.round(firms.loc[:, 'emp_per_est'].astype(float), 2)
 
 # validate employment
 total_employment_est = firms.loc[:, 'emp_per_est'].sum()
@@ -201,6 +202,8 @@ for ct in unique_counties:
                              on = ["CBPZONE", "n2"],
                              how = 'left') # Merge the rankings dataset to the firms database based on county
     firms_in_boundary_sel['EmpRank'] = firms_in_boundary_sel['EmpRank'].fillna(1)
+    # print(len(firms_in_boundary_sel.MESOZONE.unique()))
+    
     # Sometimes, LODES report 0 employment in a county, while firm data as non-zero
     # may attributed to imputation for non-payroll workers
     # fill minimum ranking for all zones as no information is available for the ranking
@@ -211,6 +214,7 @@ for ct in unique_counties:
     firms_in_boundary_sel = \
         firms_in_boundary_sel.drop(columns = ['index', 'industry', 'EmpRank'])
     firms_in_boundary_sel.loc[:, 'MESOZONE'].fillna(method = 'ffill', inplace = True)
+    # print(len(firms_in_boundary_sel.MESOZONE.unique()))
     # for firms with no emp ranking, forward fill it with locations from nearest industry
     # check na
     firms_with_na = firms_in_boundary_sel.loc[firms_in_boundary_sel['MESOZONE'].isna()]
@@ -228,6 +232,9 @@ for ct in unique_counties:
 ####################################################
 
 firms = pd.concat([firms_out_boundary, firms_in_boundary_out])
+
+print('number of firms before writing output:')
+print(len(firms))
     
 output_attr = ['CBPZONE', 'FAFZONE',	'esizecat', 'Industry_NAICS6_Make',
                'Commodity_SCTG', 'emp_per_est', 'BusID', 'MESOZONE']

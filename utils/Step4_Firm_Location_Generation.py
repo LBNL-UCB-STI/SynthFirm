@@ -24,8 +24,8 @@ print("Generating synthetic firm locations...")
 #### step 1 - configure environment and load inputs ####
 ########################################################
 
-scenario_name = 'Seattle'
-out_scenario_name = 'Seattle'
+scenario_name = 'BayArea'
+out_scenario_name = 'BayArea'
 file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
@@ -99,6 +99,7 @@ for zone in list_of_mesozones:
 # for firms with no location generated, try it again
 firm_with_missing = firm_with_location.loc[firm_with_location['geometry'].isna()]
 firm_with_missing = firm_with_missing.drop(columns = ['index', 'geometry'])
+print(len(firm_with_missing))
 firm_no_missing = firm_with_location.loc[~firm_with_location['geometry'].isna()]
 # try location generation again
 list_of_mesozones = firm_with_missing.MESOZONE.unique()
@@ -114,9 +115,9 @@ for zone in list_of_mesozones:
     sample_size = len(firm_selected)
     polygon = mesozone_shapefile.loc[mesozone_shapefile['MESOZONE'] == zone]
     if zone == 20031:
-        gdf_points = Random_Points_in_Bounds(polygon.geometry, 500 * sample_size, map_crs)
+        gdf_points = Random_Points_in_Bounds(polygon.geometry, 5000 * sample_size, map_crs)
     else:
-        gdf_points = Random_Points_in_Bounds(polygon.geometry, 50 * sample_size, map_crs)
+        gdf_points = Random_Points_in_Bounds(polygon.geometry, 500 * sample_size, map_crs)
 
     Sjoin = gpd.tools.sjoin(gdf_points, polygon, predicate="within", how='left')
     # # Keep points in "myPoly"
@@ -125,6 +126,9 @@ for zone in list_of_mesozones:
     firm_selected = pd.concat([firm_selected.reset_index(), pnts_in_poly.reset_index()], axis = 1)
     firm_with_missing_location = pd.concat([firm_with_missing_location, firm_selected])
 
+
+print('missing value after re-generation:')
+print(firm_with_missing_location['geometry'].isna().sum())
 # <codecell>
 
 firm_with_location = pd.concat([firm_no_missing, firm_with_missing_location])

@@ -93,6 +93,10 @@ regional_import_by_size.loc[regional_import_by_size["ship_count"] < 1, "ship_cou
 
 # import count can be really large, trim off the long tail
 cut_off = np.round(regional_import_by_size["ship_count"].quantile(0.999), 0)
+# cut_off = regional_import_by_size["ship_count"].quantile(0.75) + \
+#     1.5 * (regional_import_by_size["ship_count"].quantile(0.75) - \
+#            regional_import_by_size["ship_count"].quantile(0.25))
+# cut_off = np.round(cut_off, 0)
 print(cut_off)
 regional_import_by_size.loc[regional_import_by_size["ship_count"] >= cut_off, "ship_count"] = cut_off      
 
@@ -118,7 +122,8 @@ print(regional_export_by_size.loc[:, "ship_count"].sum())
 
 # import by port
 
-var_to_group = ['CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME']
+var_to_group = ['PORTID', 'CBP Port Location', 'FAF', 'CBPZONE', 'MESOZONE', 'TYPE', 
+                'is_airport', 'CFS_CODE', 'CFS_NAME', 'lat', 'lon']
 import_by_port = port_level_import.groupby(var_to_group)[['Customs Value (Gen) ($US)']].sum()
 import_by_port.columns = ['import value']
 import_by_port.loc[:, 'import value'] /= 10 ** 6 # convert value to million
@@ -268,20 +273,14 @@ print(export_by_port_by_orig['tons_2017'].sum() * 1000)
 
 # <codecell>
 
-# create separate row for each shipment
-# def split_dataframe(df, chunk_size = 10 ** 6): 
-#     chunks = list()
-#     num_chunks = len(df) // chunk_size + 1
-#     for i in range(num_chunks):
-#         chunks.append(df[i*chunk_size:(i+1)*chunk_size])
-#     return chunks
-
 chunk_size = 10 ** 5
-import_attr = ['CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME',
-       'dms_dest', 'SCTG_Code', 'TruckLoad', 'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
-export_attr = ['CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME',
-       'dms_orig', 'SCTG_Code', 'TruckLoad', 'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
-# output_dir = os.path.join(file_path, output_dir, )
+import_attr = ['PORTID', 'CBP Port Location', 'FAF', 'CBPZONE', 'MESOZONE', 'TYPE', 
+               'is_airport', 'CFS_CODE', 'CFS_NAME', 'dms_dest', 'SCTG_Code', 
+               'TruckLoad', 'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
+export_attr = ['PORTID', 'CBP Port Location', 'FAF', 'CBPZONE', 'MESOZONE', 'TYPE', 
+               'is_airport', 'CFS_CODE', 'CFS_NAME','dms_orig', 'SCTG_Code', 
+               'TruckLoad', 'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
+
 
 import_by_port_by_dest = pd.merge(import_by_port_by_dest,
                                    sctg_lookup_short,

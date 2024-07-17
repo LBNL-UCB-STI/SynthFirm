@@ -90,10 +90,16 @@ mode_choice_spec['weight_bin_label'] = weight_bin_label
 import_output["bundle_id"] = import_output.index + 1
 export_output["bundle_id"] = export_output.index + 1
 
-import_attr = ['bundle_id', 'CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME',
-       'dms_dest', 'SCTG_Code', 'TruckLoad', 'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
-export_attr = ['bundle_id', 'CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME',
-       'dms_orig', 'SCTG_Code', 'TruckLoad', 'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
+import_attr = ['bundle_id', 'PORTID', 'CBP Port Location', 
+               'FAF', 'CBPZONE', 'MESOZONE', 'TYPE', 
+               'is_airport', 'CFS_CODE', 'CFS_NAME',
+               'dms_dest', 'SCTG_Code', 'TruckLoad', 
+               'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
+export_attr = ['bundle_id', 'PORTID', 'CBP Port Location', 
+               'FAF', 'CBPZONE', 'MESOZONE', 'TYPE',
+               'is_airport', 'CFS_CODE', 'CFS_NAME',
+               'dms_orig', 'SCTG_Code', 'TruckLoad', 
+               'ship_count', 'value_2017', 'value_density', 'SCTG_Group']
 
 import_output_with_mode = pd.concat([import_output, 
                            pd.DataFrame(columns = list_of_alternative)],
@@ -318,12 +324,12 @@ for alt in list_of_alternative:
 # <codecell>
 # reformat data table, with one mode per row
 
-import_attr = ['CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME',
-       'dms_dest', 'SCTG_Code', 'TruckLoad', 'value_2017',
-       'value_density', 'SCTG_Group', 'bundle_id']
-export_attr = ['CBP Port Location', 'FAF', 'is_airport', 'CFS_CODE', 'CFS_NAME',
-       'dms_orig', 'SCTG_Code', 'TruckLoad', 'value_2017',
-       'value_density', 'SCTG_Group', 'bundle_id']
+import_attr = ['PORTID', 'CBP Port Location', 'FAF', 'CBPZONE', 'MESOZONE', 'TYPE', 
+               'is_airport', 'CFS_CODE', 'CFS_NAME', 'dms_dest', 'SCTG_Code', 
+               'TruckLoad', 'value_2017', 'value_density', 'SCTG_Group', 'bundle_id']
+export_attr = ['PORTID', 'CBP Port Location', 'FAF', 'CBPZONE', 'MESOZONE', 'TYPE', 
+               'is_airport', 'CFS_CODE', 'CFS_NAME', 'dms_orig', 'SCTG_Code', 
+               'TruckLoad', 'value_2017', 'value_density', 'SCTG_Group', 'bundle_id']
 
 import_output_with_mode = pd.melt(import_output_mode_assigned, 
                                   id_vars = import_attr,

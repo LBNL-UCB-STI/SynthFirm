@@ -184,7 +184,7 @@ def process_chunk(args):
      
      # convert data to long format, generate variables for mode choice
     modeled_OD_by_sctg_long = pd.melt(modeled_OD_by_sctg, id_vars=['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID', 'SellerZone',
-        'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 'shipment_id', 'orig_FAFID', 'dest_FAFID', 'UnitCost'], 
+        'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 'shipment_id', 'orig_FAFID', 'dest_FAFID', 'UnitCost'], 
          value_vars=list_of_alternative,
          var_name='Alternative', value_name='constant')  # convert wide dataframe to long       
      # modeled_OD_by_sctg_long.loc[modeled_OD_by_sctg_long['TruckLoad'] > c.max_shipment_load, 'TruckLoad'] = c.max_shipment_load
@@ -215,11 +215,11 @@ def process_chunk(args):
                                    right_on = ['orig_FAFID', 'dest_FAFID', 'Alternative'], how = 'left')
     modeled_OD_by_sctg = modeled_OD_by_sctg[['BuyerID', 'BuyerZone', 
                                               'BuyerNAICS', 'SellerID', 'SellerZone',
-                                              'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 
+                                              'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 
                                               'shipment_id', 'orig_FAFID', 'dest_FAFID', 'mode_choice', 
-                                              'probability', 'Distance', 'Travel_time', 'Commodity_SCTG']]
-    int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'SCTG_Group', 'NAICS_code', 'shipment_id',
-    'orig_FAFID', 'dest_FAFID', 'Commodity_SCTG']
+                                              'probability', 'Distance', 'Travel_time']]
+    int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 'shipment_id',
+    'orig_FAFID', 'dest_FAFID']
     modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(int)
     float_var = ['TruckLoad', 'probability', 'Distance', 'Travel_time']
     modeled_OD_by_sctg.loc[:, float_var] = modeled_OD_by_sctg.loc[:, float_var].astype(float)

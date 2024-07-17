@@ -19,8 +19,8 @@ print("Generating synthetic consumers...")
 ########################################################
 
 
-scenario_name = 'Seattle'
-out_scenario_name = 'Seattle'
+scenario_name = 'BayArea'
+out_scenario_name = 'BayArea'
 file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
@@ -54,6 +54,9 @@ sctg_lookup = read_csv(os.path.join(file_path, parameter_dir, SCTG_group_file))
 wholesalers = read_csv(os.path.join(file_path, output_dir, synthetic_wholesaler_file), low_memory=False) 
 producers = read_csv(os.path.join(file_path, output_dir, synthetic_producer_file), low_memory=False) 
 io = read_csv(os.path.join(file_path, output_dir, io_filtered_file), low_memory=False) 
+
+# define constant
+wholesalecostfactor = 1.376 # in the future, replace this value with output from step 2
 
 # define output
 synthetic_consumer_file = "synthetic_consumers.csv" # synthetic consumer
@@ -170,90 +173,90 @@ consumers = consumers.drop(columns = ["ValEmp", "UnitCost"]) # Remove extra fiel
 #### step 3 - Generate foreign consumer ################
 ########################################################
 
-for_cons= for_cons.rename(columns = {"Commodity_NAICS6": "Industry_NAICS6_CBP"})
-for_cons = pd.merge(for_cons, 
-                    c_n6_n6io_sctg[['Industry_NAICS6_CBP', 'Industry_NAICS6_Make']].drop_duplicates(keep = 'first'), 
-                    on = "Industry_NAICS6_CBP", how = 'left') #Merge in the I/O NAICS codes and SCTG codes
+# for_cons= for_cons.rename(columns = {"Commodity_NAICS6": "Industry_NAICS6_CBP"})
+# for_cons = pd.merge(for_cons, 
+#                     c_n6_n6io_sctg[['Industry_NAICS6_CBP', 'Industry_NAICS6_Make']].drop_duplicates(keep = 'first'), 
+#                     on = "Industry_NAICS6_CBP", how = 'left') #Merge in the I/O NAICS codes and SCTG codes
 
 
-for_cons = for_cons.rename(columns = {'Industry_NAICS6_Make': 'Industry_NAICS6_Use'})
+# for_cons = for_cons.rename(columns = {'Industry_NAICS6_Make': 'Industry_NAICS6_Use'})
 
 
-for_cons = for_cons.dropna()
-list_of_for_consumer_naics = for_cons['Industry_NAICS6_Use'].unique()
+# for_cons = for_cons.dropna()
+# list_of_for_consumer_naics = for_cons['Industry_NAICS6_Use'].unique()
 
-# assign random producer for each consumer
-for_consumers = None
-for con_naics in list_of_for_consumer_naics:
-  # print(con_naics)
-    con_firms = for_cons.loc[for_cons['Industry_NAICS6_Use'] == con_naics]
-    con_firms = con_firms.rename(columns = {'Industry_NAICS6_Make': 'Industry_NAICS6_Use'})
-    sample_size = len(con_firms)
-    con_io = io.loc[io['Industry_NAICS6_Use'] == con_naics]
-    con_io.loc[:, 'probability'] = con_io.loc[:, 'ProVal_with_whl'] / con_io['ProVal_with_whl'].sum()
-    sample_naics_make = con_io.sample(n = sample_size, replace=True, weights = con_io['probability'],random_state=1)
-    sample_naics_make = sample_naics_make.reset_index()
-    con_firms = pd.concat([con_firms.reset_index(), sample_naics_make[['Industry_NAICS6_Make']]], axis = 1)
-    for_consumers = pd.concat([for_consumers, con_firms])
-  # break
+# # assign random producer for each consumer
+# for_consumers = None
+# for con_naics in list_of_for_consumer_naics:
+#   # print(con_naics)
+#     con_firms = for_cons.loc[for_cons['Industry_NAICS6_Use'] == con_naics]
+#     con_firms = con_firms.rename(columns = {'Industry_NAICS6_Make': 'Industry_NAICS6_Use'})
+#     sample_size = len(con_firms)
+#     con_io = io.loc[io['Industry_NAICS6_Use'] == con_naics]
+#     con_io.loc[:, 'probability'] = con_io.loc[:, 'ProVal_with_whl'] / con_io['ProVal_with_whl'].sum()
+#     sample_naics_make = con_io.sample(n = sample_size, replace=True, weights = con_io['probability'],random_state=1)
+#     sample_naics_make = sample_naics_make.reset_index()
+#     con_firms = pd.concat([con_firms.reset_index(), sample_naics_make[['Industry_NAICS6_Make']]], axis = 1)
+#     for_consumers = pd.concat([for_consumers, con_firms])
+#   # break
 
 
-for_consumers = pd.merge(for_consumers, 
-                         c_n6_n6io_sctg[['Industry_NAICS6_Make', 'Commodity_SCTG', 'Proportion']].drop_duplicates(keep = 'first'), 
-                         on = "Industry_NAICS6_Make", how = 'left') #Merge in the I/O NAICS codes and SCTG codes
+# for_consumers = pd.merge(for_consumers, 
+#                          c_n6_n6io_sctg[['Industry_NAICS6_Make', 'Commodity_SCTG', 'Proportion']].drop_duplicates(keep = 'first'), 
+#                          on = "Industry_NAICS6_Make", how = 'left') #Merge in the I/O NAICS codes and SCTG codes
 
-for_consumers.loc[:, 'USExpVal'] = \
-    for_consumers.loc[:, 'USExpVal'] * for_consumers.loc[:, 'Proportion']
+# for_consumers.loc[:, 'USExpVal'] = \
+#     for_consumers.loc[:, 'USExpVal'] * for_consumers.loc[:, 'Proportion']
     
-# <codecell>
+# # <codecell>
 
-for_consumers = for_consumers.loc[for_consumers['Commodity_SCTG'] > 0]
+# for_consumers = for_consumers.loc[for_consumers['Commodity_SCTG'] > 0]
 
-group_var = ['Industry_NAICS6_Make', 'Industry_NAICS6_Use', 'CBPZONE', 'FAFZONE', 'Commodity_SCTG']
-for_consumption_value = for_consumers.groupby(group_var)[['USExpVal']].sum()
-for_consumption_value.loc[:, 'ConVal'] = for_consumption_value.loc[:, 'USExpVal'] / (10 ** 6)
+# group_var = ['Industry_NAICS6_Make', 'Industry_NAICS6_Use', 'CBPZONE', 'FAFZONE', 'Commodity_SCTG']
+# for_consumption_value = for_consumers.groupby(group_var)[['USExpVal']].sum()
+# for_consumption_value.loc[:, 'ConVal'] = for_consumption_value.loc[:, 'USExpVal'] / (10 ** 6)
 
-for_consumption_value = for_consumption_value.reset_index()
-# million dollars
+# for_consumption_value = for_consumption_value.reset_index()
+# # million dollars
 
-for_consumption_value = pd.merge(for_consumption_value, unitcost, 
-                        on = "Commodity_SCTG", how = 'left')
+# for_consumption_value = pd.merge(for_consumption_value, unitcost, 
+#                         on = "Commodity_SCTG", how = 'left')
 
-#update unit cost using foreign producer adjustment
-for_consumption_value.loc[:,  'PurchaseAmountlb'] = \
-    for_consumption_value.loc[:,'ConVal'] * (10**6) / \
-        for_consumption_value.loc[:, 'UnitCost'] # ProdVal was in $M, ProdCap in pound
+# #update unit cost using foreign producer adjustment
+# for_consumption_value.loc[:,  'PurchaseAmountlb'] = \
+#     for_consumption_value.loc[:,'ConVal'] * (10**6) / \
+#         for_consumption_value.loc[:, 'UnitCost'] # ProdVal was in $M, ProdCap in pound
         
     
-capacity_ub = 5 * 10 ** 8 # define upper bound capacity per firm in pound
-for_consumption_value.loc[:, 'est'] = 1
-cap_filter = (for_consumption_value['PurchaseAmountlb'] > capacity_ub)
-for_consumption_value.loc[cap_filter, 'est'] = \
-    np.ceil(for_consumption_value.loc[cap_filter, 'PurchaseAmountlb']/capacity_ub)
+# capacity_ub = 5 * 10 ** 8 # define upper bound capacity per firm in pound
+# for_consumption_value.loc[:, 'est'] = 1
+# cap_filter = (for_consumption_value['PurchaseAmountlb'] > capacity_ub)
+# for_consumption_value.loc[cap_filter, 'est'] = \
+#     np.ceil(for_consumption_value.loc[cap_filter, 'PurchaseAmountlb']/capacity_ub)
 
-dup_filter = (for_consumption_value['est']> 1)
+# dup_filter = (for_consumption_value['est']> 1)
 
-for_consumption_value.loc[dup_filter, 'ConVal'] = \
-    for_consumption_value.loc[dup_filter, 'ConVal'] / \
-        for_consumption_value.loc[dup_filter, 'est'] # update ProdVal for multiple firms
+# for_consumption_value.loc[dup_filter, 'ConVal'] = \
+#     for_consumption_value.loc[dup_filter, 'ConVal'] / \
+#         for_consumption_value.loc[dup_filter, 'est'] # update ProdVal for multiple firms
     
-for_consumption_value.loc[dup_filter, 'PurchaseAmountlb'] = \
-    for_consumption_value.loc[dup_filter, 'PurchaseAmountlb'] / \
-        for_consumption_value.loc[dup_filter, 'est'] # update ProdCap for multiple firms
+# for_consumption_value.loc[dup_filter, 'PurchaseAmountlb'] = \
+#     for_consumption_value.loc[dup_filter, 'PurchaseAmountlb'] / \
+#         for_consumption_value.loc[dup_filter, 'est'] # update ProdCap for multiple firms
 
  
-for_cons_rep = pd.DataFrame(np.repeat(for_consumption_value.values, 
-                                      for_consumption_value.est, axis=0))
-for_cons_rep.columns = for_consumption_value.columns
-# 24,554 foreign firms
-for_cons_rep = for_cons_rep.drop(columns = ['est'])
+# for_cons_rep = pd.DataFrame(np.repeat(for_consumption_value.values, 
+#                                       for_consumption_value.est, axis=0))
+# for_cons_rep.columns = for_consumption_value.columns
+# # 24,554 foreign firms
+# for_cons_rep = for_cons_rep.drop(columns = ['est'])
 
-for_cons_rep.loc[:, 'MESOZONE'] = for_cons_rep.loc[:, 'CBPZONE'] + 30000
-max_id = int(producers.loc[:, 'SellerID'].max())
-for_cons_rep.loc[:, 'BusID'] = max_id + for_cons_rep.reset_index().index + 1
-for_cons_rep.loc[:, 'Buyer.SCTG'] = 0  #don't know buyer industry
-for_cons_rep.loc[:, 'Emp'] = 0 #don't know employment of buying firm
-for_cons_rep = for_cons_rep.drop(columns = ["CBPZONE", "FAFZONE", 'USExpVal', "UnitCost"])
+# for_cons_rep.loc[:, 'MESOZONE'] = for_cons_rep.loc[:, 'CBPZONE'] + 30000
+# max_id = int(producers.loc[:, 'SellerID'].max())
+# for_cons_rep.loc[:, 'BusID'] = max_id + for_cons_rep.reset_index().index + 1
+# for_cons_rep.loc[:, 'Buyer.SCTG'] = 0  #don't know buyer industry
+# for_cons_rep.loc[:, 'Emp'] = 0 #don't know employment of buying firm
+# for_cons_rep = for_cons_rep.drop(columns = ["CBPZONE", "FAFZONE", 'USExpVal', "UnitCost"])
 #42,675 foreign consumers
 
 # <codecell>
@@ -261,7 +264,7 @@ for_cons_rep = for_cons_rep.drop(columns = ["CBPZONE", "FAFZONE", 'USExpVal', "U
 #### step 4 - generate consumer output #################
 ########################################################
 consumers = consumers.drop(columns = ['FAFZONE'])
-consumers_out = pd.concat([consumers, for_cons_rep]) #8,171,491
+# consumers_out = pd.concat([consumers, for_cons_rep]) #8,171,491
 
 rename_dict = {"BusID": "BuyerID",
     "MESOZONE": "Zone",
@@ -269,11 +272,11 @@ rename_dict = {"BusID": "BuyerID",
     "Industry_NAICS6_Use": "NAICS",
     "Emp": "Size"}
 
-consumers_out = consumers_out.rename(columns = rename_dict)
+consumers = consumers.rename(columns = rename_dict)
 
 # 8,674,432 consumers
 
-wholesalecostfactor = 1.376 # in the future, replace this value with output from step 2
+
 # process wholesale consumer
 wholesalers.loc[:, 'ConVal'] = \
 wholesalers.loc[:, 'OutputCapacitylb'] * wholesalers.loc[:, 'NonTransportUnitCost'] / wholesalecostfactor / (10 ** 6)
@@ -284,8 +287,8 @@ wholesalers = wholesalers.drop(columns = ['NonTransportUnitCost'])
 wholesalers = wholesalers.rename(columns = {'SellerID': 'BuyerID',
                                             'OutputCapacitylb': 'PurchaseAmountlb'})
 
-wholesalers.loc[:, 'Buyer.SCTG'] = wholesalers.loc[:, 'SCTG']
-wholesalers.loc[:, 'Commodity_SCTG'] = wholesalers.loc[:, 'SCTG']
+wholesalers.loc[:, 'Buyer.SCTG'] = wholesalers.loc[:, 'Commodity_SCTG']
+# wholesalers.loc[:, 'Commodity_SCTG'] = wholesalers.loc[:, 'SCTG']
 
 wholesalers_out = wholesalers[['NAICS', 'InputCommodity', 'Commodity_SCTG', 
                                'Zone', 'Buyer.SCTG',
@@ -293,7 +296,7 @@ wholesalers_out = wholesalers[['NAICS', 'InputCommodity', 'Commodity_SCTG',
  #size = 308,235 * 9
 
 
-consumers_out = pd.concat([consumers_out, wholesalers_out])
+consumers_out = pd.concat([consumers, wholesalers_out])
 sample_consumers = consumers_out.loc[consumers_out['BuyerID'] <= 100]
 
 print('Total number of consumers is:')
