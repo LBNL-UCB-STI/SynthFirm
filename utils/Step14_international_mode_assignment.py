@@ -15,7 +15,7 @@ import seaborn as sns
 import warnings
 warnings.filterwarnings("ignore")
 
-print("Start international shipment generation...")
+print("Start international mode choice...")
 
 ########################################################
 #### step 1 - configure environment and load inputs ####
@@ -51,6 +51,9 @@ export_file = 'export_od.csv'
 import_output = read_csv(os.path.join(file_path, output_dir, import_file))
 export_output = read_csv(os.path.join(file_path, output_dir, export_file))
 
+# define output file
+import_output_file = 'import_OD_with_mode.csv'
+export_output_file = 'export_OD_with_mode.csv'
 # prepare mode choice specifications
 mode_choice_spec = {} 
 lb_to_ton = 0.0005
@@ -420,10 +423,10 @@ int_out_dir = os.path.join(file_path, output_dir, 'international')
 if not os.path.exists(int_out_dir):
     os.makedirs(int_out_dir)
 
-import_output_file = 'import_OD_with_mode.csv'
+
 import_output_with_mode_skim.to_csv(os.path.join(int_out_dir, import_output_file))
 
-export_output_file = 'export_OD_with_mode.csv'
+
 export_output_with_mode_skim.to_csv(os.path.join(int_out_dir, export_output_file))
 # import_output_mode_assigned.loc[:, list_of_alternative] = \
 #     np.round(import_output_mode_assigned.loc[:, list_of_alternative].mul(import_output_mode_assigned.loc[:, 'ship_count']), 0)        

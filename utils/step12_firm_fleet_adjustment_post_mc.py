@@ -36,16 +36,16 @@ def split_dataframe(df, chunk_size = 100000):
 # load input
 scenario_name = 'Ref_highp6'
 analysis_year = '2018'
-output_dir = 'outputs_Seattle/'
-input_dir = 'inputs_Seattle/'
+output_dir = 'outputs_BayArea/'
+input_dir = 'inputs_BayArea/'
 param_dir = 'SynthFirm_parameters/'
 # dir_to_outputs = 'outputs_aus_2050'
 result_dir = output_dir + analysis_year + '/' + scenario_name
     
 firms = read_csv(result_dir + '/synthetic_firms_with_fleet.csv')
-private_fleet = read_csv(input_dir + 'fleet/WA_private_fleet_size_distribution.csv')
-for_hire_fleet = read_csv(input_dir + 'fleet/WA_for_hire_fleet_size_distribution.csv')
-for_lease_fleet = read_csv(input_dir + 'fleet/WA_for_lease_fleet_size_distribution.csv')
+private_fleet = read_csv(input_dir + 'fleet/CA_private_fleet_size_distribution.csv')
+for_hire_fleet = read_csv(input_dir + 'fleet/CA_for_hire_fleet_size_distribution.csv')
+for_lease_fleet = read_csv(input_dir + 'fleet/CA_for_lease_fleet_size_distribution.csv')
 cargo_type_distribution = read_csv(input_dir + "fleet/probability_of_cargo_group.csv")
 
 # forecast values
@@ -87,13 +87,16 @@ for i in range(5):
     for chunk in filelist_chunk:
         print('loading chunk ' + str(j))
         combined_csv = pd.concat([read_csv(file_dir + f) for f in chunk ])
+        # dup_id_count = combined_csv['shipment_id'].duplicated().sum()
+        # print('duplicated shipment id = ' + str(dup_id_count))
+        # print(len(combined_csv))
         # combined_csv = pd.concat([read_csv(file_dir + f) for f in filelist ])
         combined_csv = combined_csv.loc[combined_csv['mode_choice'] == 'Private Truck']
         combined_csv = combined_csv.groupby(['SellerID'])[['TruckLoad']].sum()
         combined_csv = combined_csv.reset_index()
         combined_b2b_flow = pd.concat([combined_b2b_flow, combined_csv])
         j += 1
-#     break
+    # break
 
 selected_firms_with_load = combined_b2b_flow.groupby(['SellerID'])[['TruckLoad']].sum()
 selected_firms_with_load = selected_firms_with_load.reset_index()
@@ -273,6 +276,10 @@ for i in range(5):
     j = 0
     for chunk in filelist_chunk:
         combined_csv = pd.concat([read_csv(file_dir + f) for f in chunk ])
+        combined_csv.loc[:, 'shipment_id'] = combined_csv.reset_index().index + 1 #re-indexing data so that no more duplicate id
+        dup_id_count = combined_csv['shipment_id'].duplicated().sum()
+        if dup_id_count >0:
+            print('Warning! Duplicated shipment id = ' + str(dup_id_count))
         private_truck = combined_csv.loc[combined_csv['mode_choice'] == 'Private Truck']
         for_hire_truck = combined_csv.loc[combined_csv['mode_choice'] != 'Private Truck']
         sample_size = len(private_truck)
@@ -285,7 +292,8 @@ for i in range(5):
             criteria = (private_truck.loc[:, 'rand'] < private_truck.loc[:, 'cdf'])
             private_truck.loc[criteria, 'indicator'] = 1
             private_truck = private_truck.loc[private_truck['indicator'] == 1]
-            private_truck = private_truck.drop_duplicates(subset = 'shipment_id', keep = 'first')
+            private_truck = private_truck.drop_duplicates(subset = ['shipment_id'], 
+                                                          keep = 'first')
             # print(sample_size, len(private_truck))
             private_truck = private_truck.drop(columns=['rand',	'BusID', 'veh_capacity', 'pdf', 'cdf', 'indicator'])
             private_truck.to_csv(result_dir +  '/private_truck_shipment_' + sctg_code + '_' + str(j) + '.csv')
@@ -293,6 +301,7 @@ for i in range(5):
             for_hire_truck.to_csv(result_dir +  '/for_hire_truck_shipment_' + sctg_code  + '_' + str(j) + '.csv')
         j += 1
 
+# <codecell>
 # fill in columns that are not selected
 for veh in list_of_veh_tech:
     if veh not in firms_with_fleet_out.columns:
@@ -300,7 +309,6 @@ for veh in list_of_veh_tech:
         
 firms_with_fleet_out = firms_with_fleet_out.drop(columns=['veh_capacity'])
 firms_output = pd.concat([firms_with_fleet_out, firms_without_adj])
-
 
 
 firms_output.to_csv(result_dir + '/synthetic_firms_with_fleet_mc_adjusted.csv')

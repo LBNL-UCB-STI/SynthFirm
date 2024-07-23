@@ -62,7 +62,7 @@ fleet_by_state = read_csv('PrivateData/registration/MDHDbyState.csv')
 file_name = 'PrivateData/registration/TDA_results/BEAMFreightSensitivity_Ref.xlsx'
 list_of_scenarios = ['Ref_highp2', 'Ref_highp4', 'Ref_highp6',
                     'Ref_highp8', 'Ref_highp10']
-output_dir = 'inputs_Seattle/fleet/'
+output_dir = 'inputs_BayArea/fleet/'
 
 # <codecell>
 

@@ -40,15 +40,15 @@ print('loading fleet inputs...')
 
 analysis_year = 2018
 scenario_name = 'Ref_highp6'
-input_dir = 'inputs_Seattle/'
-output_dir = 'outputs_Seattle/'
+input_dir = 'inputs_BayArea/'
+output_dir = 'outputs_BayArea/'
 param_dir = 'SynthFirm_parameters/'
 firm_name = 'synthetic_firms_with_location.csv'
 firms = read_csv(output_dir + firm_name)
 
-private_fleet = read_csv(input_dir + 'fleet/WA_private_fleet_size_distribution.csv')
-for_hire_fleet = read_csv(input_dir + 'fleet/WA_for_hire_fleet_size_distribution.csv')
-for_lease_fleet = read_csv(input_dir + 'fleet/WA_for_lease_fleet_size_distribution.csv')
+private_fleet = read_csv(input_dir + 'fleet/CA_private_fleet_size_distribution.csv')
+for_hire_fleet = read_csv(input_dir + 'fleet/CA_for_hire_fleet_size_distribution.csv')
+for_lease_fleet = read_csv(input_dir + 'fleet/CA_for_lease_fleet_size_distribution.csv')
 cargo_type_distribution = read_csv(input_dir + "fleet/probability_of_cargo_group.csv")
 
 # forecast values
@@ -107,7 +107,7 @@ for_lease_fleet_by_state_wide = pd.pivot_table(for_lease_fleet_by_state,
 for_lease_fleet_by_state_wide = for_lease_fleet_by_state_wide.reset_index()
 
 # <codecell>
-print('Fleet assignment for private companies (this can take 2 hours to run)...')
+print('Fleet assignment for private companies...')
 ########## fleet size and type generation for all firms ############
 sample_size = len(firms)
 print('number of firms = ' + str(sample_size))
@@ -154,33 +154,74 @@ firms_with_fleet = pd.concat([firms.reset_index(drop=True),
 firms_with_fleet = pd.merge(firms_with_fleet, private_fleet_by_state_wide,
                             left_on = 'stname', right_on = 'state', how = 'left')
 
+# <codecell>
 # assign vehicle technology
 print('total trucks from initial assignment = ')
 print(firms_with_fleet.n_trucks.sum())
+veh_attr = []
+for alt in list_of_veh_tech:
+    output_attr = alt + '_count'
+    veh_attr.append(output_attr)
+    firms_with_fleet.loc[:, output_attr] = \
+    firms_with_fleet.loc[:, alt] * firms_with_fleet.loc[:, 'n_trucks']
+    firms_with_fleet.loc[:, output_attr] = \
+        np.round(firms_with_fleet.loc[:, output_attr], 0)
 
-chunks = split_dataframe(firms_with_fleet)
+# <codecell>    
+firms_with_fleet.loc[:, 'max_prob'] = \
+    firms_with_fleet.loc[:, list_of_veh_tech].max(axis = 1)
+
+# for fleet size <= 5, perform all-or-nothing assignment
+select_rows = (firms_with_fleet['n_trucks']<= 5)
+
+for alt in list_of_veh_tech:
+    firms_with_fleet.loc[:, alt] = \
+        0 * (firms_with_fleet.loc[:, alt]< firms_with_fleet.loc[:, 'max_prob']) + \
+            1 * (firms_with_fleet.loc[:, alt] == firms_with_fleet.loc[:, 'max_prob'])
+
+for alt in list_of_veh_tech:    
+    output_attr = alt + '_count'
+    firms_with_fleet.loc[select_rows, output_attr] = \
+    firms_with_fleet.loc[select_rows, alt] * firms_with_fleet.loc[select_rows, 'n_trucks']
+    firms_with_fleet.loc[select_rows, output_attr] = \
+        np.round(firms_with_fleet.loc[select_rows, output_attr], 0)
+        
+# <codecell>
+
+# chunks = split_dataframe(firms_with_fleet)
 var_to_keep = ['esizecat', 'CBPZONE', 'FAFZONE', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon', 'n_trucks',
-       'st', 'stname']
+        'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon', 'n_trucks',
+        'st', 'stname']
 
-i = 0
-firms_with_fleet = None
-for chunk in chunks:
-    print('processing chunk ' + str(i))
-    chunk[list_of_veh_tech] = \
-    chunk.apply(
-            lambda row: veh_type_simulator(row['n_trucks'], row[list_of_veh_tech]), axis=1, result_type ='expand')
-    chunk = pd.melt(chunk, id_vars = var_to_keep, 
-                    value_vars = list_of_veh_tech, 
-                   var_name = 'veh_type',
-                   value_name = 'number_of_veh')
-    chunk = chunk.reset_index()
-    chunk = chunk.loc[chunk['number_of_veh'] > 0]
-    chunk.loc[:, 'fleet_id']=chunk.groupby('BusID').cumcount() + 1
-    firms_with_fleet = pd.concat([firms_with_fleet, chunk])
-    i += 1
+firms_with_fleet = pd.melt(firms_with_fleet, id_vars = var_to_keep, 
+                    value_vars = veh_attr, 
+                    var_name = 'veh_type',
+                    value_name = 'number_of_veh')
+firms_with_fleet = firms_with_fleet.loc[firms_with_fleet['number_of_veh'] > 0]
+firms_with_fleet.loc[:, 'veh_type'] = \
+    firms_with_fleet.loc[:, 'veh_type'].str.split('_').str[0]
+firms_with_fleet.loc[:, 'fleet_id'] = firms_with_fleet.groupby('BusID').cumcount() + 1
 
+print('total trucks before scaling = ')
 print(firms_with_fleet.number_of_veh.sum())
+# i = 0
+# firms_with_fleet = None
+# for chunk in chunks:
+#     print('processing chunk ' + str(i))
+#     chunk[list_of_veh_tech] = \
+#     chunk.apply(
+#             lambda row: veh_type_simulator(row['n_trucks'], row[list_of_veh_tech]), axis=1, result_type ='expand')
+#     chunk = pd.melt(chunk, id_vars = var_to_keep, 
+#                     value_vars = list_of_veh_tech, 
+#                    var_name = 'veh_type',
+#                    value_name = 'number_of_veh')
+#     chunk = chunk.reset_index()
+#     chunk = chunk.loc[chunk['number_of_veh'] > 0]
+#     chunk.loc[:, 'fleet_id']=chunk.groupby('BusID').cumcount() + 1
+#     firms_with_fleet = pd.concat([firms_with_fleet, chunk])
+#     i += 1
+
+# print(firms_with_fleet.number_of_veh.sum())
 
 # <codecell>
 ######## fleet generation for carriers #########
@@ -231,19 +272,60 @@ carriers_with_fleet = pd.concat([carriers.reset_index(drop=True),
 carriers_with_fleet = pd.merge(carriers_with_fleet, for_hire_fleet_by_state_wide,
                             left_on = 'stname', right_on = 'state', how = 'left')
 
-carriers_with_fleet[list_of_veh_tech] = \
-carriers_with_fleet.apply(
-        lambda row: veh_type_simulator(row['n_trucks'], row[list_of_veh_tech]), axis=1, result_type ='expand')
-# print(np.random.multinomial(testing_fleet_sample['n_trucks'], vehicle_type_fraction))
+# <codecell>
+print('total trucks from carriers before assign = ')
+print(carriers_with_fleet.n_trucks.sum())
 
+for alt in list_of_veh_tech:
+    output_attr = alt + '_count'
+    veh_attr.append(output_attr)
+    carriers_with_fleet.loc[:, output_attr] = \
+    carriers_with_fleet.loc[:, alt] * carriers_with_fleet.loc[:, 'n_trucks']
+    carriers_with_fleet.loc[:, output_attr] = \
+        np.round(carriers_with_fleet.loc[:, output_attr], 0)
+ 
+carriers_with_fleet.loc[:, 'max_prob'] = \
+    carriers_with_fleet.loc[:, list_of_veh_tech].max(axis = 1)
+
+# for fleet size <= 5, perform all-or-nothing assignment
+select_rows = (carriers_with_fleet['n_trucks']<= 5)
+
+for alt in list_of_veh_tech:
+    carriers_with_fleet.loc[:, alt] = \
+        0 * (carriers_with_fleet.loc[:, alt]< carriers_with_fleet.loc[:, 'max_prob']) + \
+            1 * (carriers_with_fleet.loc[:, alt] == carriers_with_fleet.loc[:, 'max_prob'])
+
+for alt in list_of_veh_tech:    
+    output_attr = alt + '_count'
+    carriers_with_fleet.loc[select_rows, output_attr] = \
+    carriers_with_fleet.loc[select_rows, alt] * carriers_with_fleet.loc[select_rows, 'n_trucks']
+    carriers_with_fleet.loc[select_rows, output_attr] = \
+        np.round(carriers_with_fleet.loc[select_rows, output_attr], 0)
+        
 carriers_with_fleet = pd.melt(carriers_with_fleet, id_vars = var_to_keep, 
-                value_vars = list_of_veh_tech, 
-               var_name = 'veh_type',
-               value_name = 'number_of_veh')
-carriers_with_fleet = carriers_with_fleet.reset_index()
+                    value_vars = veh_attr, 
+                    var_name = 'veh_type',
+                    value_name = 'number_of_veh')
 carriers_with_fleet = carriers_with_fleet.loc[carriers_with_fleet['number_of_veh'] > 0]
-carriers_with_fleet.loc[:, 'fleet_id'] = \
-carriers_with_fleet.groupby('BusID').cumcount() + 1
+carriers_with_fleet.loc[:, 'veh_type'] = \
+    carriers_with_fleet.loc[:, 'veh_type'].str.split('_').str[0]
+carriers_with_fleet.loc[:, 'fleet_id'] = carriers_with_fleet.groupby('BusID').cumcount() + 1
+
+print('total trucks from carriers = ')
+print(carriers_with_fleet.number_of_veh.sum())
+# carriers_with_fleet[list_of_veh_tech] = \
+# carriers_with_fleet.apply(
+#         lambda row: veh_type_simulator(row['n_trucks'], row[list_of_veh_tech]), axis=1, result_type ='expand')
+# # print(np.random.multinomial(testing_fleet_sample['n_trucks'], vehicle_type_fraction))
+
+# carriers_with_fleet = pd.melt(carriers_with_fleet, id_vars = var_to_keep, 
+#                 value_vars = list_of_veh_tech, 
+#                var_name = 'veh_type',
+#                value_name = 'number_of_veh')
+# carriers_with_fleet = carriers_with_fleet.reset_index()
+# carriers_with_fleet = carriers_with_fleet.loc[carriers_with_fleet['number_of_veh'] > 0]
+# carriers_with_fleet.loc[:, 'fleet_id'] = \
+# carriers_with_fleet.groupby('BusID').cumcount() + 1
 
 # <codecell>
 ######## fleet generation for leasing #########

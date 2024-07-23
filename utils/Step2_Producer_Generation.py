@@ -32,7 +32,7 @@ c_n6_n6io_sctg_file = 'corresp_naics6_n6io_sctg_revised.csv'
 synthetic_firms_no_location_file = "synthetic_firms.csv" 
 
 # specifications that are new to this code
-zonal_id_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
+mesozone_to_faf_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
 foreign_prod_file = "data_foreign_prod.csv" # total foreign production (pre-defined from prior studies)
 BEA_io_2017_file = "data_2017io_revised_USE_value_added.csv" # final scaled BEA I-O use table
 agg_unit_cost_file = "data_unitcost_cfs2017.csv" # unit cost by commodity from CFS 2017 (all zones combined)
@@ -41,7 +41,7 @@ SCTG_group_file = "SCTG_Groups_revised.csv" # Commodity type to group lookup (pr
 
 # load inputs
 firms = read_csv(os.path.join(file_path, output_dir, synthetic_firms_no_location_file), low_memory=False) # 8,396, 679 FIRMS
-mesozone_faf_lookup = read_csv(os.path.join(file_path, input_dir, zonal_id_file))
+mesozone_faf_lookup = read_csv(os.path.join(file_path, input_dir, mesozone_to_faf_file))
 c_n6_n6io_sctg = read_csv(os.path.join(file_path, parameter_dir, c_n6_n6io_sctg_file))
 for_prod = read_csv(os.path.join(file_path, parameter_dir, foreign_prod_file))
 

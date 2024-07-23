@@ -29,7 +29,7 @@ output_dir = 'outputs_' + out_scenario_name
 # specifications that has been defined before
 c_n6_n6io_sctg_file = 'corresp_naics6_n6io_sctg_revised.csv'
 synthetic_firms_no_location_file = "synthetic_firms.csv" 
-zonal_id_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
+mesozone_to_faf_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
 agg_unit_cost_file = "data_unitcost_cfs2017.csv" # unit cost by commodity from CFS 2017 (all zones combined)
 SCTG_group_file = "SCTG_Groups_revised.csv" # Commodity type to group lookup (pre-defined)
 synthetic_wholesaler_file = "synthetic_wholesaler.csv" # synthetic wholesaler (serve as both buyer and supplier)
@@ -42,7 +42,7 @@ cons_by_zone_file = "consumer_value_fraction_by_faf.csv" # Total consumption val
 
 # load inputs
 firms = read_csv(os.path.join(file_path, output_dir, synthetic_firms_no_location_file), low_memory=False) # 8,396, 679 FIRMS
-mesozone_faf_lookup = read_csv(os.path.join(file_path, input_dir, zonal_id_file))
+mesozone_faf_lookup = read_csv(os.path.join(file_path, input_dir, mesozone_to_faf_file))
 c_n6_n6io_sctg = read_csv(os.path.join(file_path, parameter_dir, c_n6_n6io_sctg_file))
 unitcost = read_csv(os.path.join(file_path, parameter_dir, agg_unit_cost_file))
 
