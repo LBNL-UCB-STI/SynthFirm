@@ -22,8 +22,8 @@ print("Start international B2B flow assignment...")
 ########################################################
 
 # load model config temporarily here
-scenario_name = 'BayArea'
-out_scenario_name = 'BayArea'
+scenario_name = 'Seattle'
+out_scenario_name = 'Seattle'
 file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
@@ -52,7 +52,7 @@ payload_capacity = {'Class 4-6 Vocational': 4,
 
 # define output file
 export_with_firm_file = 'export_OD_with_seller.csv'
-import_with_firm_file = 'export_OD_with_buyer.csv'
+import_with_firm_file = 'import_OD_with_buyer.csv'
 
 # assign SCTG to producer/seller
 domestic_producer = pd.merge(domestic_producer, sctg_lookup,
@@ -88,8 +88,8 @@ print(export_output_truck_only.groupby('low_load')[['shipments']].sum())
 export_output_truck_only.loc[:, 'sample_size'] = \
     np.round(export_output_truck_only.loc[:, 'load_frac'], 0)
 export_output_truck_only.loc[export_output_truck_only['load_frac']<= payload_frac_thres, 'sample_size'] = 1
-truckload_criteria = (export_output_truck_only['shipments'] < export_output_truck_only['sample_size'])
 
+truckload_criteria = (export_output_truck_only['shipments'] < export_output_truck_only['sample_size'])
 export_output_truck_only.loc[truckload_criteria, 'sample_size'] = \
     export_output_truck_only.loc[truckload_criteria, 'shipments']
 
@@ -103,13 +103,22 @@ export_truck_shipments = pd.DataFrame(np.repeat(export_output_truck_only.values,
                                             export_output_truck_only.sample_size, axis=0))
 export_truck_shipments.columns = export_output_truck_only.columns
 
+# convert shipment to integer
+export_truck_shipments.loc[:, 'total_weight'] = \
+    export_truck_shipments.loc[:, 'TruckLoad'] * export_truck_shipments.loc[:, 'shipments']
+export_truck_shipments.loc[:, 'shipments'] = np.round(export_truck_shipments.loc[:, 'shipments'].astype(float),0)
+export_truck_shipments.loc[:, 'TruckLoad'] = \
+export_truck_shipments.loc[:, 'total_weight'] /export_truck_shipments.loc[:, 'shipments']
+
 export_truck_shipments.drop(columns = ['Unnamed: 0', 'value_2017', 'value_density', 
                                    'bundle_id', 'total_weight',
                                    'load_frac', 'low_load', 'sample_size'],
                             inplace = True)
 
+
+
 # <codecell>
-export_truck_shipments["shipment_id"] = export_truck_shipments.index + 1 
+export_truck_shipments["bundle_id"] = export_truck_shipments.index + 1 
 # assign origin firms (producers)
 mesozone_to_faf_sel = mesozone_to_faf_lookup[['MESOZONE', 'FAFID']]
 
@@ -204,8 +213,6 @@ print(len(export_truck_shipment_reassign))
 export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
                                             export_truck_shipment_reassign])
 
-# <codecell>
-
 
 # <codecell>
 ########################################################
@@ -244,13 +251,22 @@ import_truck_shipments = pd.DataFrame(np.repeat(import_output_truck_only.values,
 
 import_truck_shipments.columns = import_output_truck_only.columns
 
+# convert shipment to integer
+import_truck_shipments.loc[:, 'total_weight'] = \
+    import_truck_shipments.loc[:, 'TruckLoad'] * import_truck_shipments.loc[:, 'shipments']
+import_truck_shipments.loc[:, 'shipments'] = \
+    np.round(import_truck_shipments.loc[:, 'shipments'].astype(float),0)
+import_truck_shipments.loc[:, 'TruckLoad'] = \
+import_truck_shipments.loc[:, 'total_weight'] /import_truck_shipments.loc[:, 'shipments']
+
 import_truck_shipments.drop(columns = ['Unnamed: 0', 'value_2017', 'value_density', 
                                     'bundle_id', 'total_weight',
                                     'load_frac', 'low_load', 'sample_size'],
                             inplace = True)
 
+
 # <codecell>
-import_truck_shipments["shipment_id"] = import_truck_shipments.index + 1 
+import_truck_shipments["bundle_id"] = import_truck_shipments.index + 1 
 # assign origin firms (producers)
 mesozone_to_faf_sel = mesozone_to_faf_lookup[['MESOZONE', 'FAFID']]
 
@@ -345,13 +361,17 @@ import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
 
 # write export output
 export_truck_shipment_assigned.drop(columns = ['Size'], inplace = True)
-export_truck_shipment_assigned.loc[:, 'veh_type']= veh_type_to_assign
-export_truck_shipment_assigned = export_truck_shipment_assigned.rename({'MESOZONE': 'PORTZONE'})
+export_truck_shipment_assigned.loc[:, 'veh_type']= 'Diesel ' + veh_type_to_assign
+export_truck_shipment_assigned = \
+    export_truck_shipment_assigned.rename(columns = {'MESOZONE': 'PORTZONE',
+                                                     'SCTG_Code': 'Commodity_SCTG'})
 
 export_truck_shipment_assigned.to_csv(os.path.join(int_out_dir, export_with_firm_file), index = False)
 
-import_truck_shipment_assigned.loc[:, 'veh_type']= veh_type_to_assign
+import_truck_shipment_assigned.loc[:, 'veh_type']= 'Diesel ' + veh_type_to_assign
 import_truck_shipment_assigned.drop(columns = ['Size'], inplace = True)
-import_truck_shipment_assigned = import_truck_shipment_assigned.rename({'MESOZONE': 'PORTZONE'})
+import_truck_shipment_assigned = \
+    import_truck_shipment_assigned.rename(columns = {'MESOZONE': 'PORTZONE',
+                                                     'SCTG_Code': 'Commodity_SCTG'})
 
 import_truck_shipment_assigned.to_csv(os.path.join(int_out_dir, import_with_firm_file), index = False)

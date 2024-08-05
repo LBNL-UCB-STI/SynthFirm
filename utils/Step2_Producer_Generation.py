@@ -20,8 +20,8 @@ print("Generating synthetic producers...")
 ########################################################
 
 
-scenario_name = 'BayArea'
-out_scenario_name = 'BayArea'
+scenario_name = 'Seattle'
+out_scenario_name = 'Seattle'
 file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name

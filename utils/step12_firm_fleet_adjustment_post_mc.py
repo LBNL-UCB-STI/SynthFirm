@@ -36,16 +36,16 @@ def split_dataframe(df, chunk_size = 100000):
 # load input
 scenario_name = 'Ref_highp6'
 analysis_year = '2018'
-output_dir = 'outputs_BayArea/'
-input_dir = 'inputs_BayArea/'
+output_dir = 'outputs_Seattle/'
+input_dir = 'inputs_Seattle/'
 param_dir = 'SynthFirm_parameters/'
 # dir_to_outputs = 'outputs_aus_2050'
 result_dir = output_dir + analysis_year + '/' + scenario_name
     
 firms = read_csv(result_dir + '/synthetic_firms_with_fleet.csv')
-private_fleet = read_csv(input_dir + 'fleet/CA_private_fleet_size_distribution.csv')
-for_hire_fleet = read_csv(input_dir + 'fleet/CA_for_hire_fleet_size_distribution.csv')
-for_lease_fleet = read_csv(input_dir + 'fleet/CA_for_lease_fleet_size_distribution.csv')
+private_fleet = read_csv(input_dir + 'fleet/WA_private_fleet_size_distribution.csv')
+for_hire_fleet = read_csv(input_dir + 'fleet/WA_for_hire_fleet_size_distribution.csv')
+for_lease_fleet = read_csv(input_dir + 'fleet/WA_for_lease_fleet_size_distribution.csv')
 cargo_type_distribution = read_csv(input_dir + "fleet/probability_of_cargo_group.csv")
 
 # forecast values
