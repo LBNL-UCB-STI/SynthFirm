@@ -22,8 +22,8 @@ print("Start international mode choice...")
 ########################################################
 
 # load model config temporarily here
-scenario_name = 'Seattle'
-out_scenario_name = 'Seattle'
+scenario_name = 'BayArea'
+out_scenario_name = 'BayArea'
 file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
@@ -33,7 +33,8 @@ c_n6_n6io_sctg_file = 'corresp_naics6_n6io_sctg_revised.csv'
 # synthetic_firms_no_location_file = "synthetic_firms.csv" 
 zonal_id_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
 SCTG_group_file = 'SCTG_Groups_revised.csv'
-int_mode_choice_file = 'freight_mode_choice_4alt_international_seacal.csv'
+# int_mode_choice_file = 'freight_mode_choice_4alt_international_seacal.csv' # using this for seattle
+int_mode_choice_file = 'freight_mode_choice_4alt_international.csv'
 distance_travel_skim_file = 'combined_travel_time_skim.csv'
 
 int_mode_choice_param = \
