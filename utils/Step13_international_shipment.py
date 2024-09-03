@@ -305,7 +305,6 @@ print(import_by_airport_by_dest['value_2017'].sum())
 print('airport import tonnage after disaggregation:')
 print(import_by_airport_by_dest['tons_2017'].sum() * 1000)  
 
-# <codecell>
 
 # FAF value grouped by foreign country, domestic destination and sctg for entire region
 agg_var_out = ['CFS_CODE', 'CFS_NAME', 'dms_orig', 'SCTG_Code']
@@ -472,7 +471,7 @@ print(import_by_other_port_by_dest['value_2017'].sum())
 print('other import tonnage after disaggregation:')
 print(import_by_other_port_by_dest['tons_2017'].sum() * 1000)  
 
-# <codecell>
+
 export_by_other_port_by_orig = pd.merge(export_by_other_port,
                                   remain_exports_to_assign,
                                   on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
@@ -497,15 +496,8 @@ print(export_by_other_port_by_orig['value_2017'].sum())
 print('other export tonnage after disaggregation:')
 print(export_by_other_port_by_orig['tons_2017'].sum() * 1000)  
 
-# <codecell>
-# import_count_by_sctg = \
-#     import_by_shipment_size.groupby('SCTG_Code')[["ship_count"]].sum()
-# import_count_by_sctg = import_count_by_sctg.reset_index()
 
 
-# export_count_by_sctg = \
-#     export_by_shipment_size.groupby('SCTG_Code')[["ship_count"]].sum()
-# export_count_by_sctg = export_count_by_sctg.reset_index()
 
 # <codecell>
 
@@ -522,13 +514,8 @@ import_output_other_port = import_by_other_port_by_dest[import_attr]
 import_by_port_by_dest = pd.concat([import_output_airport,
                                     import_output_other_port])
 
-import_by_port_by_dest = pd.merge(import_by_port_by_dest,
-                                   sctg_lookup_short,
-                                   on = ['SCTG_Code'], how = 'left')
 
-output_path = os.path.join(file_path, output_dir)
 
-import_by_port_by_dest.to_csv(os.path.join(output_path, 'import_od.csv'), index = False)
 
 export_output_airport = export_by_airport_by_orig[export_attr]
 export_output_other_port = export_by_other_port_by_orig[export_attr]
@@ -536,10 +523,134 @@ export_output_other_port = export_by_other_port_by_orig[export_attr]
 export_by_port_by_orig = pd.concat([export_output_airport,
                                     export_output_other_port])
 
+
+
+# <codecell>
+
+
+
+########################################################
+#### step 5 - Adjust FAF destination assignment ########
+########################################################
+
+need_domestic_adjustment = 1 # 1 - yes, 0 - no
+location_from = [61, 63]
+location_to = [62, 64, 65, 69]
+
+included_locations = location_from + location_to
+
+if need_domestic_adjustment == 1:
+    
+    # shift import demand
+    import_by_port_by_dest_to_adj = \
+        import_by_port_by_dest.loc[import_by_port_by_dest['dms_dest'].isin(location_from)]
+    import_by_port_by_dest_no_adj = \
+        import_by_port_by_dest.loc[import_by_port_by_dest['dms_dest'].isin(location_to)]
+    import_by_port_by_dest_remaining = \
+        import_by_port_by_dest.loc[~import_by_port_by_dest['dms_dest'].isin(included_locations)]
+    
+    import_by_port_by_dest_to_adj.drop(columns = ['dms_dest'], inplace = True)
+    import_relocation_factor = \
+        import_by_port_by_dest_no_adj.groupby(['dms_dest', 'SCTG_Code'])[['value_2017']].sum()
+    import_relocation_factor = import_relocation_factor.reset_index()
+    import_relocation_factor.loc[:, 'Portion'] = \
+        import_relocation_factor.loc[:, 'value_2017'] / \
+            import_relocation_factor.groupby(['SCTG_Code'])['value_2017'].transform('sum')
+    
+    import_relocation_factor.drop(columns = 'value_2017', inplace = True)
+    import_by_port_by_dest_to_adj = pd.merge(import_by_port_by_dest_to_adj,
+                                             import_relocation_factor, 
+                                             on = 'SCTG_Code', how = 'left')
+    import_by_port_by_dest_to_adj.loc[:, 'ship_count'] = \
+        import_by_port_by_dest_to_adj.loc[:, 'ship_count'] * import_by_port_by_dest_to_adj.loc[:, 'Portion']
+    import_by_port_by_dest_to_adj.loc[:, 'value_2017'] = \
+        import_by_port_by_dest_to_adj.loc[:, 'value_2017'] * import_by_port_by_dest_to_adj.loc[:, 'Portion']
+    import_by_port_by_dest_to_adj.drop(columns = 'Portion', inplace = True)
+    
+    import_by_port_by_dest_adjusted = pd.concat([import_by_port_by_dest_to_adj, 
+                                                  import_by_port_by_dest_no_adj])
+    
+    grouping_var = ['PORTID', 'CBP Port Location', 'FAF', 'CBPZONE', 'MESOZONE', 'TYPE', 
+                    'is_airport', 'CFS_CODE', 'CFS_NAME', 'dms_dest', 'SCTG_Code']
+    import_by_port_by_dest_adjusted.loc[:, 'tons_2017'] = \
+        import_by_port_by_dest_adjusted.loc[:, 'ship_count'] * \
+            import_by_port_by_dest_adjusted.loc[:, 'TruckLoad'] / 1000
+    import_by_port_by_dest_adjusted = \
+        import_by_port_by_dest_adjusted.groupby(grouping_var)[['value_2017', 'tons_2017', 'ship_count']].sum()
+    import_by_port_by_dest_adjusted = import_by_port_by_dest_adjusted.reset_index()
+    import_by_port_by_dest_adjusted.loc[:, "ship_count"] = \
+        np.round(import_by_port_by_dest_adjusted.loc[:, "ship_count"], 0)
+        
+    import_by_port_by_dest_adjusted.loc[import_by_port_by_dest_adjusted["ship_count"] < 1, "ship_count"] = 1
+    import_by_port_by_dest_adjusted.loc[:, 'value_density'] = \
+        import_by_port_by_dest_adjusted.loc[:, 'value_2017'] / import_by_port_by_dest_adjusted.loc[:, 'tons_2017'] * 1000
+    import_by_port_by_dest_adjusted.loc[:, "TruckLoad"] = import_by_port_by_dest_adjusted.loc[:, "tons_2017"] * 1000  / \
+                import_by_port_by_dest_adjusted.loc[:, "ship_count"] # unit is ton
+    import_by_port_by_dest_adjusted = import_by_port_by_dest_adjusted[import_attr]  
+    import_by_port_by_dest = pd.concat([import_by_port_by_dest_adjusted,
+                                        import_by_port_by_dest_remaining])
+    
+    
+    # shift export demand
+    export_by_port_by_orig_to_adj = \
+        export_by_port_by_orig.loc[export_by_port_by_orig['dms_orig'].isin(location_from)]
+    export_by_port_by_orig_no_adj = \
+        export_by_port_by_orig.loc[export_by_port_by_orig['dms_orig'].isin(location_to)]
+    export_by_port_by_orig_remaining = \
+        export_by_port_by_orig.loc[~export_by_port_by_orig['dms_orig'].isin(included_locations)]
+    
+    export_by_port_by_orig_to_adj.drop(columns = ['dms_orig'], inplace = True)
+    export_relocation_factor = \
+        export_by_port_by_orig_no_adj.groupby(['dms_orig', 'SCTG_Code'])[['value_2017']].sum()
+    export_relocation_factor = export_relocation_factor.reset_index()
+    export_relocation_factor.loc[:, 'Portion'] = \
+        export_relocation_factor.loc[:, 'value_2017'] / \
+            export_relocation_factor.groupby(['SCTG_Code'])['value_2017'].transform('sum')
+    
+    export_relocation_factor.drop(columns = 'value_2017', inplace = True)
+    export_by_port_by_orig_to_adj = pd.merge(export_by_port_by_orig_to_adj,
+                                             export_relocation_factor, 
+                                             on = 'SCTG_Code', how = 'left')
+    export_by_port_by_orig_to_adj.loc[:, 'ship_count'] = \
+        export_by_port_by_orig_to_adj.loc[:, 'ship_count'] * export_by_port_by_orig_to_adj.loc[:, 'Portion']
+    export_by_port_by_orig_to_adj.loc[:, 'value_2017'] = \
+        export_by_port_by_orig_to_adj.loc[:, 'value_2017'] * export_by_port_by_orig_to_adj.loc[:, 'Portion']
+    export_by_port_by_orig_to_adj.drop(columns = 'Portion', inplace = True)
+    
+    export_by_port_by_orig_adjusted = pd.concat([export_by_port_by_orig_to_adj, 
+                                                  export_by_port_by_orig_no_adj])
+    
+    grouping_var = ['PORTID', 'CBP Port Location', 'FAF', 'CBPZONE', 'MESOZONE', 'TYPE', 
+                    'is_airport', 'CFS_CODE', 'CFS_NAME', 'dms_orig', 'SCTG_Code']
+    export_by_port_by_orig_adjusted.loc[:, 'tons_2017'] = \
+        export_by_port_by_orig_adjusted.loc[:, 'ship_count'] * \
+            export_by_port_by_orig_adjusted.loc[:, 'TruckLoad'] / 1000
+    export_by_port_by_orig_adjusted = \
+        export_by_port_by_orig_adjusted.groupby(grouping_var)[['value_2017', 'tons_2017', 'ship_count']].sum()
+    export_by_port_by_orig_adjusted = export_by_port_by_orig_adjusted.reset_index()
+    export_by_port_by_orig_adjusted.loc[:, "ship_count"] = \
+        np.round(export_by_port_by_orig_adjusted.loc[:, "ship_count"], 0)
+        
+    export_by_port_by_orig_adjusted.loc[export_by_port_by_orig_adjusted["ship_count"] < 1, "ship_count"] = 1
+    export_by_port_by_orig_adjusted.loc[:, 'value_density'] = \
+        export_by_port_by_orig_adjusted.loc[:, 'value_2017'] / export_by_port_by_orig_adjusted.loc[:, 'tons_2017'] * 1000
+    export_by_port_by_orig_adjusted.loc[:, "TruckLoad"] = export_by_port_by_orig_adjusted.loc[:, "tons_2017"] * 1000  / \
+                export_by_port_by_orig_adjusted.loc[:, "ship_count"] # unit is ton
+    export_by_port_by_orig_adjusted = export_by_port_by_orig_adjusted[export_attr]  
+    export_by_port_by_orig = pd.concat([export_by_port_by_orig_adjusted,
+                                        export_by_port_by_orig_remaining])
+    
+# <codecell>
+
+output_path = os.path.join(file_path, output_dir)
+import_by_port_by_dest = pd.merge(import_by_port_by_dest,
+                                   sctg_lookup_short,
+                                   on = ['SCTG_Code'], how = 'left')
 export_by_port_by_orig = pd.merge(export_by_port_by_orig,
                                    sctg_lookup_short,
                                    on = ['SCTG_Code'], how = 'left')
 
+import_by_port_by_dest.to_csv(os.path.join(output_path, 'import_od.csv'), index = False)
 export_by_port_by_orig.to_csv(os.path.join(output_path, 'export_od.csv'), index = False)
 
 print('Total import shipments after scaling:')

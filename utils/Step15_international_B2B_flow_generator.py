@@ -116,7 +116,6 @@ export_truck_shipments.drop(columns = ['Unnamed: 0', 'value_2017', 'value_densit
                             inplace = True)
 
 
-
 # <codecell>
 export_truck_shipments["bundle_id"] = export_truck_shipments.index + 1 
 # assign origin firms (producers)
@@ -150,7 +149,7 @@ existing_attr = export_truck_shipments.columns.tolist()
 
 for chunk in chunks_of_shipments:
     print('processing batch ' + str(i))
-    producer_to_match = domestic_producer_to_match.sample(frac = 0.2) # reduce size for sampling
+    producer_to_match = domestic_producer_to_match.sample(frac = 0.25) # reduce size for sampling
     chunk_export = pd.merge(chunk, producer_to_match,
                             on = ['dms_orig', 'SCTG_Code', 'SCTG_Group'], how = 'left')
     failed_shipment = \

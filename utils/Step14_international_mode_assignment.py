@@ -34,7 +34,7 @@ c_n6_n6io_sctg_file = 'corresp_naics6_n6io_sctg_revised.csv'
 zonal_id_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
 SCTG_group_file = 'SCTG_Groups_revised.csv'
 # int_mode_choice_file = 'freight_mode_choice_4alt_international_seacal.csv' # using this for seattle
-int_mode_choice_file = 'freight_mode_choice_4alt_international.csv'
+int_mode_choice_file = 'freight_mode_choice_4alt_international_sfbcal.csv'
 distance_travel_skim_file = 'combined_travel_time_skim.csv'
 
 int_mode_choice_param = \
