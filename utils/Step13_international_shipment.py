@@ -22,8 +22,8 @@ print("Start international shipment generation...")
 ########################################################
 
 # load model config temporarily here
-scenario_name = 'BayArea'
-out_scenario_name = 'BayArea'
+scenario_name = 'Seattle'
+out_scenario_name = 'Seattle'
 file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
@@ -533,7 +533,7 @@ export_by_port_by_orig = pd.concat([export_output_airport,
 #### step 5 - Adjust FAF destination assignment ########
 ########################################################
 
-need_domestic_adjustment = 1 # 1 - yes, 0 - no
+need_domestic_adjustment = 0 # 1 - yes, 0 - no
 location_from = [61, 63]
 location_to = [62, 64, 65, 69]
 
