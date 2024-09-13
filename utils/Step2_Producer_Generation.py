@@ -35,7 +35,7 @@ synthetic_firms_no_location_file = "synthetic_firms.csv"
 mesozone_to_faf_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
 foreign_prod_file = "data_foreign_prod.csv" # total foreign production (pre-defined from prior studies)
 BEA_io_2017_file = "data_2017io_revised_USE_value_added.csv" # final scaled BEA I-O use table
-agg_unit_cost_file = "data_unitcost_cfs2017.csv" # unit cost by commodity from CFS 2017 (all zones combined)
+agg_unit_cost_file = "data_unitcost_calib.csv" # unit cost by commodity from CFS 2017 (all zones combined)
 prod_by_zone_file = "producer_value_fraction_by_faf.csv" # Total production value by FAF zone from CFS 2017
 SCTG_group_file = "SCTG_Groups_revised.csv" # Commodity type to group lookup (pre-defined)
 

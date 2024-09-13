@@ -90,12 +90,17 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
                                                                     "CBPZONE": "dest_CBPZONE", 
                                                                     "MESOZONE":"dest_MESOZONE", 
                                                                    "FAFNAME":"dest_FAFNAME"})    
-            agg_OD_by_sctg = modeled_OD_by_sctg.groupby(["orig_FAFID", "orig_FAFNAME", "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'mode_choice'])[['tmiles', 'ShipmentLoad']].sum()        
+            agg_OD_by_sctg = modeled_OD_by_sctg.groupby(["orig_FAFID", "orig_FAFNAME", 
+                                                         "dest_FAFID", "dest_FAFNAME", 
+                                                         'Commodity_SCTG', "SCTG_Group", 'mode_choice'])[['tmiles', 'ShipmentLoad']].sum()        
             agg_OD_by_sctg = agg_OD_by_sctg.reset_index()
-            agg_count_by_sctg = modeled_OD_by_sctg.groupby(["orig_FAFID", "orig_FAFNAME", "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'mode_choice'])[['shipment_id']].count() 
+            agg_count_by_sctg = modeled_OD_by_sctg.groupby(["orig_FAFID", "orig_FAFNAME",
+                                                            "dest_FAFID", "dest_FAFNAME",
+                                                            'Commodity_SCTG', "SCTG_Group", 'mode_choice'])[['shipment_id']].count() 
             agg_count_by_sctg = agg_count_by_sctg.reset_index()
             agg_OD_by_sctg = pd.merge(agg_OD_by_sctg, agg_count_by_sctg, 
-                                      on = ["orig_FAFID", "orig_FAFNAME", "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'mode_choice'],
+                                      on = ["orig_FAFID", "orig_FAFNAME", "dest_FAFID", "dest_FAFNAME", 
+                                            'Commodity_SCTG', "SCTG_Group", 'mode_choice'],
                                       how = 'left')
             agg_OD_by_sctg = pd.merge(agg_OD_by_sctg, sctg_group_short, 
                                       on = "SCTG_Group",
@@ -106,12 +111,21 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
             combined_modeled_OD = pd.concat([combined_modeled_OD, agg_OD_by_sctg], sort = False)
             
             # adding mesozone aggregation
-            agg_OD_by_sctg = modeled_OD_by_sctg.groupby(['SellerZone', "orig_FAFID", "orig_FAFNAME", 'BuyerZone', "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'mode_choice'])[['tmiles', 'ShipmentLoad']].sum()        
+            agg_OD_by_sctg = modeled_OD_by_sctg.groupby(['SellerZone', "orig_FAFID", 
+                                                         "orig_FAFNAME", 'BuyerZone', 
+                                                         "dest_FAFID", "dest_FAFNAME", 
+                                                         'Commodity_SCTG', "SCTG_Group", 'mode_choice'])[['tmiles', 'ShipmentLoad']].sum()        
             agg_OD_by_sctg = agg_OD_by_sctg.reset_index()
-            agg_count_by_sctg = modeled_OD_by_sctg.groupby(['SellerZone', "orig_FAFID", "orig_FAFNAME", 'BuyerZone', "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'mode_choice'])[['shipment_id']].count() 
+            agg_count_by_sctg = modeled_OD_by_sctg.groupby(['SellerZone', "orig_FAFID", 
+                                                            "orig_FAFNAME", 'BuyerZone', 
+                                                            "dest_FAFID", "dest_FAFNAME", 
+                                                            'Commodity_SCTG', "SCTG_Group", 'mode_choice'])[['shipment_id']].count() 
             agg_count_by_sctg = agg_count_by_sctg.reset_index()
             agg_OD_by_sctg = pd.merge(agg_OD_by_sctg, agg_count_by_sctg, 
-                                  on = ['SellerZone', "orig_FAFID", "orig_FAFNAME", 'BuyerZone', "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'mode_choice'],
+                                  on = ['SellerZone', "orig_FAFID", 
+                                        "orig_FAFNAME", 'BuyerZone',
+                                        "dest_FAFID", "dest_FAFNAME", 
+                                        'Commodity_SCTG', "SCTG_Group", 'mode_choice'],
                                   how = 'left')
             agg_OD_by_sctg = agg_OD_by_sctg.rename(columns={"shipment_id": "count"})
             agg_OD_by_sctg = pd.merge(agg_OD_by_sctg, sctg_group_short, 
@@ -129,7 +143,7 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
     # <codecell>
     
     combined_modeled_OD_agg = combined_modeled_OD.groupby(["orig_FAFID", "orig_FAFNAME", "dest_FAFID", \
-                                                           "dest_FAFNAME", "SCTG_Group", 'SCTG_Name',
+                                                           "dest_FAFNAME", 'Commodity_SCTG', "SCTG_Group", 'SCTG_Name',
                                                            'mode_choice'])[['tmiles', 'ShipmentLoad', 'count']].sum()
     combined_modeled_OD_agg = combined_modeled_OD_agg.reset_index()
     combined_modeled_OD_agg.head(5)
@@ -152,7 +166,7 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
     
     # add mesozone aggregation
     combined_modeled_OD_mesozone = combined_modeled_OD_mesozone.groupby(['SellerZone', "orig_FAFID", "orig_FAFNAME", 'BuyerZone', 
-                                                       "dest_FAFID", "dest_FAFNAME", "SCTG_Group", 'SCTG_Name',
+                                                       "dest_FAFID", "dest_FAFNAME", 'Commodity_SCTG', "SCTG_Group", 'SCTG_Name',
                                                        'mode_choice'])[['tmiles', 'ShipmentLoad', 'count']].sum()
     combined_modeled_OD_mesozone = combined_modeled_OD_mesozone.reset_index()
     # combined_modeled_OD_agg.head(5)
