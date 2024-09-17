@@ -9,11 +9,15 @@ import gc
 import warnings
 import configparser
 from sklearn.utils import shuffle
-import rpy2
+# import rpy2
 # import rpy2.robjects as robjects
 import subprocess
 
 # import SynthFirm modules
+from utils.Step1_Firm_Generation import synthetic_firm_generation
+from utils.Step2_Producer_Generation import producer_generation
+from utils.Step3_Consumer_Generation import consumer_generation
+from utils.Step4_Firm_Location_Generation import firm_location_generation
 from utils.Step6_Supplier_Selection import supplier_selection
 from utils.Step7_Shipment_Size_Generation import shipment_size_generation
 from utils.Step8_Freight_Mode_Choice_Model import mode_choice_model
@@ -23,10 +27,10 @@ warnings.filterwarnings("ignore")
 
 def main():
     des = """
-SynthFirm Business-to-business (B2B) flow generation"
+    SynthFirm Business-to-business (B2B) flow generation"
     """
     parser = argparse.ArgumentParser(description=des)
-    parser.add_argument("--config", type = str, help = "config file name", default= 'SynthFirm.conf')
+    parser.add_argument("--config", type = str, help = "config file name", default= 'configs/Seattle_base.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -66,6 +70,14 @@ SynthFirm Business-to-business (B2B) flow generation"
     if run_firm_generation:
         print('including synthetic firm generation in the pipeline...')
         
+    run_producer_consumer_generation = config.getboolean('ENVIRONMENT', 'enable_producer_consumer_generation')
+    if run_producer_consumer_generation:
+        print('including synthetic producer/consumer generation in the pipeline...')
+
+    enable_firm_loc_generation = config.getboolean('ENVIRONMENT', 'enable_firm_loc_generation')
+    if enable_firm_loc_generation:
+        print('including firm location generation in the pipeline...')
+        
     run_supplier_selection = config.getboolean('ENVIRONMENT', 'enable_supplier_selection') 
     if run_supplier_selection:
         print('including supplier selection in the pipeline...')
@@ -85,22 +97,57 @@ SynthFirm Business-to-business (B2B) flow generation"
     run_fleet_generation = config.getboolean('ENVIRONMENT', 'enable_fleet_generation') 
     if run_fleet_generation:
         print('including fleet generation in the pipeline...')
-    # load inputs    
-
-    mesozone_to_faf_file = os.path.join(input_path, config['INPUTS']['mesozone_to_faf_file'])
-    shipment_by_distance_file = os.path.join(param_path, config['INPUTS']['shipment_by_distance_bin_file'])    
-    shipment_distance_lookup_file = os.path.join(param_path, config['INPUTS']['shipment_distance_lookup_file'])
-    cost_by_location_file = os.path.join(param_path, config['INPUTS']['cost_by_location_file'])
     
-    producer_file = os.path.join(output_path, config['INPUTS']['producer_file'])
-    consumer_file = os.path.join(output_path, config['INPUTS']['consumer_file'])
+    # load inputs  
+    
+    # inputs/outputs first appear in firm synthesizer
+    cbp_file = os.path.join(input_path, config['INPUTS']['cbp_file'])
+    mzemp_file = os.path.join(input_path, config['INPUTS']['mzemp_file'])
+    
+    c_n6_n6io_sctg_file = os.path.join(param_path, config['PARAMETERS']['c_n6_n6io_sctg_file'])
+    employment_per_firm_file = os.path.join(param_path, config['PARAMETERS']['employment_per_firm_file'])
+    employment_per_firm_gapfill_file = os.path.join(param_path, config['PARAMETERS']['employment_per_firm_gapfill_file'])
+    
+    synthetic_firms_no_location_file = os.path.join(output_path, config['OUTPUTS']['synthetic_firms_no_location_file'])
 
-    cfs_to_faf_file = os.path.join(param_path, config['INPUTS']['cfs_to_faf_file'])
-    max_load_per_shipment_file = os.path.join(param_path, config['INPUTS']['max_load_per_shipment_file'])
-    sctg_group_file = os.path.join(param_path, config['INPUTS']['sctg_group_file'])
-    supplier_selection_param_file = os.path.join(param_path, config['INPUTS']['supplier_selection_param_file'])
+    
+    # inputs/outputs first appear in producer and consumer generation
+    BEA_io_2017_file = os.path.join(param_path, config['PARAMETERS']['BEA_io_2017_file'])
+    agg_unit_cost_file = os.path.join(param_path, config['PARAMETERS']['agg_unit_cost_file'])
+    prod_by_zone_file = os.path.join(param_path, config['PARAMETERS']['prod_by_zone_file'])
+    cons_by_zone_file = os.path.join(param_path, config['PARAMETERS']['cons_by_zone_file'])
+    sctg_group_file = os.path.join(param_path, config['PARAMETERS']['sctg_group_file'])
+    
+    io_summary_file = os.path.join(output_path, config['OUTPUTS']['io_summary_file'])
+    wholesaler_file = os.path.join(output_path, config['OUTPUTS']['wholesaler_file'])
+    producer_file = os.path.join(output_path, config['OUTPUTS']['producer_file'])
+    producer_by_sctg_filehead = os.path.join(output_path, config['OUTPUTS']['producer_by_sctg_filehead'])
+    consumer_file = os.path.join(output_path, config['OUTPUTS']['consumer_file'])
+    consumer_by_sctg_filehead = os.path.join(output_path, config['OUTPUTS']['consumer_by_sctg_filehead'])
+    sample_consumer_file = os.path.join(output_path, config['OUTPUTS']['sample_consumer_file'])
+    io_filtered_file = os.path.join(output_path, config['OUTPUTS']['io_filtered_file'])
+    
+    mesozone_to_faf_file = os.path.join(input_path, config['INPUTS']['mesozone_to_faf_file'])
+    shipment_by_distance_file = os.path.join(param_path, config['PARAMETERS']['shipment_by_distance_bin_file'])    
+    shipment_distance_lookup_file = os.path.join(param_path, config['PARAMETERS']['shipment_distance_lookup_file'])
+    cost_by_location_file = os.path.join(param_path, config['PARAMETERS']['cost_by_location_file'])
+    
+
+    #inputs/outputs first appear in firm location generation
+    spatial_boundary_file_fileend = config['INPUTS']['spatial_boundary_file_fileend']
+    spatial_boundary_file_name = scenario_name + spatial_boundary_file_fileend
+    spatial_boundary_file = os.path.join(input_path, spatial_boundary_file_name)
+    synthetic_firms_with_location_file = os.path.join(output_path, 
+                                                      config['OUTPUTS']['synthetic_firms_with_location_file'])
+    zonal_output_fileend = config['OUTPUTS']['zonal_output_fileend']
+    zonal_output_file = os.path.join(output_path, scenario_name + zonal_output_fileend)
+
+    cfs_to_faf_file = os.path.join(param_path, config['PARAMETERS']['cfs_to_faf_file'])
+    max_load_per_shipment_file = os.path.join(param_path, config['PARAMETERS']['max_load_per_shipment_file'])
+    
+    supplier_selection_param_file = os.path.join(param_path, config['PARAMETERS']['supplier_selection_param_file'])
     mode_choice_param_file = os.path.join(input_path, config['INPUTS']['mode_choice_param_file'])
-    distance_travel_skim_file = os.path.join(param_path, config['INPUTS']['distance_travel_skim_file'])
+    distance_travel_skim_file = os.path.join(param_path, config['PARAMETERS']['distance_travel_skim_file'])
 
     # prepare mode choice specifications
     mode_choice_spec = {} 
@@ -148,11 +195,36 @@ SynthFirm Business-to-business (B2B) flow generation"
     print('SynthFirm run for ' + scenario_name + ' start!')
     print('----------------------------------------------')
 
-    ##### Step 1 to 5 -  synthetic firm generation
+    ##### Step 1 -  synthetic firm generation
     if run_firm_generation:
         # robjects.r.source("/utils/run_firm_generation_master_R.R", encoding="utf-8")
-        subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
+        # subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
+        synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, 
+                                  employment_per_firm_file, employment_per_firm_gapfill_file, 
+                                  synthetic_firms_no_location_file, output_path)
 
+    ##### Steps 2 and 3 -  synthetic producer and consumer generation        
+    if run_producer_consumer_generation:
+        # producer generation
+        producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
+                                mesozone_to_faf_file, BEA_io_2017_file, agg_unit_cost_file,
+                                prod_by_zone_file, sctg_group_file, io_summary_file,
+                                wholesaler_file, producer_file, producer_by_sctg_filehead,
+                                io_filtered_file, output_path)
+        # consumer generation
+        consumer_generation(synthetic_firms_no_location_file, mesozone_to_faf_file,
+                                c_n6_n6io_sctg_file, agg_unit_cost_file, cons_by_zone_file,
+                                sctg_group_file, wholesaler_file,
+                                producer_file, io_filtered_file, consumer_file,
+                                sample_consumer_file, consumer_by_sctg_filehead, output_path)
+    
+    ##### Step 4 -  synthetic firm location generation
+    if enable_firm_loc_generation:
+        firm_location_generation(synthetic_firms_no_location_file,
+                                     synthetic_firms_with_location_file,
+                                     zonal_output_file,
+                                     spatial_boundary_file, output_path)
+        
     ##### Step 6 -  supplier selection         
     if run_supplier_selection:
         supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
