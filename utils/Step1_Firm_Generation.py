@@ -17,21 +17,6 @@ from pandas import read_csv
 #### step 1 - configure environment and load inputs ####
 ########################################################
 
-# load model config temporarily here
-# scenario_name = 'Seattle'
-# out_scenario_name = 'Seattle'
-# file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
-# parameter_dir = 'SynthFirm_parameters'
-# input_dir = 'inputs_' + scenario_name
-# output_dir = 'outputs_' + out_scenario_name
-
-# cbp_file = 'data_emp_cbp_imputed.csv'
-# mzemp_file = 'data_mesozone_emprankings.csv'
-# c_n6_n6io_sctg_file = 'corresp_naics6_n6io_sctg_revised.csv'
-# employment_per_firm_file = 'employment_by_firm_size_naics.csv'
-# employment_per_firm_gapfill_file = 'employment_by_firm_size_gapfill.csv'
-
-# synthetic_firms_no_location_file = "synthetic_firms.csv" 
 
 def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employment_per_firm_file,
                               employment_per_firm_gapfill_file, synthetic_firms_no_location_file,
@@ -46,8 +31,8 @@ def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employm
     employment_per_firm_gapfill = read_csv(employment_per_firm_gapfill_file)
     
     
-    # define result directory
-    # result_dir = os.path.join(file_path, output_dir)
+    # create result directory if not exist
+
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     else:
@@ -63,7 +48,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employm
     print("Enumerating Firms")
     criteria = (cbp.loc[:, 'employment'] < cbp.loc[:, 'establishment'])
     cbp.loc[criteria, 'employment'] = cbp.loc[criteria, 'establishment']
-    total_employment = cbp.loc[:, 'employment'].sum()
+    # total_employment = cbp.loc[:, 'employment'].sum()
     
     # drop invalid record (if any)
     cbp = cbp.dropna(subset=['Industry_NAICS6_CBP', 'FAFZONE', 'CBPZONE'])
@@ -169,6 +154,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employm
     
     print('number of firms within study area:')
     print(len(firms_in_boundary))
+    
     # for Seattle, there are 287,324 firms
     
     firms_in_boundary.loc[firms_in_boundary['n2'].isin(["31", "32", "33"]), 'n2'] = "3133"
@@ -199,13 +185,11 @@ def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employm
     for ct in unique_counties:
         # print('assigning CBG within county fips ' + str(ct))
         firms_in_boundary_sel = firms_in_boundary.loc[firms_in_boundary['CBPZONE'] == ct]
-        # print(len(firms_in_boundary_sel))
         firms_in_boundary_sel = pd.merge(firms_in_boundary_sel, 
                                  emp_ranking_in_boundary,
                                  on = ["CBPZONE", "n2"],
                                  how = 'left') # Merge the rankings dataset to the firms database based on county
         firms_in_boundary_sel['EmpRank'] = firms_in_boundary_sel['EmpRank'].fillna(1)
-        # print(len(firms_in_boundary_sel.MESOZONE.unique()))
         
         # Sometimes, LODES report 0 employment in a county, while firm data as non-zero
         # may attributed to imputation for non-payroll workers
@@ -217,7 +201,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employm
         firms_in_boundary_sel = \
             firms_in_boundary_sel.drop(columns = ['index', 'industry', 'EmpRank'])
         firms_in_boundary_sel.loc[:, 'MESOZONE'].fillna(method = 'ffill', inplace = True)
-        # print(len(firms_in_boundary_sel.MESOZONE.unique()))
+
         # for firms with no emp ranking, forward fill it with locations from nearest industry
         # check na
         firms_with_na = firms_in_boundary_sel.loc[firms_in_boundary_sel['MESOZONE'].isna()]

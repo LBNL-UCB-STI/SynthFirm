@@ -14,44 +14,20 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-
-########################################################
-#### step 1 - configure environment and load inputs ####
-########################################################
-
-
-# scenario_name = 'Seattle'
-# out_scenario_name = 'Seattle'
-# file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
-# parameter_dir = 'SynthFirm_parameters'
-# input_dir = 'inputs_' + scenario_name
-# output_dir = 'outputs_' + out_scenario_name
-
-# specifications that has been defined before
-c_n6_n6io_sctg_file = 'corresp_naics6_n6io_sctg_revised.csv'
-synthetic_firms_no_location_file = "synthetic_firms.csv" 
-
-# specifications that are new to this code
-mesozone_to_faf_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
-# foreign_prod_file = "data_foreign_prod.csv" # total foreign production (pre-defined from prior studies)
-BEA_io_2017_file = "data_2017io_revised_USE_value_added.csv" # final scaled BEA I-O use table
-agg_unit_cost_file = "data_unitcost_calib.csv" # unit cost by commodity from CFS 2017 (all zones combined)
-prod_by_zone_file = "producer_value_fraction_by_faf.csv" # Total production value by FAF zone from CFS 2017
-sctg_group_file = "SCTG_Groups_revised.csv" # Commodity type to group lookup (pre-defined)
-
-io_summary_file = "io_summary_revised.csv" # i-o table in long format, without zero values
-wholesaler_file = "synthetic_wholesaler.csv" # synthetic wholesaler (serve as both buyer and supplier)
-producer_file = "synthetic_producers.csv" # synthetic producer
-producer_by_sctg_filehead = "prods_sctg" # file head for synthetic producer by sctg
-io_filtered_file = "data_2017io_filtered.csv" # processed I-O table, after dropping wholesale transaction
-
 def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
                         mesozone_to_faf_file, BEA_io_2017_file, agg_unit_cost_file,
                         prod_by_zone_file, sctg_group_file, io_summary_file,
                         wholesaler_file, producer_file, producer_by_sctg_filehead,
                         io_filtered_file, output_path):
+    
+    
     print("Generating synthetic producers...")
-# load inputs
+    
+    ########################################################
+    #### step 1 - configure environment and load inputs ####
+    ########################################################
+    
+    # load inputs
     firms = read_csv(synthetic_firms_no_location_file, low_memory=False) # 8,396, 679 FIRMS
     mesozone_faf_lookup = read_csv(mesozone_to_faf_file)
     c_n6_n6io_sctg = read_csv(c_n6_n6io_sctg_file)
@@ -65,15 +41,6 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     
     sctg_lookup = read_csv(sctg_group_file)
     
-    # define constant
-    # foreignprodcostfactor = 0.9     # producer cost factor for foreign producers (applied to unit costs) 
-    # wholesalecostfactor = 1.2     # markup factor for wholesalers (applied to unit costs)
-    
-    # define output
-    
-    
-    # define result directory
-    # result_dir = os.path.join(file_path, output_dir)
     
     # <codecell>
     ########################################################
@@ -159,7 +126,7 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     wholesale_flow.loc[:, 'CellValue'] *= wholesalecostfactor # add margin
     wholesale_flow.loc[:, 'CellValue'] = np.round(wholesale_flow.loc[:, 'CellValue'], 0)
     wholesale_flow = wholesale_flow.loc[wholesale_flow['CellValue'] > 0]
-    # print(wholesale_flow.loc[:, 'CellValue'].sum())
+
     
     wholesale_flow = \
         wholesale_flow[['Industry_NAICS6_Make_x', 'Industry_NAICS6_Use_y', 'Commodity_SCTG', 'Industry_NAICS6_Make_y', 'CellValue']]
@@ -182,6 +149,7 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     io_with_wholesale = pd.merge(io_no_wholesale, iowhl,
                                on = ["Industry_NAICS6_Make", "Industry_NAICS6_Use"],
                                how = 'outer')
+    
     # some industry only transact with wholesaler, make sure those transactions are captured using outer join
     io_with_wholesale.fillna(0, inplace=True)
     io_with_wholesale.loc[:, 'ProVal_with_whl'] = \
@@ -268,9 +236,7 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     
     #======= this markes as the end of wholesaler generation ============#
     
-    #issues - need to be marked as a wholesales using the NAICS code
-    #but need to be tagged with the correct make/use commodity seperate from their NAICS code
-    #this should be easy for the consumer side, check possible for the producers side
+
     
     
     # <codecell>
@@ -333,92 +299,10 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     #### step 5 - adding foreign producers (will drop in future) ######
     ###################################################################
     
-    # io_total = io.groupby(['Industry_NAICS6_Make'])[['ProVal']].sum()
-    # io_total = io_total.reset_index()
-    
-    # producer_emp = \
-    #     producers.groupby(['Industry_NAICS6_Make'])[['Emp']].sum()
-    # producer_emp = producer_emp.reset_index()
-    
-    # for_prod = for_prod.rename(columns = {'Commodity_NAICS6': 'Industry_NAICS6_CBP'})
-    # for_prod = \
-    #   pd.merge(for_prod, 
-    #         c_n6_n6io_sctg[['Industry_NAICS6_CBP', 'Industry_NAICS6_Make', 'Commodity_SCTG']], 
-    #         on = "Industry_NAICS6_CBP", how = 'left') #Merge in the I/O NAICS codes and SCTG codes, size = 27786 * 8
-    # for_prod = for_prod.loc[for_prod['Commodity_SCTG'] > 0]
-    
-    
-    
-    # for_prod.loc[:, 'ProdVal'] = for_prod.loc[:, 'USImpVal']/ (10 ** 6) # convert to million dollars
-    
-    # for_prod_agg = \
-    # for_prod.groupby(['Industry_NAICS6_Make', 'CBPZONE', 'FAFZONE', 'Commodity_SCTG'])[['ProdVal']].sum()
-    # for_prod_agg = for_prod_agg.reset_index()
-    
-    # prodval = \
-    #   pd.merge(producer_emp, io_total,
-    #            on = "Industry_NAICS6_Make", how = 'left')
-      
-      
-    # prodval.loc[:, 'ValEmp'] = prodval.loc[:, 'ProVal'] / prodval.loc[:, 'Emp'] 
-    # #production value per employee (in Million of Dollars)
-    
-    # for_prod_agg = \
-    #   pd.merge(for_prod_agg, prodval[['Industry_NAICS6_Make', 'ValEmp']], 
-    #            on = "Industry_NAICS6_Make", how = 'left') #
-      
-    # for_prod_agg['ValEmp'].fillna(0, inplace = True)
-    
-    # for_prod_agg.loc[:, 'ValEmp'] = foreignprodcostfactor
-    
-    # for_prod_agg.loc[:, 'Emp'] = \
-    # np.round(for_prod_agg.loc[:, 'ProdVal']/ for_prod_agg.loc[:, 'ValEmp'], 0)
-    
-    
-    # emp_bins = [0, 19, 99, 499, 1000, 2499, 4999, for_prod_agg.loc[:, 'Emp'].max()]
-    # emp_bin_label = [1, 2, 3, 4, 5, 6, 7]
-    
-    # for_prod_agg.loc[for_prod_agg['Emp']< 1, 'Emp'] = 1
-    # for_prod_agg.loc[:, 'esizecat'] = pd.cut(for_prod_agg.loc[:, 'Emp'], 
-    #                                          bins = emp_bins, 
-    #                                          right=True, 
-    #                                          labels=emp_bin_label)
-    
-    
-    #producers' output in POUNDS (units costs converted to pounds)
-    
-    # for_prod_agg = pd.merge(for_prod_agg, unitcost, 
-    #                         on = "Commodity_SCTG", how = 'left')
-    
-    
-    # #update unit cost using foreign producer adjustment
-    # for_prod_agg.loc[:, 'UnitCost'] *= foreignprodcostfactor
-    # for_prod_agg.loc[:,  'ProdCap'] = \
-    #     for_prod_agg.loc[:,'ProdVal'] * (10**6) / for_prod_agg.loc[:, 'UnitCost'] # ProdVal was in $M, ProdCap in pound
-        
-    
-    # capacity_ub = 5 * 10 ** 8 # define upper bound capacity per firm in pound
-    # for_prod_agg.loc[:, 'est'] = 1
-    # for_prod_agg.loc[for_prod_agg['ProdCap'] > capacity_ub, 'est'] = \
-    #     np.ceil(for_prod_agg.loc[for_prod_agg['ProdCap'] > capacity_ub, 'ProdCap']/capacity_ub)
-    
-    # for_prod_agg.loc[for_prod_agg['est']> 1, 'ProdVal'] = \
-    #     for_prod_agg.loc[for_prod_agg['est']> 1, 'ProdVal'] / for_prod_agg.loc[for_prod_agg['est']> 1, 'est'] # update ProdVal for multiple firms
-        
-    # for_prod_agg.loc[for_prod_agg['est']> 1, 'ProdCap'] = \
-    #     for_prod_agg.loc[for_prod_agg['est']> 1, 'ProdCap'] / for_prod_agg.loc[for_prod_agg['est']> 1, 'est'] # update ProdCap for multiple firms
+
     
     # <codecell>
     
-    # for_prod_rep = pd.DataFrame(np.repeat(for_prod_agg.values, for_prod_agg.est, axis=0))
-    # for_prod_rep.columns = for_prod_agg.columns
-    # # 24,554 foreign firms
-    # for_prod_rep = for_prod_rep.drop(columns = ['est'])
-    
-    # for_prod_rep.loc[:, 'MESOZONE'] = for_prod_rep.loc[:, 'CBPZONE'] + 30000
-    # max_id = int(firms.loc[:, 'BusID'].max())
-    # for_prod_rep.loc[:, 'BusID'] = max_id + for_prod_rep.reset_index().index + 1
-    # size = 24,554 * 13
     
     
     #################################################
@@ -503,3 +387,4 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
      
     
     print('Producer generation is done!')
+    return(wholesalecostfactor)

@@ -22,6 +22,9 @@ from utils.Step6_Supplier_Selection import supplier_selection
 from utils.Step7_Shipment_Size_Generation import shipment_size_generation
 from utils.Step8_Freight_Mode_Choice_Model import mode_choice_model
 from utils.Step9_Post_Process_B2B_Flow import post_mode_choice
+from utils.Step13_international_shipment import international_demand_generation
+from utils.Step14_international_mode_assignment import international_mode_choice
+from utils.Step15_international_B2B_flow_generator import domestic_receiver_assignment
 
 warnings.filterwarnings("ignore")
 
@@ -30,7 +33,7 @@ def main():
     SynthFirm Business-to-business (B2B) flow generation"
     """
     parser = argparse.ArgumentParser(description=des)
-    parser.add_argument("--config", type = str, help = "config file name", default= 'configs/Seattle_base.conf')
+    parser.add_argument("--config", type = str, help = "config file name", default= 'SynthFirm.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -97,6 +100,10 @@ def main():
     run_fleet_generation = config.getboolean('ENVIRONMENT', 'enable_fleet_generation') 
     if run_fleet_generation:
         print('including fleet generation in the pipeline...')
+        
+    run_international_flow = config.getboolean('ENVIRONMENT', 'enable_international_flow') 
+    if run_international_flow:
+            print('including international flow generation in the pipeline...')
     
     # load inputs  
     
@@ -148,7 +155,31 @@ def main():
     supplier_selection_param_file = os.path.join(param_path, config['PARAMETERS']['supplier_selection_param_file'])
     mode_choice_param_file = os.path.join(input_path, config['INPUTS']['mode_choice_param_file'])
     distance_travel_skim_file = os.path.join(param_path, config['PARAMETERS']['distance_travel_skim_file'])
-
+    
+    # input/output appear in international flow
+    need_domestic_adjustment = config.getboolean('INPUTS', 'need_domestic_adjustment') 
+    if need_domestic_adjustment:
+        location_from_str = config['INPUTS']['location_from']
+        location_from = [int(num) for num in location_from_str.split(',')]
+        location_to_str = config['INPUTS']['location_to']
+        location_to = [int(num) for num in location_to_str.split(',')]
+    regional_import_file = os.path.join(input_path, 'port', config['INPUTS']['regional_import_file'])
+    regional_export_file = os.path.join(input_path, 'port', config['INPUTS']['regional_export_file'])
+    port_level_import_file = os.path.join(input_path, 'port', config['INPUTS']['port_level_import_file'])
+    port_level_export_file = os.path.join(input_path, 'port', config['INPUTS']['port_level_export_file'])
+    int_shipment_size_file = os.path.join(param_path,  config['PARAMETERS']['int_shipment_size_file'])
+    sctg_by_port_file = os.path.join(param_path, config['PARAMETERS']['sctg_by_port_file'])
+    
+    import_od = os.path.join(output_path, config['OUTPUTS']['import_od'])
+    export_od = os.path.join(output_path, config['OUTPUTS']['export_od'])
+    
+    int_mode_choice_file = os.path.join(input_path, config['INPUTS']['int_mode_choice_file'])
+    import_mode_file = os.path.join(output_path, 'international', config['OUTPUTS']['import_mode_file'])
+    export_mode_file = os.path.join(output_path, 'international', config['OUTPUTS']['export_mode_file'])
+    
+    export_with_firm_file = os.path.join(output_path, 'international', config['OUTPUTS']['export_with_firm_file'])
+    import_with_firm_file = os.path.join(output_path, 'international', config['OUTPUTS']['import_with_firm_file'])
+    
     # prepare mode choice specifications
     mode_choice_spec = {} 
     lb_to_ton = float(config['CONSTANTS']['lb_to_ton'])
@@ -197,7 +228,7 @@ def main():
 
     ##### Step 1 -  synthetic firm generation
     if run_firm_generation:
-        # robjects.r.source("/utils/run_firm_generation_master_R.R", encoding="utf-8")
+        
         # subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
         synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, 
                                   employment_per_firm_file, employment_per_firm_gapfill_file, 
@@ -206,7 +237,9 @@ def main():
     ##### Steps 2 and 3 -  synthetic producer and consumer generation        
     if run_producer_consumer_generation:
         # producer generation
-        producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
+        
+        # wholesale cost factor is the ratio between wholesale output/input (1+revenue/cost)
+        wholesalecostfactor = producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
                                 mesozone_to_faf_file, BEA_io_2017_file, agg_unit_cost_file,
                                 prod_by_zone_file, sctg_group_file, io_summary_file,
                                 wholesaler_file, producer_file, producer_by_sctg_filehead,
@@ -216,7 +249,8 @@ def main():
                                 c_n6_n6io_sctg_file, agg_unit_cost_file, cons_by_zone_file,
                                 sctg_group_file, wholesaler_file,
                                 producer_file, io_filtered_file, consumer_file,
-                                sample_consumer_file, consumer_by_sctg_filehead, output_path)
+                                sample_consumer_file, consumer_by_sctg_filehead, 
+                                wholesalecostfactor, output_path)
     
     ##### Step 4 -  synthetic firm location generation
     if enable_firm_loc_generation:
@@ -224,7 +258,9 @@ def main():
                                      synthetic_firms_with_location_file,
                                      zonal_output_file,
                                      spatial_boundary_file, output_path)
-        
+    
+    ##### placeholder for demand forecast and calibration
+    
     ##### Step 6 -  supplier selection         
     if run_supplier_selection:
         supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
@@ -249,12 +285,49 @@ def main():
         post_mode_choice(sctg_group_file, mesozone_to_faf_file, 
                      output_path, region_code)
     
+
+    
+    ###### placeholder for validation and fleet generation
+    
+    ###### Step 13 -- international shipment
+    if run_international_flow:
+        
+        # international commodity flow
+        if need_domestic_adjustment:
+            print('Use international flow generation with destination adjustment...')
+            
+            international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
+                                                sctg_group_file, int_shipment_size_file,
+                                                regional_import_file, regional_export_file, 
+                                                port_level_import_file, port_level_export_file,
+                                                need_domestic_adjustment, import_od, export_od, 
+                                                output_path, 
+                                                location_from, location_to)
+        else: 
+            print('Use international flow generation without destination adjustment...')
+            international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
+                                                sctg_group_file, int_shipment_size_file,
+                                                regional_import_file, regional_export_file, 
+                                                port_level_import_file, port_level_export_file,
+                                                need_domestic_adjustment, import_od, export_od, 
+                                                output_path)
+            
+        # international mode choice
+        international_mode_choice(int_mode_choice_file, distance_travel_skim_file,
+                                  import_od, export_od, import_mode_file, export_mode_file,
+                                  mode_choice_spec, output_path)
+        
+        # domestic receiver assignment
+        domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_file,
+                                 sctg_group_file, import_mode_file, export_mode_file,
+                                 export_with_firm_file, 
+                                 import_with_firm_file, output_path)
+            
+            
     print('SynthFirm run for ' + scenario_name + ' finished!')
     print('All outputs are under ' + output_path)
     print('-------------------------------------------------')
     return
-
-
 if __name__ == '__main__':
 	main()
 

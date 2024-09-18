@@ -24,19 +24,6 @@ warnings.filterwarnings("ignore")
 #### step 1 - configure environment and load inputs ####
 ########################################################
 
-# scenario_name = 'Seattle'
-# out_scenario_name = 'Seattle'
-# file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
-# parameter_dir = 'SynthFirm_parameters'
-# input_dir = 'inputs_' + scenario_name
-# output_dir = 'outputs_' + out_scenario_name
-
-# # specifications that has been defined before
-# synthetic_firms_no_location_file = "synthetic_firms.csv" 
-
-# # specifications that are new to this code
-# synthetic_firms_with_location_file = "synthetic_firms_with_location.csv" # synthetic firm output (after location assignment)
-# spatial_boundary_file = scenario_name + '_freight.geojson'
 
 def Random_Points_in_Bounds(polygon, number, map_crs):   
     bounds = polygon.bounds
@@ -104,6 +91,7 @@ def firm_location_generation(synthetic_firms_no_location_file,
     # for firms with no location generated, try it again
     firm_with_missing = firm_with_location.loc[firm_with_location['geometry'].isna()]
     firm_with_missing = firm_with_missing.drop(columns = ['index', 'geometry'])
+    print('number of firms without locations in first round:')
     print(len(firm_with_missing))
     firm_no_missing = firm_with_location.loc[~firm_with_location['geometry'].isna()]
     # try location generation again
@@ -145,7 +133,6 @@ def firm_location_generation(synthetic_firms_no_location_file,
     firm_with_location = firm_with_location.drop(columns = ['index', 'geometry'])
     
     # writing output
-    # zonal_output_file = scenario_name + '_freight_no_island.geojson'
     mesozone_shapefile.to_file(zonal_output_file, 
                                driver="GeoJSON")
     
