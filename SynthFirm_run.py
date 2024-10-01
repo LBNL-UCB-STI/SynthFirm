@@ -17,7 +17,7 @@ import subprocess
 from utils.Step1_Firm_Generation import synthetic_firm_generation
 from utils.Step2_Producer_Generation import producer_generation
 from utils.Step3_Consumer_Generation import consumer_generation
-from utils.Step4_Firm_Location_Generation import firm_location_generation
+from utils.Step5_Firm_Location_Generation import firm_location_generation
 from utils.Step6_Supplier_Selection import supplier_selection
 from utils.Step7_Shipment_Size_Generation import shipment_size_generation
 from utils.Step8_Freight_Mode_Choice_Model import mode_choice_model
