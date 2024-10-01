@@ -15,7 +15,7 @@ import seaborn as sns
 import warnings
 warnings.filterwarnings("ignore")
 
-print("Start international shipment generation...")
+
 
 ########################################################
 #### step 1 - configure environment and load inputs ####
@@ -51,7 +51,7 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                     need_domestic_adjustment, import_od, export_od,
                                     output_path, 
                                     location_from = None, location_to = None):
-    
+    print("Start international shipment generation...")
     # mesozone_faf_lookup = read_csv(zonal_id_file)
     c_n6_n6io_sctg = read_csv(c_n6_n6io_sctg_file)
     sctg_lookup = read_csv(sctg_group_file)

@@ -15,7 +15,7 @@ import seaborn as sns
 import warnings
 warnings.filterwarnings("ignore")
 
-print("Start international mode choice...")
+
 
 ########################################################
 #### step 1 - configure environment and load inputs ####
@@ -44,6 +44,7 @@ print("Start international mode choice...")
 def international_mode_choice(int_mode_choice_file, distance_travel_skim_file,
                               import_od, export_od, import_mode_file, export_mode_file,
                               mode_choice_spec, output_path):
+    print("Start international mode choice...")
     int_mode_choice_param = \
         read_csv( int_mode_choice_file)
     list_of_alternative = int_mode_choice_param['Alternative'].tolist()

@@ -17,6 +17,7 @@ import subprocess
 from utils.Step1_Firm_Generation import synthetic_firm_generation
 from utils.Step2_Producer_Generation import producer_generation
 from utils.Step3_Consumer_Generation import consumer_generation
+from utils.Step4_production_and_consumption_forecast import prod_cons_demand_forecast
 from utils.Step5_Firm_Location_Generation import firm_location_generation
 from utils.Step6_Supplier_Selection import supplier_selection
 from utils.Step7_Shipment_Size_Generation import shipment_size_generation
@@ -33,7 +34,7 @@ def main():
     SynthFirm Business-to-business (B2B) flow generation"
     """
     parser = argparse.ArgumentParser(description=des)
-    parser.add_argument("--config", type = str, help = "config file name", default= 'SynthFirm.conf')
+    parser.add_argument("--config", type = str, help = "config file name", default= 'configs/Seattle_2030.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -54,7 +55,7 @@ def main():
     file_path = config['ENVIRONMENT']['file_path']
     parameter_dir = config['ENVIRONMENT']['parameter_path']
     number_of_processes = config['ENVIRONMENT'].get('number_of_processes')
-    number_of_processes = int(number_of_processes) if number_of_processes else 0
+    number_of_processes = int(number_of_processes) if number_of_processes else 1
     input_dir = 'inputs_' + scenario_name
     output_dir = 'outputs_' + out_scenario_name
 
@@ -66,16 +67,26 @@ def main():
     region_code_str = config['ENVIRONMENT']['region_code']
     region_code = [int(num) for num in region_code_str.split(',')]
     # print(region_code_str)
+    
 
     # load module to run
 
     run_firm_generation = config.getboolean('ENVIRONMENT', 'enable_firm_generation') 
+    
     if run_firm_generation:
         print('including synthetic firm generation in the pipeline...')
         
     run_producer_consumer_generation = config.getboolean('ENVIRONMENT', 'enable_producer_consumer_generation')
     if run_producer_consumer_generation:
         print('including synthetic producer/consumer generation in the pipeline...')
+    
+    run_demand_forecast = config.getboolean('ENVIRONMENT', 'enable_demand_forecast')
+    # check if this is a forecast run
+    if run_demand_forecast:
+        forecast_year = config['ENVIRONMENT']['forecast_year']
+        #print(print(type(forecast_year)))
+        print('including demand forecast in the pipeline and forecast year is ' + forecast_year + '...')
+        
 
     enable_firm_loc_generation = config.getboolean('ENVIRONMENT', 'enable_firm_loc_generation')
     if enable_firm_loc_generation:
@@ -139,7 +150,12 @@ def main():
     shipment_distance_lookup_file = os.path.join(param_path, config['PARAMETERS']['shipment_distance_lookup_file'])
     cost_by_location_file = os.path.join(param_path, config['PARAMETERS']['cost_by_location_file'])
     
-
+    # inputs/outputs first appear in demand forecast 
+    if run_demand_forecast:
+        prod_forecast_name = config['PARAMETERS']['prod_forecast_filehead'] + forecast_year + '.csv'
+        prod_forecast_file = os.path.join(param_path, prod_forecast_name)
+        cons_forecast_name = config['PARAMETERS']['cons_forecast_filehead'] + forecast_year + '.csv'
+        cons_forecast_file = os.path.join(param_path, cons_forecast_name)
     #inputs/outputs first appear in firm location generation
     spatial_boundary_file_fileend = config['INPUTS']['spatial_boundary_file_fileend']
     spatial_boundary_file_name = scenario_name + spatial_boundary_file_fileend
@@ -222,6 +238,50 @@ def main():
     weight_bin_label = [int(num) for num in weight_bin_label_str.split(',')]
     mode_choice_spec['weight_bin_label'] = weight_bin_label  
     
+    # rail_unit_cost_per_tonmile = 0.039
+    # rail_min_cost = 200
+    # air_unit_cost_per_lb = 1.08
+    # air_min_cost = 55
+    # truck_unit_cost_per_tonmile_sm = 2.83
+    # truck_unit_cost_per_tonmile_md = 0.5
+    # truck_unit_cost_per_tonmile_lg = 0.18
+    # truck_min_cost = 10
+    # parcel_cost_coeff_a = 3.58
+    # parcel_cost_coeff_b = 0.015
+    # parcel_cost_max = 1000
+    rail_unit_cost_per_tonmile = float(config['MC_CONSTANTS']['rail_unit_cost_per_tonmile'])
+    mode_choice_spec['rail_unit_cost'] = rail_unit_cost_per_tonmile
+    
+    rail_min_cost = float(config['MC_CONSTANTS']['rail_min_cost'])
+    mode_choice_spec['rail_min_cost'] = rail_min_cost
+    
+    air_unit_cost_per_lb = float(config['MC_CONSTANTS']['air_unit_cost_per_lb'])
+    mode_choice_spec['air_unit_cost'] = air_unit_cost_per_lb
+    
+    air_min_cost = float(config['MC_CONSTANTS']['air_min_cost'])
+    mode_choice_spec['air_min_cost'] = air_min_cost
+    
+    truck_unit_cost_per_tonmile_sm = float(config['MC_CONSTANTS']['truck_unit_cost_per_tonmile_sm'])
+    mode_choice_spec['truck_unit_cost_sm'] = truck_unit_cost_per_tonmile_sm
+    
+    truck_unit_cost_per_tonmile_md = float(config['MC_CONSTANTS']['truck_unit_cost_per_tonmile_md'])
+    mode_choice_spec['truck_unit_cost_md'] = truck_unit_cost_per_tonmile_md
+    
+    truck_unit_cost_per_tonmile_lg = float(config['MC_CONSTANTS']['truck_unit_cost_per_tonmile_lg'])
+    mode_choice_spec['truck_unit_cost_lg'] = truck_unit_cost_per_tonmile_lg
+    
+    truck_min_cost = float(config['MC_CONSTANTS']['truck_min_cost'])
+    mode_choice_spec['truck_min_cost'] = truck_min_cost
+    
+    parcel_cost_coeff_a = float(config['MC_CONSTANTS']['parcel_cost_coeff_a'])
+    mode_choice_spec['parcel_cost_coeff_a'] = parcel_cost_coeff_a
+    
+    parcel_cost_coeff_b = float(config['MC_CONSTANTS']['parcel_cost_coeff_b'])
+    mode_choice_spec['parcel_cost_coeff_b'] = parcel_cost_coeff_b
+    
+    parcel_max_cost = float(config['MC_CONSTANTS']['parcel_max_cost'])
+    mode_choice_spec['parcel_max_cost'] = parcel_max_cost
+    
     # print(mode_choice_spec)
     print('SynthFirm run for ' + scenario_name + ' start!')
     print('----------------------------------------------')
@@ -252,14 +312,20 @@ def main():
                                 sample_consumer_file, consumer_by_sctg_filehead, 
                                 wholesalecostfactor, output_path)
     
-    ##### Step 4 -  synthetic firm location generation
+    ##### Steps 4 (optional) -  run demand forecast       
+    if run_demand_forecast:
+        prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
+                                      producer_file, consumer_file, prod_forecast_file,
+                                      cons_forecast_file, mesozone_to_faf_file, sctg_group_file,
+                                      consumer_by_sctg_filehead, output_path)
+    
+    ##### Step 5 -  synthetic firm location generation
     if enable_firm_loc_generation:
         firm_location_generation(synthetic_firms_no_location_file,
                                      synthetic_firms_with_location_file,
                                      zonal_output_file,
                                      spatial_boundary_file, output_path)
     
-    ##### placeholder for demand forecast and calibration
     
     ##### Step 6 -  supplier selection         
     if run_supplier_selection:
