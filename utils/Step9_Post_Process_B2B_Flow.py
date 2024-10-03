@@ -42,7 +42,7 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
         sctg = 'sctg' + str(k + 1)
         print('post process mode choice results from ' + sctg)
         b2b_dir = os.path.join(output_dir, sctg)
-        list_of_b2b_files = listdir(b2b_dir)
+        list_of_b2b_files = [f for f in os.listdir(b2b_dir) if f.endswith('.zip')]
         iterator = 0
     #     cut_off_point = max_ton_lookup[sctg] # shipment capacity for this shipment
         for file in list_of_b2b_files:

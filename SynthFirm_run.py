@@ -55,7 +55,7 @@ def main():
     file_path = config['ENVIRONMENT']['file_path']
     parameter_dir = config['ENVIRONMENT']['parameter_path']
     number_of_processes = config['ENVIRONMENT'].get('number_of_processes')
-    number_of_processes = int(number_of_processes) if number_of_processes else 1
+    number_of_processes = int(number_of_processes) if number_of_processes else 0
     input_dir = 'inputs_' + scenario_name
     output_dir = 'outputs_' + out_scenario_name
 
