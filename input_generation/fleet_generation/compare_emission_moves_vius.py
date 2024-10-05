@@ -16,7 +16,7 @@ import os
 import warnings
 warnings.filterwarnings("ignore")
 
-
+plt.style.use('seaborn-v0_8-whitegrid')
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 # define constant

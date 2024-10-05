@@ -60,6 +60,7 @@ hpms_vmt_with_def = pd.merge(hpms_vmt, hpms_definition,
                     on = 'HPMSVtypeID', how = 'left')
 sns.lineplot(data=hpms_vmt_with_def, x="yearID", y="Cumulative VMT growth rate", 
              hue="HPMSVtypeName")
+plt.show()
 
 # <codecell>
 
@@ -88,3 +89,217 @@ sns.lineplot(data=source_type_population_with_def,
              hue="sourceTypeName", style = 'sourceTypeName',
              markers=True)
 plt.legend(bbox_to_anchor = (1.01, 1))
+plt.show()
+
+
+# <codecell>
+
+# calculate vehicle new sale scrappage
+source_type_population.loc[:, 'DeltaPop'] = \
+    source_type_population.loc[:, 'sourceTypePopulationPre'] * (source_type_population.loc[:, 'PopGrowthFactor'] - 1)
+source_type_population.loc[:, 'DeltaPop'].fillna(0, inplace = True)
+new_sale_fraction = age_distribution.loc[age_distribution['ageID'] == 0]
+
+source_type_population_with_sale = pd.merge(source_type_population,
+                                            new_sale_fraction,
+                                            on = ['yearID', 'sourceTypeID'],
+                                            how = 'left')
+source_type_population_with_sale.loc[:, 'NewSale'] = \
+    source_type_population_with_sale.loc[:, 'sourceTypePopulation'] * \
+        source_type_population_with_sale.loc[:, 'ageFraction']
+
+source_type_population_with_sale.loc[:, 'ScrappedVeh'] = \
+    source_type_population_with_sale.loc[:, 'NewSale'] - \
+        source_type_population_with_sale.loc[:, 'DeltaPop']
+
+source_type_population_with_sale = \
+    source_type_population_with_sale.sort_values(by = 'yearID', ascending = True)
+source_type_population_with_sale.loc[:, 'ScrappedVeh'] = \
+    source_type_population_with_sale.groupby('sourceTypeID')['ScrappedVeh'].shift(-1)
+source_type_population_with_sale.loc[:, 'ScrappedVeh'].fillna(0, inplace = True)
+
+# <codecell>
+
+# get baseline source type model year mix
+source_type_population_baseyear = \
+    source_type_population.loc[source_type_population['yearID'] == baseline_year]
+source_type_population_baseyear = \
+    source_type_population_baseyear[['sourceTypeID', 'sourceTypePopulation']]
+
+age_distribution_baseyear = \
+    age_distribution.loc[age_distribution['yearID'] == baseline_year]
+age_distribution_baseyear.loc[:, 'modelYearID'] = \
+    baseline_year - age_distribution_baseyear.loc[:, 'ageID'] 
+    
+survival_rate = RMAR_factor[['ageID', 'sourceTypeID', 'survivalRate']]
+fleet_mix_baseyear = pd.merge(source_type_population_baseyear,
+                              age_distribution_baseyear,
+                              on = 'sourceTypeID', how = 'left')
+
+# fleet_mix_baseyear = pd.merge(fleet_mix_baseyear,
+#                               survival_rate,
+#                               on = ['sourceTypeID', 'ageID'], how = 'left')
+
+fleet_mix_baseyear.loc[:, 'population_by_year'] =  \
+    fleet_mix_baseyear.loc[:, 'sourceTypePopulation'] * \
+        fleet_mix_baseyear.loc[:, 'ageFraction']
+
+fleet_total_baseyear = \
+    source_type_population_with_sale.loc[source_type_population_with_sale['yearID'] == baseline_year]
+    
+print(fleet_total_baseyear[['sourceTypeID', 'sourceTypePopulation']])
+print(fleet_mix_baseyear.groupby('sourceTypeID')['population_by_year'].sum())
+
+# <codecell>
+
+# fleet projection
+fleet_mix_current_year = fleet_mix_baseyear.drop(columns = ['modelYearID'])
+
+fleet_mix_age_30_plus = fleet_mix_current_year.loc[fleet_mix_current_year['ageID'] == 30]
+fleet_mix_next_year = None
+
+end_year = source_type_population.yearID.max()
+list_of_years = list(range(baseline_year, end_year))
+
+fleet_mix_by_year = fleet_mix_current_year # all year mix
+n_iter = 10
+for year in list_of_years:
+    next_year = year + 1
+    print('generate age distribution for year=' + str(next_year))
+    
+    fleet_total_by_year = \
+        source_type_population_with_sale.loc[source_type_population_with_sale['yearID'] == year]
+    fleet_total_by_year = \
+        fleet_total_by_year.sort_values('sourceTypeID', ascending = True)
+    
+    fleet_mix_next_year = fleet_mix_current_year.copy()
+    # re-append survival rate for every year, because after normalization it will be gone
+    fleet_mix_next_year = pd.merge(fleet_mix_next_year,
+                                  survival_rate,
+                                  on = ['sourceTypeID', 'ageID'], how = 'left')
+            
+    fleet_mix_next_year.loc[:, 'veh_to_scrap'] = \
+        fleet_mix_next_year.loc[:, 'population_by_year'] * \
+            (1 - fleet_mix_next_year.loc[:, 'survivalRate'])
+    scrappage_goal = fleet_total_by_year[['sourceTypeID', 'ScrappedVeh']]
+    scrappage_est = fleet_mix_next_year.groupby('sourceTypeID')['veh_to_scrap'].sum()
+    scrappage_est = scrappage_est.reset_index()
+    print('scrappage vehicle compare before k-adjust (left - goal, right - estimate):')
+    print(scrappage_goal.ScrappedVeh.sum(), scrappage_est.veh_to_scrap.sum())
+    
+    # calculate and apply k-adj factor
+    k_factor = pd.merge(scrappage_goal, scrappage_est, 
+                        on = 'sourceTypeID', how = 'outer')
+    k_factor.loc[:, 'k_factor'] = \
+        k_factor.loc[:, 'ScrappedVeh'] / k_factor.loc[:, 'veh_to_scrap']
+    k_factor = k_factor[['sourceTypeID',  'k_factor']]
+    fleet_mix_next_year = pd.merge(fleet_mix_next_year,
+                                   k_factor, on = 'sourceTypeID', how = 'left')
+    fleet_mix_next_year.loc[:, 'veh_to_scrap'] = \
+        fleet_mix_next_year.loc[:, 'veh_to_scrap'] * fleet_mix_next_year.loc[:, 'k_factor']
+
+    scrappage_est_2 = fleet_mix_next_year.groupby('sourceTypeID')['veh_to_scrap'].sum()
+    scrappage_est_2 = scrappage_est_2.reset_index()
+    print('scrappage vehicle compare after k-adjust (left - goal, right - estimate):')
+    print(scrappage_goal.ScrappedVeh.sum(), scrappage_est_2.veh_to_scrap.sum())   
+    
+    # generate population after scrappage
+    fleet_mix_next_year.loc[:, 'population_by_year'] = \
+        fleet_mix_next_year.loc[:, 'population_by_year'] - \
+            fleet_mix_next_year.loc[:, 'veh_to_scrap']
+
+    # fleet_mix_next_year.loc[:, 'error_term'] = \
+    #     np.abs(fleet_mix_next_year.loc[:, 'postAgeFraction'] - \
+    #            fleet_mix_next_year.loc[:, 'ageFraction'])
+    # error_term = sum(fleet_mix_next_year.loc[:, 'error_term'])
+    # print('the accumulative error is: ' + str(error_term))
+    
+    # # prepare for next iteration
+    # fleet_mix_next_year.loc[:, 'ageFraction'] = \
+    #     fleet_mix_next_year.loc[:, 'postAgeFraction']
+    fleet_mix_next_year.drop(columns = ['veh_to_scrap', 'k_factor'], inplace = True)
+            
+    # increasing age id by 1
+    fleet_mix_next_year.loc[:, 'ageID'] += 1
+    fleet_mix_next_year.loc[:, 'yearID'] = next_year
+    # append new sale
+    next_year_new_sale = \
+        source_type_population_with_sale.loc[source_type_population_with_sale['yearID'] == next_year]
+    next_year_new_sale = \
+    next_year_new_sale[['sourceTypeID', 'sourceTypePopulation', 'yearID', 'ageID',
+                        'ageFraction', 'NewSale']]   
+    next_year_new_sale.loc[:, 'survivalRate'] = 1
+
+    next_year_new_sale.rename(columns = {'NewSale': 'population_by_year'}, inplace = True)
+    fleet_mix_next_year = pd.concat([fleet_mix_next_year, next_year_new_sale])
+    
+    fleet_mix_next_year.loc[:, 'ageFraction'] = \
+        fleet_mix_next_year.loc[:, 'population_by_year']/ \
+        fleet_mix_next_year.groupby('sourceTypeID')['population_by_year'].transform('sum')
+
+    # fleet_mix_next_year.loc[fleet_mix_next_year['ageID'] > 30, 'ageFraction'] = \
+    #     fleet_mix_next_year.loc[fleet_mix_next_year['ageID'] > 30, 'ageFraction'].shift(1)
+    fleet_mix_next_year.loc[fleet_mix_next_year['ageID'] > 30, 'ageID'] = 30
+
+
+    # renormalize age distribution
+    agg_var = ['sourceTypeID', 'yearID', 'ageID']
+    fleet_mix_next_year = fleet_mix_next_year.groupby(agg_var)[['population_by_year']].sum()
+    
+    fleet_mix_next_year =fleet_mix_next_year.reset_index()
+    
+    
+    fleet_mix_next_year.loc[:, 'sourceTypePopulation'] = \
+        fleet_mix_next_year.groupby('sourceTypeID')['population_by_year'].transform('sum')
+
+    fleet_mix_next_year.loc[:, 'ageFraction'] = \
+        fleet_mix_next_year.loc[:, 'population_by_year'] / fleet_mix_next_year.loc[:, 'sourceTypePopulation']
+    
+    # fix the tail
+    source_type_next_year = \
+        fleet_mix_next_year.groupby(['sourceTypeID', 'yearID'])[['population_by_year']].sum()
+    source_type_next_year = source_type_next_year.reset_index()
+    source_type_next_year.rename(columns = {'population_by_year': 'sourceTypePopulation'}, 
+                                 inplace = True)
+    age_distribution_next_year = \
+        fleet_mix_next_year[['sourceTypeID', 'ageID', 'ageFraction']]
+    age_distribution_next_year = \
+        age_distribution_next_year.loc[age_distribution_next_year['ageID'] <= 29]
+    age_distribution_tail = fleet_mix_age_30_plus[['sourceTypeID', 'ageID',
+           'ageFraction']]
+    age_distribution_next_year = pd.concat([age_distribution_next_year,
+                                            age_distribution_tail])
+    
+    # re-normalize the age distribution
+    age_distribution_next_year.loc[:, 'adj_bin'] = 'yes'
+    age_distribution_next_year.loc[age_distribution_next_year['ageID'].isin([0, 30]), 'adj_bin'] = 'no'
+    tail_adj_factor = pd.pivot_table(age_distribution_next_year,
+                               columns = 'adj_bin',
+                               index = 'sourceTypeID', 
+                               values = 'ageFraction', aggfunc='sum')
+    tail_adj_factor = tail_adj_factor.reset_index()
+    
+    tail_adj_factor.loc[:, 'adj_factor'] = \
+        (1- tail_adj_factor.loc[:, 'no'])/ \
+            tail_adj_factor.loc[:, 'yes']
+    tail_adj_factor = tail_adj_factor[['sourceTypeID', 'adj_factor']]
+    age_distribution_next_year = pd.merge(age_distribution_next_year,
+                                          tail_adj_factor, on = 'sourceTypeID',
+                                          how = 'left')
+    
+    adj_index = (age_distribution_next_year['adj_bin'] == 'yes')
+    age_distribution_next_year.loc[adj_index, 'ageFraction'] *= \
+        age_distribution_next_year.loc[adj_index, 'adj_factor']
+    # print(age_distribution_next_year.groupby('sourceTypeID')['ageFraction'].sum())
+    age_distribution_next_year.drop(columns = ['adj_bin', 'adj_factor'], inplace = True)
+    
+    fleet_mix_next_year = pd.merge(source_type_next_year,
+                                   age_distribution_next_year,
+                                   on = 'sourceTypeID', how = 'left')
+    fleet_mix_next_year.loc[:, 'population_by_year'] = \
+        fleet_mix_next_year.loc[:, 'ageFraction'] * fleet_mix_next_year.loc[:, 'sourceTypePopulation']
+    fleet_mix_by_year = pd.concat([fleet_mix_by_year, fleet_mix_next_year])
+    
+    # prepare for next iteration
+    fleet_mix_current_year = fleet_mix_next_year.copy()
+    # break
