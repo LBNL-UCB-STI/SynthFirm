@@ -204,19 +204,7 @@ for year in list_of_years:
     print(scrappage_goal.ScrappedVeh.sum(), scrappage_est_2.veh_to_scrap.sum())   
     
     # generate population after scrappage
-    fleet_mix_next_year.loc[:, 'population_by_year'] = \
-        fleet_mix_next_year.loc[:, 'population_by_year'] - \
-            fleet_mix_next_year.loc[:, 'veh_to_scrap']
 
-    # fleet_mix_next_year.loc[:, 'error_term'] = \
-    #     np.abs(fleet_mix_next_year.loc[:, 'postAgeFraction'] - \
-    #            fleet_mix_next_year.loc[:, 'ageFraction'])
-    # error_term = sum(fleet_mix_next_year.loc[:, 'error_term'])
-    # print('the accumulative error is: ' + str(error_term))
-    
-    # # prepare for next iteration
-    # fleet_mix_next_year.loc[:, 'ageFraction'] = \
-    #     fleet_mix_next_year.loc[:, 'postAgeFraction']
     fleet_mix_next_year.drop(columns = ['veh_to_scrap', 'k_factor'], inplace = True)
             
     # increasing age id by 1
