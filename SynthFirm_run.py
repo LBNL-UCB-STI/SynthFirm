@@ -23,6 +23,8 @@ from utils.Step6_Supplier_Selection import supplier_selection
 from utils.Step7_Shipment_Size_Generation import shipment_size_generation
 from utils.Step8_Freight_Mode_Choice_Model import mode_choice_model
 from utils.Step9_Post_Process_B2B_Flow import post_mode_choice
+from utils.Step11_firm_fleet_generation import firm_fleet_generator
+from utils.Step12_firm_fleet_adjustment_post_mc import firm_fleet_generator_post_mc
 from utils.Step13_international_shipment import international_demand_generation
 from utils.Step14_international_mode_assignment import international_mode_choice
 from utils.Step15_international_B2B_flow_generator import domestic_receiver_assignment
@@ -49,7 +51,7 @@ def main():
     conf_file = options.config
     config = configparser.ConfigParser()
     config.read(conf_file)
-    # print(config['ENVIRONMENT']['file_path'])
+    print(config['ENVIRONMENT']['file_path'])
     scenario_name = config['ENVIRONMENT']['scenario_name']
     out_scenario_name = config['ENVIRONMENT']['out_scenario_name']
     file_path = config['ENVIRONMENT']['file_path']
@@ -72,7 +74,6 @@ def main():
     # load module to run
 
     run_firm_generation = config.getboolean('ENVIRONMENT', 'enable_firm_generation') 
-    
     if run_firm_generation:
         print('including synthetic firm generation in the pipeline...')
         
@@ -87,7 +88,6 @@ def main():
         #print(print(type(forecast_year)))
         print('including demand forecast in the pipeline and forecast year is ' + forecast_year + '...')
         
-
     enable_firm_loc_generation = config.getboolean('ENVIRONMENT', 'enable_firm_loc_generation')
     if enable_firm_loc_generation:
         print('including firm location generation in the pipeline...')
@@ -156,6 +156,7 @@ def main():
         prod_forecast_file = os.path.join(param_path, prod_forecast_name)
         cons_forecast_name = config['PARAMETERS']['cons_forecast_filehead'] + forecast_year + '.csv'
         cons_forecast_file = os.path.join(param_path, cons_forecast_name)
+        
     #inputs/outputs first appear in firm location generation
     spatial_boundary_file_fileend = config['INPUTS']['spatial_boundary_file_fileend']
     spatial_boundary_file_name = scenario_name + spatial_boundary_file_fileend
@@ -171,6 +172,32 @@ def main():
     supplier_selection_param_file = os.path.join(param_path, config['PARAMETERS']['supplier_selection_param_file'])
     mode_choice_param_file = os.path.join(input_path, config['INPUTS']['mode_choice_param_file'])
     distance_travel_skim_file = os.path.join(param_path, config['PARAMETERS']['distance_travel_skim_file'])
+    
+    # input/output appear in fleet generation
+    private_fleet_file = os.path.join(input_path, config['FLEET_IO']['private_fleet_file'])
+    for_hire_fleet_file = os.path.join(input_path, config['FLEET_IO']['for_hire_fleet_file'])
+    for_lease_fleet_file = os.path.join(input_path, config['FLEET_IO']['for_lease_fleet_file'])
+    cargo_type_distribution_file = os.path.join(input_path, config['FLEET_IO']['cargo_type_distribution_file'])
+    state_fips_lookup_file = os.path.join(param_path, config['FLEET_IO']['state_fips_lookup_file'])
+    
+    # scenario-specific inputs
+    fleet_year = config['FLEET_IO']['fleet_year']
+    fleet_scenario_name = config['FLEET_IO']['fleet_name']
+    national_fleet_composition_file = os.path.join(input_path, 'fleet', fleet_scenario_name,
+                                                   config['FLEET_IO']['national_fleet_composition_file'])
+    vehicle_type_by_state_file = os.path.join(input_path, 'fleet', fleet_scenario_name,
+                                                   config['FLEET_IO']['vehicle_type_by_state_file'])
+    ev_availability_file = os.path.join(input_path, 'fleet', fleet_scenario_name,
+                                                   config['FLEET_IO']['ev_availability_file'])
+    
+    firms_with_fleet_file = os.path.join(output_path, fleet_year, fleet_scenario_name,
+                                                   config['FLEET_IO']['firms_with_fleet_file'])
+    carriers_with_fleet_file = os.path.join(output_path, fleet_year, fleet_scenario_name,
+                                                   config['FLEET_IO']['carriers_with_fleet_file'])
+    leasing_with_fleet_file = os.path.join(output_path, fleet_year, fleet_scenario_name,
+                                                   config['FLEET_IO']['leasing_with_fleet_file'])
+    firms_with_fleet_mc_adj_files = os.path.join(output_path, fleet_year, fleet_scenario_name,
+                                                   config['FLEET_IO']['firms_with_fleet_mc_adj_files'])
     
     # input/output appear in international flow
     need_domestic_adjustment = config.getboolean('INPUTS', 'need_domestic_adjustment') 
@@ -282,6 +309,8 @@ def main():
     parcel_max_cost = float(config['MC_CONSTANTS']['parcel_max_cost'])
     mode_choice_spec['parcel_max_cost'] = parcel_max_cost
     
+
+    
     # print(mode_choice_spec)
     print('SynthFirm run for ' + scenario_name + ' start!')
     print('----------------------------------------------')
@@ -322,9 +351,10 @@ def main():
     ##### Step 5 -  synthetic firm location generation
     if enable_firm_loc_generation:
         firm_location_generation(synthetic_firms_no_location_file,
-                                     synthetic_firms_with_location_file,
-                                     zonal_output_file,
-                                     spatial_boundary_file, output_path)
+                                      synthetic_firms_with_location_file,
+                                      zonal_output_file,
+                                      spatial_boundary_file, output_path)
+        
     
     
     ##### Step 6 -  supplier selection         
@@ -354,7 +384,22 @@ def main():
 
     
     ###### placeholder for validation and fleet generation
+
+    ##### Step 11/12 - generate firm-level fleet before and after mode choice
     
+    if run_fleet_generation:
+        firm_fleet_generator(fleet_year, fleet_scenario_name, synthetic_firms_with_location_file,
+                                  private_fleet_file, for_hire_fleet_file, for_lease_fleet_file,
+                                  cargo_type_distribution_file, national_fleet_composition_file,
+                                  vehicle_type_by_state_file, ev_availability_file, state_fips_lookup_file,
+                                  firms_with_fleet_file, carriers_with_fleet_file,
+                                  leasing_with_fleet_file, output_path)
+        
+        firm_fleet_generator_post_mc(fleet_year, fleet_scenario_name, synthetic_firms_with_location_file,
+                                 private_fleet_file, national_fleet_composition_file,
+                                 vehicle_type_by_state_file, ev_availability_file, state_fips_lookup_file,
+                                 firms_with_fleet_file, firms_with_fleet_mc_adj_files, output_path)
+           
     ###### Step 13 -- international shipment
     if run_international_flow:
         
