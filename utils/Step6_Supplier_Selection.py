@@ -54,7 +54,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                                     left_on = 'ORIG_CFS_AREA', 
                                     right_on = 'ST_MA', how = 'left')
     cost_by_location_faf = cost_by_location_faf[['FAF', 'Commodity_SCTG', 'UnitCost']] # cost per ton
-    
+    # $/ton
     producer = pd.merge(producer, mesozone_to_faf_lookup, 
                         left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
     producer.loc[:, 'FAFID'] = producer.loc[:, 'FAFID'].replace(np.nan, 0)

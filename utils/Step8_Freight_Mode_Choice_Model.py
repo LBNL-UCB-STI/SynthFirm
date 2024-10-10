@@ -71,31 +71,32 @@ def choice_model_variable_generator(data, mode_choice_spec, distance_travel_time
                      on = ['orig_FAFID', 'dest_FAFID', 'Alternative'], how = 'left')
     data.loc[:, 'Cost_val'] = 0
     # 1. rail cost
-    data.loc[data['Alternative'] == 'Rail/IMX', 'Cost_val'] = 0.039 * data.loc[data['Alternative'] == 'Rail/IMX', 'TruckLoad'] * \
+    data.loc[data['Alternative'] == 'Rail/IMX', 'Cost_val'] = mode_choice_spec['rail_unit_cost'] * data.loc[data['Alternative'] == 'Rail/IMX', 'TruckLoad'] * \
         data.loc[data['Alternative'] == 'Rail/IMX','Distance']
-    data.loc[(data['Alternative'] == 'Rail/IMX') & (data['Cost_val'] < 200), 'Cost_val'] = 200
+    data.loc[(data['Alternative'] == 'Rail/IMX') & (data['Cost_val'] < mode_choice_spec['rail_min_cost']), 'Cost_val'] = mode_choice_spec['rail_min_cost']
     # 2. air cost
-    data.loc[data['Alternative'] == 'Air', 'Cost_val'] = 55 + 1.08 * (data.loc[data['Alternative'] == 'Air','TruckLoad'] > 0.05) * \
+    data.loc[data['Alternative'] == 'Air', 'Cost_val'] = mode_choice_spec['air_min_cost'] + \
+        mode_choice_spec['air_unit_cost'] * (data.loc[data['Alternative'] == 'Air','TruckLoad'] > 0.05) * \
         (data.loc[data['Alternative'] == 'Air','TruckLoad'] - 0.05) / mode_choice_spec['lb_to_ton']
     # 3. truck cost
     truck_criteria = (data['Alternative'] == 'Private Truck') | (data['Alternative'] == 'For-hire Truck')
     weight_criteria_low = (data['TruckLoad'] < 0.075)
     weight_criteria_medium = (data['TruckLoad'] >= 0.075) & (data['TruckLoad'] < 0.75)
     weight_criteria_high = (data['TruckLoad'] >= 0.75) 
-    data.loc[truck_criteria & weight_criteria_low, 'Cost_val'] = 2.83 * data.loc[truck_criteria & weight_criteria_low,'TruckLoad'] * \
+    data.loc[truck_criteria & weight_criteria_low, 'Cost_val'] = mode_choice_spec['truck_unit_cost_sm'] * data.loc[truck_criteria & weight_criteria_low,'TruckLoad'] * \
         data.loc[truck_criteria & weight_criteria_low, 'Distance']
-    data.loc[truck_criteria & weight_criteria_medium, 'Cost_val'] = 0.5 * data.loc[truck_criteria & weight_criteria_medium,'TruckLoad'] * \
+    data.loc[truck_criteria & weight_criteria_medium, 'Cost_val'] = mode_choice_spec['truck_unit_cost_md'] * data.loc[truck_criteria & weight_criteria_medium,'TruckLoad'] * \
         data.loc[truck_criteria & weight_criteria_medium, 'Distance']
-    data.loc[truck_criteria & weight_criteria_high, 'Cost_val'] = 0.18 * data.loc[truck_criteria & weight_criteria_high,'TruckLoad'] * \
+    data.loc[truck_criteria & weight_criteria_high, 'Cost_val'] = mode_choice_spec['truck_unit_cost_lg'] * data.loc[truck_criteria & weight_criteria_high,'TruckLoad'] * \
         data.loc[truck_criteria * weight_criteria_high, 'Distance']   
-    data.loc[truck_criteria & (data['Cost_val'] < 10), 'Cost_val'] = 10
+    data.loc[truck_criteria & (data['Cost_val'] < 10), 'Cost_val'] = mode_choice_spec['truck_min_cost']
     
     # 4. parcel
     parcel_criteria_1 = (data['Alternative'] == 'Parcel') & (data['TruckLoad'] <= 0.15)
     parcel_criteria_2 = (data['Alternative'] == 'Parcel') & (data['TruckLoad'] > 0.15)
     data.loc[parcel_criteria_1, 'Cost_val'] =  \
-        np.exp(3.58 + 0.015 * data.loc[parcel_criteria_1, 'TruckLoad'] / mode_choice_spec['lb_to_ton'])
-    data.loc[parcel_criteria_2, 'Cost_val'] = 1000 # set shipping cost upper bound
+        np.exp(mode_choice_spec['parcel_cost_coeff_a'] + mode_choice_spec['parcel_cost_coeff_b'] * data.loc[parcel_criteria_1, 'TruckLoad'] / mode_choice_spec['lb_to_ton'])
+    data.loc[parcel_criteria_2, 'Cost_val'] = mode_choice_spec['parcel_max_cost'] # set shipping cost upper bound
     # 4. parcel cost
     
     ###### assign mode availability ######
@@ -184,7 +185,7 @@ def process_chunk(args):
      
      # convert data to long format, generate variables for mode choice
     modeled_OD_by_sctg_long = pd.melt(modeled_OD_by_sctg, id_vars=['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID', 'SellerZone',
-        'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 'shipment_id', 'orig_FAFID', 'dest_FAFID', 'UnitCost'], 
+        'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 'shipment_id', 'orig_FAFID', 'dest_FAFID', 'UnitCost'], 
          value_vars=list_of_alternative,
          var_name='Alternative', value_name='constant')  # convert wide dataframe to long       
      # modeled_OD_by_sctg_long.loc[modeled_OD_by_sctg_long['TruckLoad'] > c.max_shipment_load, 'TruckLoad'] = c.max_shipment_load
@@ -215,11 +216,11 @@ def process_chunk(args):
                                    right_on = ['orig_FAFID', 'dest_FAFID', 'Alternative'], how = 'left')
     modeled_OD_by_sctg = modeled_OD_by_sctg[['BuyerID', 'BuyerZone', 
                                               'BuyerNAICS', 'SellerID', 'SellerZone',
-                                              'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'NAICS_code', 
+                                              'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 
                                               'shipment_id', 'orig_FAFID', 'dest_FAFID', 'mode_choice', 
-                                              'probability', 'Distance', 'Travel_time', 'Commodity_SCTG']]
-    int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'SCTG_Group', 'NAICS_code', 'shipment_id',
-    'orig_FAFID', 'dest_FAFID', 'Commodity_SCTG']
+                                              'probability', 'Distance', 'Travel_time']]
+    int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 'shipment_id',
+    'orig_FAFID', 'dest_FAFID']
     modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(int)
     float_var = ['TruckLoad', 'probability', 'Distance', 'Travel_time']
     modeled_OD_by_sctg.loc[:, float_var] = modeled_OD_by_sctg.loc[:, float_var].astype(float)

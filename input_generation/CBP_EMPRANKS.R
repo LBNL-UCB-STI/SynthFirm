@@ -19,8 +19,8 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 setwd(path2file)
 
-selected_state = 'WA'
-selected_region = 'Seattle'
+selected_state = 'CA'
+selected_region = 'BayArea'
 
 naics = c(
   "n11",
@@ -71,7 +71,7 @@ selected_file = paste0('inputs_', selected_region, '/', selected_region, '_FAFCN
 f1 = data.table::fread(selected_file,colClasses = list(character=c("ANSI_ST","ANSI_CNTY","ST_CNTY")), h=T)
 
 f1_in_study_area <- f1 %>% filter(CBPZONE>=1000)
-study_area_faf <- unique(f1_in_study_area$FAFID)
+study_area_faf <- unique(f1_in_study_area$FAFID) # VERY IMPORTANT: check if the region generated here is accurate
 
 f3 = f1 %>% filter(FAFID %in% study_area_faf) %>% select(ST_CNTY,CBPZONE1)
 
