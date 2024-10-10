@@ -175,12 +175,13 @@ def add_noise_to_survival_curve(survival_rate, scaling_factor = 0.01):
 
 
 n_iter = 100
-survival_rate_mandate = survival_rate.copy()
-mandate_idx = (survival_rate_mandate['ageID'] >= 15) & \
-    (survival_rate_mandate['sourceTypeID'].isin([32, 52, 53, 61, 62]))
-survival_rate_mandate.loc[mandate_idx, 'survivalRate'] *= 0.5
+# survival_rate_mandate = survival_rate.copy()
+# mandate_idx = (survival_rate_mandate['ageID'] >= 20) & \
+#     (survival_rate_mandate['sourceTypeID'].isin([32, 52, 53, 61, 62]))
+# survival_rate_mandate.loc[mandate_idx, 'survivalRate'] *= 0.5
 # survival_rate_alt = add_noise_to_survival_curve(survival_rate_mandate, 0.05)
 results_by_iteration = None
+# annual_scrappage = None
 for iteration in range(n_iter):
     print('running fleet projection for iteration ' + str(iteration))
     # prep input at the start of iteration
@@ -238,11 +239,15 @@ for iteration in range(n_iter):
         # generate population after scrappage
         fleet_mix_next_year.loc[:, 'population_by_year'] = \
             fleet_mix_next_year.loc[:, 'population_by_year'] - fleet_mix_next_year.loc[:, 'veh_to_scrap']
+        fleet_mix_next_year.loc[:, 'yearID'] = next_year
+        # scrap_to_check = fleet_mix_next_year[['yearID', 'sourceTypeID', 'ageID', 
+        #                                       'population_by_year', 'veh_to_scrap', 'k_factor']]
+        # annual_scrappage = pd.concat([annual_scrappage, scrap_to_check])
         fleet_mix_next_year.drop(columns = ['veh_to_scrap', 'k_factor'], inplace = True)
                 
         # increasing age id by 1
         fleet_mix_next_year.loc[:, 'ageID'] += 1
-        fleet_mix_next_year.loc[:, 'yearID'] = next_year
+
         # append new sale
         next_year_new_sale = \
             source_type_population_with_sale.loc[source_type_population_with_sale['yearID'] == next_year]
@@ -338,7 +343,7 @@ results_by_iteration.to_csv(os.path.join(path_to_moves, 'turnover',file_name),
 # <codecell>
 sns.set_theme(style="whitegrid", font_scale=1.4)
 # plot selected age distribution
-year_list = [2021, 2030, 2040, 2050, 2060]
+year_list = [2021, 2030, 2040, 2050]
 fleet_mix_to_plot = results_by_iteration.loc[results_by_iteration['sourceTypeID'].isin(selected_type)]
 fleet_mix_to_plot = fleet_mix_to_plot.loc[fleet_mix_to_plot['yearID'].isin(year_list)]
 sns.relplot(data = fleet_mix_to_plot, x= 'ageID', y = 'ageFraction',
