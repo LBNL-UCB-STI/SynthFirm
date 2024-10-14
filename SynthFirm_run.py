@@ -199,29 +199,30 @@ def main():
     firms_with_fleet_mc_adj_files = os.path.join(output_path, fleet_year, fleet_scenario_name,
                                                    config['FLEET_IO']['firms_with_fleet_mc_adj_files'])
     
+    if run_international_flow:
     # input/output appear in international flow
-    need_domestic_adjustment = config.getboolean('INPUTS', 'need_domestic_adjustment') 
-    if need_domestic_adjustment:
-        location_from_str = config['INPUTS']['location_from']
-        location_from = [int(num) for num in location_from_str.split(',')]
-        location_to_str = config['INPUTS']['location_to']
-        location_to = [int(num) for num in location_to_str.split(',')]
-    regional_import_file = os.path.join(input_path, 'port', config['INPUTS']['regional_import_file'])
-    regional_export_file = os.path.join(input_path, 'port', config['INPUTS']['regional_export_file'])
-    port_level_import_file = os.path.join(input_path, 'port', config['INPUTS']['port_level_import_file'])
-    port_level_export_file = os.path.join(input_path, 'port', config['INPUTS']['port_level_export_file'])
-    int_shipment_size_file = os.path.join(param_path,  config['PARAMETERS']['int_shipment_size_file'])
-    sctg_by_port_file = os.path.join(param_path, config['PARAMETERS']['sctg_by_port_file'])
-    
-    import_od = os.path.join(output_path, config['OUTPUTS']['import_od'])
-    export_od = os.path.join(output_path, config['OUTPUTS']['export_od'])
-    
-    int_mode_choice_file = os.path.join(input_path, config['INPUTS']['int_mode_choice_file'])
-    import_mode_file = os.path.join(output_path, 'international', config['OUTPUTS']['import_mode_file'])
-    export_mode_file = os.path.join(output_path, 'international', config['OUTPUTS']['export_mode_file'])
-    
-    export_with_firm_file = os.path.join(output_path, 'international', config['OUTPUTS']['export_with_firm_file'])
-    import_with_firm_file = os.path.join(output_path, 'international', config['OUTPUTS']['import_with_firm_file'])
+        need_domestic_adjustment = config.getboolean('INPUTS', 'need_domestic_adjustment') 
+        if need_domestic_adjustment:
+            location_from_str = config['INPUTS']['location_from']
+            location_from = [int(num) for num in location_from_str.split(',')]
+            location_to_str = config['INPUTS']['location_to']
+            location_to = [int(num) for num in location_to_str.split(',')]
+        regional_import_file = os.path.join(input_path, 'port', config['INPUTS']['regional_import_file'])
+        regional_export_file = os.path.join(input_path, 'port', config['INPUTS']['regional_export_file'])
+        port_level_import_file = os.path.join(input_path, 'port', config['INPUTS']['port_level_import_file'])
+        port_level_export_file = os.path.join(input_path, 'port', config['INPUTS']['port_level_export_file'])
+        int_shipment_size_file = os.path.join(param_path,  config['PARAMETERS']['int_shipment_size_file'])
+        sctg_by_port_file = os.path.join(param_path, config['PARAMETERS']['sctg_by_port_file'])
+        
+        import_od = os.path.join(output_path, config['OUTPUTS']['import_od'])
+        export_od = os.path.join(output_path, config['OUTPUTS']['export_od'])
+        
+        int_mode_choice_file = os.path.join(input_path, config['INPUTS']['int_mode_choice_file'])
+        import_mode_file = os.path.join(output_path, 'international', config['OUTPUTS']['import_mode_file'])
+        export_mode_file = os.path.join(output_path, 'international', config['OUTPUTS']['export_mode_file'])
+        
+        export_with_firm_file = os.path.join(output_path, 'international', config['OUTPUTS']['export_with_firm_file'])
+        import_with_firm_file = os.path.join(output_path, 'international', config['OUTPUTS']['import_with_firm_file'])
     
     # prepare mode choice specifications
     mode_choice_spec = {} 

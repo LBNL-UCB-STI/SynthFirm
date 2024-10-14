@@ -206,7 +206,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employm
         # check na
         firms_with_na = firms_in_boundary_sel.loc[firms_in_boundary_sel['MESOZONE'].isna()]
         if len(firms_with_na) > 0:
-            print(str(len(firms_with_na)) + 'firms failed to have zone assigned')
+            print(str(len(firms_with_na)) + ' firms failed to have zone assigned')
             # break
         firms_in_boundary_out = pd.concat([firms_in_boundary_out, firms_in_boundary_sel])
         # break

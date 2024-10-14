@@ -4,6 +4,7 @@
 <p> Updates (May 8, 2023): documented firm and employment data generation </p>
 <p> Updates (May 11, 2023): documented CFS processing, supplier selection, I-O projection, and map generation </p>
 <p> Updates (Aug 08, 2023): documented firm fleet generation </p>
+<p> Updates (Oct 14, 2024): update documents to reflect V2 changes and improve readability </p>
 
 ## a. national-level input generation (regardless of study area)
 
