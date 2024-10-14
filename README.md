@@ -177,6 +177,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
   leasing_with_fleet_file = synthetic_leasing_company.csv
   firms_with_fleet_mc_adj_files = synthetic_firms_with_fleet_mc_adjusted.csv
   ```
+  * For demand forecast scenario setup, please follow this [Seattle template](configs/Seattle_2030.conf)
   * Finish preparing configure file!
   
 ## Task 2 -- Run synthetic firm and B2B flow generation ##
