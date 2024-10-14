@@ -24,10 +24,10 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-selected_state = c('CA')
-output_state = 'CA'
+selected_state = c('TX')
+output_state = 'TX'
 selected_year = 2017
-region_name = 'BayArea'
+region_name = 'Austin'
 
 
 ####### BEGINNING OF CENSUS DATA PROCESSES ######
@@ -103,7 +103,7 @@ state_bg_df = get_acs(
 state_bg_df_filtered <- state_bg_df %>% filter(! grepl('Block Group 0', NAME)) # with population
 list_of_geoid <- unique(state_bg_df_filtered$GEOID)
 bg_name = paste0('inputs_', region_name, '/', output_state, '_bg.geojson')
-sf::st_write(state_bg_df_filtered, bg_name)
+sf::st_write(state_bg_df_filtered, bg_name, append=FALSE)
 
 state_wac_filtered <- state_wac %>% filter(GEOID %in% list_of_geoid)
 output_name = paste0('inputs_', region_name, '/', output_state, '_naics.csv')

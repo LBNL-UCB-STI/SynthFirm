@@ -26,7 +26,7 @@ mode_lookup = {1: 'Truck', 2: 'Rail', 3: 'Other', 4: 'Air',
                5: 'Parcel', 6: 'Other', 7: 'Other', 8: 'Other'}
 
 #define scenario input
-analysis_year = 2017
+analysis_year = 2050
 shipment_load_attr = 'tons_' + str(analysis_year)
 shipment_tonmile_attr = 'tmiles_' + str(analysis_year)
 shipment_value_attr = 'value_' + str(analysis_year)
@@ -39,10 +39,16 @@ shipment_value_attr = 'value_' + str(analysis_year)
 
 # load FAF5 data
 
-faf_data = read_csv('validation/FAF5.3.csv', sep = ',')
-# print(faf_data.columns)
+# load FAF5 data
 
-sctg_group_lookup = read_csv('Parameter/SCTG_Groups_revised.csv', sep = ',')
+faf_data = read_csv('validation/FAF5.3.csv', sep = ',')
+faf_data = faf_data.loc[faf_data['trade_type'] == 1]
+print(faf_data.columns)
+
+sctg_group_lookup = read_csv('SynthFirm_parameters/SCTG_Groups_revised.csv', sep = ',')
+sctg_group_lookup.head(5)
+
+cfs_faf_lookup = read_csv('SynthFirm_parameters/CFS_FAF_LOOKUP.csv')
 # sctg_group_lookup.head(5)
 
 faf_data.loc[:, 'mode_def'] = faf_data.loc[:, 'dms_mode'].map(mode_lookup)
@@ -96,3 +102,19 @@ faf_attraction_output = faf_attraction[attraction_output_attr]
 
 faf_production_output.to_csv('SynthFirm_parameters/total_commodity_production_' + str(analysis_year) + '.csv', sep = ',', index = False)
 faf_attraction_output.to_csv('SynthFirm_parameters/total_commodity_attraction_' + str(analysis_year) + '.csv', sep = ',', index = False)
+
+# <codecell>
+# generate unit cost
+# faf_production_output.head(5)
+unit_cost_forecast = faf_production_output[['dms_orig', 'SCTG_Code', value_density_attr]]
+
+unit_cost_forecast = pd.merge(unit_cost_forecast, cfs_faf_lookup,
+                              left_on = 'dms_orig', right_on = 'FAF',
+                              how = 'left')
+unit_cost_forecast = unit_cost_forecast[['ST_MA', 'SCTG_Code', value_density_attr]]
+unit_cost_forecast[value_density_attr] *= 2000 # convert to $/us ton
+unit_cost_forecast = \
+unit_cost_forecast.rename(columns = {'ST_MA': 'ORIG_CFS_AREA',
+                                     'SCTG_Code': 'Commodity_SCTG',
+                                    value_density_attr: 'UnitCost'})
+unit_cost_forecast.to_csv('SynthFirm_parameters/data_unitcost_by_zone_faf' + str(analysis_year) + '.csv', sep = ',', index = False)
