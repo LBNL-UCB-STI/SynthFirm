@@ -17,11 +17,12 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 set.seed(0)
+scenario = 'Austin'
 path2file <-
-  "/Users/xiaodanxu/Documents/SynthFirm.nosync/inputs_BayArea"
+  paste0("/Users/xiaodanxu/Documents/SynthFirm.nosync/inputs_", scenario)
 setwd(path2file)
 
-f1 = sf::st_read("BayArea_freight_centroids.geojson")
+f1 = sf::st_read(paste0(scenario, "_freight_centroids.geojson"))
 
 require(sp)
 
@@ -78,4 +79,4 @@ names(centroid_distance_long) = c("OriginZone","DestinationZone","DistMiles")
 # f2 = reshape2::melt(xxW)
 # names(f2) = c("OriginZone","DestinationZone","DistMiles")
 # f2 = f2 %>% filter(DistMiles > 0)
-data.table::fwrite(centroid_distance_long, "BayArea_od_dist.csv")
+data.table::fwrite(centroid_distance_long, paste0(scenario, "_od_dist.csv"))

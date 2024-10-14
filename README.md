@@ -21,6 +21,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
 <p> Updates (Aug 14, 2023): documented synthetic firm, producer and consumer generation </p>
 <p> Updates (Aug 22, 2023): documented B2B flow generation </p>
 <p> Updates (Aug 29, 2023): added firm generation into SynthFirm pipeline and uploaded input data </p>
+<p> Updates (Oct 14, 2024): update documentation to reflect V2.0 improvements </p>
 
 ## Task 0 -- Input data generation and environment setup ##
 * Please refer to this [input generation guide](input_generation/Readme.md) to prepare inputs for selected region
