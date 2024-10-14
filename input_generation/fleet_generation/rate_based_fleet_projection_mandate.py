@@ -119,6 +119,42 @@ source_type_population_with_sale.loc[:, 'ScrappedVeh'] = \
 source_type_population_with_sale.loc[:, 'ScrappedVeh'].fillna(0, inplace = True)
 
 # <codecell>
+# plot scrappage fraction
+source_type_population_with_sale.loc[:, 'scrappage rate'] = \
+    source_type_population_with_sale.loc[:, 'ScrappedVeh']/ \
+        source_type_population_with_sale.loc[:, 'sourceTypePopulation']
+source_type_population_with_sale.loc[:, 'new sale rate'] = \
+    source_type_population_with_sale.loc[:, 'NewSale']/ \
+        source_type_population_with_sale.loc[:, 'sourceTypePopulation']
+scrappage_frac = source_type_population_with_sale[['yearID', 'sourceTypeID',
+                                                   'scrappage rate', 'new sale rate']]
+
+scrappage_frac_with_def = \
+    scrappage_frac.loc[scrappage_frac['sourceTypeID'].isin(selected_type)]
+scrappage_frac_with_def = \
+    scrappage_frac_with_def.loc[scrappage_frac_with_def['yearID']< 2060]
+scrappage_frac_with_def = pd.merge(scrappage_frac_with_def, source_type_hpms,
+                        on = 'sourceTypeID', how = 'left')
+scrappage_frac_with_def = scrappage_frac_with_def.sort_values(by = 'sourceTypeID')
+
+sns.lineplot(data=scrappage_frac_with_def, 
+             x="yearID", y="scrappage rate", 
+             hue="sourceTypeName", style = 'sourceTypeName',
+             markers=True)
+plt.legend(bbox_to_anchor = (1.01, 1))
+plt.savefig(os.path.join(path_to_moves, 'plot_forecast', 'scrappage_rate_com.png'), dpi = 300,
+            bbox_inches = 'tight')
+plt.show()
+
+sns.lineplot(data=scrappage_frac_with_def, 
+             x="yearID", y="new sale rate", 
+             hue="sourceTypeName", style = 'sourceTypeName',
+             markers=True)
+plt.legend(bbox_to_anchor = (1.01, 1))
+plt.savefig(os.path.join(path_to_moves, 'plot_forecast', 'new_sale_rate_com.png'), dpi = 300,
+            bbox_inches = 'tight')
+plt.show()
+# <codecell>
 
 # get baseline source type model year mix
 source_type_population_baseyear = \
