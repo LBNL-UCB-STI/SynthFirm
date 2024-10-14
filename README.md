@@ -16,12 +16,12 @@ works, and perform publicly and display publicly, and to permit others to do so.
 
 
 # SynthFirm Tutorial
-<p>**A quick overview of running SynthFirm for a selected region** </p>
-<p> **Contact: Xiaodan Xu, Ph.D.**  (XiaodanXu@lbl.gov) </p>
-<p> **Updates (Aug 14, 2023)**: documented synthetic firm, producer and consumer generation </p>
-<p> **Updates (Aug 22, 2023)**: documented B2B flow generation </p>
-<p> **Updates (Aug 29, 2023)**: added firm generation into SynthFirm pipeline and uploaded input data </p>
-<p> **Updates (Oct 14, 2024)**: update documentation to reflect V2.0 improvements </p>
+<p> <b>A quick overview of running SynthFirm for a selected region</b> </p>
+<p> <b>Contact</b>: Xiaodan Xu, Ph.D.  (XiaodanXu@lbl.gov) </p>
+<p> <b>Updates (Aug 14, 2023)</b>: documented synthetic firm, producer and consumer generation </p>
+<p> <b>Updates (Aug 22, 2023)</b>: documented B2B flow generation </p>
+<p> <b>Updates (Aug 29, 2023)</b>: added firm generation into SynthFirm pipeline and uploaded input data </p>
+<p> <b>Updates (Oct 14, 2024)</b>: update documentation to reflect V2.0 improvements </p>
 
 ## Task 0 -- Input data generation and environment setup ##
 * Please refer to this [input generation guide](input_generation/Readme.md) to prepare inputs for selected region
