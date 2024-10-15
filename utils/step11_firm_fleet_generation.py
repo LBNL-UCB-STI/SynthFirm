@@ -135,9 +135,9 @@ def firm_fleet_generator(fleet_year, fleet_scenario_name, synthetic_firms_with_l
     firm_fleet_sample.loc[:, 'n_trucks'] = np.round(firm_fleet_sample.loc[:, 'n_trucks'], 0)
     firm_fleet_sample.loc[:, 'n_trucks'] = firm_fleet_sample.loc[:, 'n_trucks'].astype(int)
     
-    firm_fleet_sample['n_trucks'].hist(bins = 1000)
-    plt.xlim([0,100])
-    plt.show()
+    # firm_fleet_sample['n_trucks'].hist(bins = 1000)
+    # plt.xlim([0,100])
+    # plt.show()
     # append vehicle composition to firms by state
     firm_fleet_sample = firm_fleet_sample.sort_values(by = ['n_trucks'], ascending = True)
     firms = firms.sort_values(by = ['Emp'], ascending = True)

@@ -270,10 +270,10 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     export_by_airport.loc[:, 'export_frac'] = export_by_airport.loc[:, 'export value']/ \
         export_by_airport.loc[:, 'airport export total']
         
-    import_by_airport['import_frac'].hist()
+    # import_by_airport['import_frac'].hist()
     print('range of import adj. factors')
     print(import_by_airport['import_frac'].min(), import_by_airport['import_frac'].max())
-    export_by_airport['export_frac'].hist()
+    # export_by_airport['export_frac'].hist()
     print('range of export adj. factors')
     print(export_by_airport['export_frac'].min(), export_by_airport['export_frac'].max())
     
@@ -442,11 +442,11 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     export_by_other_port.loc[:, 'export_frac'] = export_by_other_port.loc[:, 'export value']/ \
         export_by_other_port.loc[:, 'other export total']
         
-    import_by_other_port['import_frac'].hist()
+    # import_by_other_port['import_frac'].hist()
     print('range of import adj. factors')
     print(import_by_other_port['import_frac'].min(), 
           import_by_other_port['import_frac'].max())
-    export_by_other_port['export_frac'].hist()
+    # export_by_other_port['export_frac'].hist()
     print('range of export adj. factors')
     print(export_by_other_port['export_frac'].min(), 
           export_by_other_port['export_frac'].max())

@@ -221,12 +221,12 @@ def international_mode_choice(int_mode_choice_file, distance_travel_skim_file,
     # <codecell>
     
     # check output distance distribution
-    sns.histplot(data = import_output_with_mode, x = 'Distance', 
-                 weights = 'ship_count', bins = 30, alpha = 0.5)
-    plt.show()
-    sns.histplot(data = export_output_with_mode, x = 'Distance', 
-                 weights = 'ship_count', bins = 30, alpha = 0.5)
-    plt.show()
+    # sns.histplot(data = import_output_with_mode, x = 'Distance', 
+    #              weights = 'ship_count', bins = 30, alpha = 0.5)
+    # plt.show()
+    # sns.histplot(data = export_output_with_mode, x = 'Distance', 
+    #              weights = 'ship_count', bins = 30, alpha = 0.5)
+    # plt.show()
     
     
     # <codecell>
