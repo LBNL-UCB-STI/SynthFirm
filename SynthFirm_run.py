@@ -353,6 +353,7 @@ def main():
     if enable_firm_loc_generation:
         firm_location_generation(synthetic_firms_no_location_file,
                                       synthetic_firms_with_location_file,
+                                      mesozone_to_faf_file,
                                       zonal_output_file,
                                       spatial_boundary_file, output_path)
         

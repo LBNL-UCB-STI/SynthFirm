@@ -38,6 +38,7 @@ def Random_Points_in_Bounds(polygon, number, map_crs):
     
 def firm_location_generation(synthetic_firms_no_location_file,
                              synthetic_firms_with_location_file,
+                             mesozone_to_faf_file,
                              zonal_output_file,
                              spatial_boundary_file, output_path):
     
@@ -45,6 +46,7 @@ def firm_location_generation(synthetic_firms_no_location_file,
     # load inputs
     firms = read_csv(synthetic_firms_no_location_file, low_memory=False) # 8,396, 679 FIRMS
     mesozone_shapefile = gpd.read_file(spatial_boundary_file)
+    mesozone_to_faf = read_csv(mesozone_to_faf_file)
     
     # <codecell>
     
@@ -64,13 +66,19 @@ def firm_location_generation(synthetic_firms_no_location_file,
     map_crs = mesozone_shapefile.crs
     counter = 1
     for zone in list_of_mesozones:
+        # print(zone)
+        # if zone >= 20000 or zone <=3000:
+        #     continue
         if counter % 100 == 0:
             print('processed ' + str(counter) + ' zones')
+        region = mesozone_to_faf.loc[mesozone_to_faf['MESOZONE']== zone, 'FAFNAME'].values[0]
+        region = str(region)
+        # print(zone, region)
         counter += 1
         firm_selected = firms.loc[firms['MESOZONE'] == zone]
         sample_size = len(firm_selected)
         polygon = mesozone_shapefile.loc[mesozone_shapefile['MESOZONE'] == zone]
-        if zone == 20031:
+        if region == 'Rest of HI':
             gdf_points = Random_Points_in_Bounds(polygon.geometry, 100 * sample_size, map_crs)
         else:
             gdf_points = Random_Points_in_Bounds(polygon.geometry, 5 * sample_size, map_crs)
@@ -101,13 +109,17 @@ def firm_location_generation(synthetic_firms_no_location_file,
     
     counter = 1
     for zone in list_of_mesozones:
+
+    
         if counter % 100 == 0:
             print('processed ' + str(counter) + ' zones')
+        region = mesozone_to_faf.loc[mesozone_to_faf['MESOZONE']== zone, 'FAFNAME']
+        region = str(region)
         counter += 1
         firm_selected = firm_with_missing.loc[firm_with_missing['MESOZONE'] == zone]
         sample_size = len(firm_selected)
         polygon = mesozone_shapefile.loc[mesozone_shapefile['MESOZONE'] == zone]
-        if zone == 20031:
+        if region == 'Rest of HI':
             gdf_points = Random_Points_in_Bounds(polygon.geometry, 5000 * sample_size, map_crs)
         else:
             gdf_points = Random_Points_in_Bounds(polygon.geometry, 500 * sample_size, map_crs)

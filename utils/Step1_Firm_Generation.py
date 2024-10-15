@@ -201,12 +201,15 @@ def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employm
         firms_in_boundary_sel = \
             firms_in_boundary_sel.drop(columns = ['index', 'industry', 'EmpRank'])
         firms_in_boundary_sel.loc[:, 'MESOZONE'].fillna(method = 'ffill', inplace = True)
-
+        firms_in_boundary_sel.loc[:, 'MESOZONE'].fillna(method = 'bfill', inplace = True)
         # for firms with no emp ranking, forward fill it with locations from nearest industry
         # check na
         firms_with_na = firms_in_boundary_sel.loc[firms_in_boundary_sel['MESOZONE'].isna()]
         if len(firms_with_na) > 0:
             print(str(len(firms_with_na)) + ' firms failed to have zone assigned')
+            print('and their firm ids are:')
+            print(firms_with_na.BusID.unique())
+            print('WARNING!!: The following pipeline can fail due to this error')
             # break
         firms_in_boundary_out = pd.concat([firms_in_boundary_out, firms_in_boundary_sel])
         # break
