@@ -209,7 +209,7 @@ plt.ylabel('Annual mileage per truck')
 plt.legend(fontsize = 8, loc = 1)
 plt.savefig('RawData/MOVES/plot/VIUS_VMT_per_truck_by_stmy_imputed.png',
             dpi = 300, bbox_inches = 'tight')
-
+plt.show()
 
 
 # <codecell>
