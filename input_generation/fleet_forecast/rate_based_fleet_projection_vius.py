@@ -240,7 +240,7 @@ for year in list_of_years:
     fleet_mix_by_year = pd.concat([fleet_mix_by_year, fleet_mix_next_year])
     fleet_mix_current_year = fleet_mix_next_year.copy()
     # break
-fleet_mix_by_year.to_csv(os.path.join(path_to_moves, 'turnover', 'age_distribution_vius.csv'),
+fleet_mix_by_year.to_csv(os.path.join(path_to_moves, 'turnover', 'age_distribution_vius_baseline.csv'),
                          index = False)
 
 # <codecell>
@@ -249,12 +249,13 @@ fleet_mix_by_year = pd.merge(fleet_mix_by_year, source_type_hpms,
                     on = 'sourceTypeID', how = 'left')
 # plot selected age distribution
 fleet_mix_to_plot = fleet_mix_by_year.loc[fleet_mix_by_year['sourceTypeID'].isin(selected_type)]
-fleet_mix_to_plot = fleet_mix_to_plot.loc[fleet_mix_to_plot['yearID'].isin([2021, 2030, 2040, 2050, 2060])]
+fleet_mix_to_plot = fleet_mix_to_plot.loc[fleet_mix_to_plot['yearID'].isin([2021, 2030, 2050])]
+fleet_mix_to_plot = fleet_mix_to_plot.sort_values(by = 'sourceTypeID', ascending = True)
 ax = sns.relplot(data = fleet_mix_to_plot, x= 'ageID', y = 'ageFraction',
-            hue = 'yearID', col='sourceTypeName', col_wrap = 3, kind = 'line')
+            hue = 'yearID', col='sourceTypeName', col_wrap = 3, kind = 'line', palette='Spectral')
 ax.set_titles("{col_name}")
 ax.set(ylim=(0, 0.2))
-plt.savefig(os.path.join(path_to_moves, 'plot_forecast', 'com_age_distribution_vius.png'), dpi = 300,
+plt.savefig(os.path.join(path_to_moves, 'plot_forecast', 'com_age_distribution_vius_baseline.png'), dpi = 300,
             bbox_inches = 'tight')
 plt.show()
 
@@ -383,10 +384,10 @@ fleet_mix_by_year = pd.merge(fleet_mix_by_year, source_type_hpms,
                     on = 'sourceTypeID', how = 'left')
 # plot selected age distribution
 fleet_mix_to_plot = fleet_mix_by_year.loc[fleet_mix_by_year['sourceTypeID'].isin(selected_type)]
-fleet_mix_to_plot = fleet_mix_to_plot.loc[fleet_mix_to_plot['yearID'].isin([2021, 2030, 2040, 2050, 2060])]
-
+fleet_mix_to_plot = fleet_mix_to_plot.loc[fleet_mix_to_plot['yearID'].isin([2021, 2030, 2050])]
+fleet_mix_to_plot = fleet_mix_to_plot.sort_values(by = 'sourceTypeID', ascending = True)
 ax = sns.relplot(data = fleet_mix_to_plot, x= 'ageID', y = 'ageFraction',
-            hue = 'yearID', col='sourceTypeName', col_wrap = 3, kind = 'line')
+            hue = 'yearID', col='sourceTypeName', col_wrap = 3, kind = 'line', palette = 'Spectral')
 ax.set_titles("{col_name}")
 plt.savefig(os.path.join(path_to_moves, 'plot_forecast', 'com_age_distribution_vius_mandate.png'), dpi = 300,
             bbox_inches = 'tight')
