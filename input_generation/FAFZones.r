@@ -20,14 +20,14 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-region_name = 'Austin'
-state_name = 'TX'
+region_name = 'national'
+state_name = 'US'
 
 # this is a critical step in selecting study area boundary
 # study_area_faf <- c(531, 532, 539, 411) # Seattle 
 # study_area_faf <- c(62, 64, 65, 69) #sf ones
 study_area_faf <- c(481, 488, 489) #austin ones
-regional_analysis = 1 # 0 - national analysis, 1 - regional analysis
+regional_analysis = 0 # 0 - national analysis, 1 - regional analysis
 # Users can refer to 'CFS_FAF_LOOKUP.csv' for description of FAF zones and select zone IDs that covers study area
 
 cfs_df = sf::st_read("RawData/CFS2017_Areas.geojson")
