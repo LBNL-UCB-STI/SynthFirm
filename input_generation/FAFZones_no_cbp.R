@@ -22,7 +22,7 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-region_name = 'Austin'
+region_name = 'national'
 naics_code <-
   data.table::fread('RawData/corresp_naics6_n6io_sctg_revised.csv', h = T)
 cbp_data <-
