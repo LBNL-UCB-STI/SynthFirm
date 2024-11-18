@@ -40,7 +40,7 @@ pop_turnover_rate = \
 read_csv(os.path.join(path_to_moves, 'turnover', 'pop_growth_and_turnover_rate.csv'))
 
 age_distribution_forecast = read_csv(os.path.join(path_to_moves, 'turnover', 
-                                                  'age_distribution_moves_baseline.csv'))
+                                                  'age_distribution_moves_mandate.csv'))
 age_distribution_forecast = pd.merge(age_distribution_forecast, source_type_hpms,
                                      on = 'sourceTypeID', how = 'left')
 print(age_distribution_forecast.columns)
@@ -86,14 +86,14 @@ fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] = \
 fleet_mix_by_hpms.loc[:, 'vmt_fraction'] =  \
     fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] / \
         fleet_mix_by_hpms.groupby(['yearID'])['weighted_vmt_by_hpms'].transform('sum')
-fleet_mix_by_hpms.to_csv(os.path.join(path_to_moves, 'turnover', 'vmt_fraction_moves_baseline.csv'))         
+fleet_mix_by_hpms.to_csv(os.path.join(path_to_moves, 'turnover', 'vmt_fraction_moves_mandate.csv'))         
 print('Total VMT after allocation:')
 print(fleet_mix_by_hpms['weighted_vmt_by_hpms'].sum())        
 moves_vmt_by_st = \
     fleet_mix_by_hpms.groupby(['yearID','HPMSVtypeID','HPMSVtypeName', 'sourceTypeID','sourceTypeName'])['weighted_vmt_by_hpms'].sum()
 moves_vmt_by_st = moves_vmt_by_st.reset_index()
 moves_vmt_by_st = moves_vmt_by_st.rename(columns = {'weighted_vmt_by_hpms':'annualVMT'})
-moves_vmt_by_st.to_csv(os.path.join(path_to_moves, 'turnover', 'moves_vmt_forecast.csv')) 
+moves_vmt_by_st.to_csv(os.path.join(path_to_moves, 'turnover', 'moves_vmt_forecast_mandate.csv')) 
 
 # <codecell>
 
@@ -132,7 +132,7 @@ sns.lineplot(data=hpms_rate_to_plot, x="yearID", y="Cumulative VMT growth rate",
 
 plt.legend(fontsize = 12)
 plt.ylim([1, 2.5])
-plt.savefig(os.path.join(plot_dir, 'LDV_growth_factor_moves.png'), dpi = 300,
+plt.savefig(os.path.join(plot_dir, 'LDV_growth_factor_moves_mandate.png'), dpi = 300,
             bbox_inches = 'tight')
 plt.show()
 
@@ -148,12 +148,13 @@ ax = sns.lineplot(data=com_vmt_rate, x="yearID", y="Cumulative VMT growth rate",
              hue = "sourceTypeName", style = "sourceTypeName")
 plt.legend(fontsize = 12)
 plt.ylim([1, 2.5])
-plt.savefig(os.path.join(plot_dir, 'com_growth_factor_moves.png'), dpi = 300,
+plt.savefig(os.path.join(plot_dir, 'com_growth_factor_moves_mandate.png'), dpi = 300,
             bbox_inches = 'tight')
 plt.show()
 
 # <codecell>
 
+# only run this if age distribution come from baseline
 mhd_rate = \
     hpms_vmt_growth_rate.loc[hpms_vmt_growth_rate['HPMSVtypeID'].isin([50, 60])]
 ldt_rate = moves_vmt_by_st.loc[moves_vmt_by_st['sourceTypeID'] == 32]

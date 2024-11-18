@@ -44,7 +44,7 @@ hpms_vmt_from_vius = pd.merge(hpms_vmt_from_vius, hpms_definition,
                                      on = 'HPMSVtypeID', how = 'left')
 
 age_distribution_forecast = read_csv(os.path.join(path_to_moves, 'turnover', 
-                                                  'age_distribution_vius_baseline.csv'))
+                                                  'age_distribution_vius_mandate.csv'))
 age_distribution_forecast = pd.merge(age_distribution_forecast, source_type_hpms,
                                      on = 'sourceTypeID', how = 'left')
 age_distribution_forecast = pd.merge(age_distribution_forecast, hpms_definition,
@@ -104,7 +104,7 @@ fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] = \
 fleet_mix_by_hpms.loc[:, 'vmt_fraction'] =  \
     fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] / \
         fleet_mix_by_hpms.groupby(['yearID'])['weighted_vmt_by_hpms'].transform('sum')
-fleet_mix_by_hpms.to_csv(os.path.join(path_to_moves, 'turnover', 'vmt_fraction_vius_baseline.csv'))         
+fleet_mix_by_hpms.to_csv(os.path.join(path_to_moves, 'turnover', 'vmt_fraction_vius_mandate.csv'))         
 
 print('Total VMT after allocation:')
 print(fleet_mix_by_hpms['weighted_vmt_by_hpms'].sum())    
@@ -113,7 +113,7 @@ vius_vmt_by_st = \
     fleet_mix_by_hpms.groupby(['yearID','HPMSVtypeID','HPMSVtypeName', 'sourceTypeID','sourceTypeName'])['weighted_vmt_by_hpms'].sum()
 vius_vmt_by_st = vius_vmt_by_st.reset_index()
 vius_vmt_by_st = vius_vmt_by_st.rename(columns = {'weighted_vmt_by_hpms':'annualVMT'})
-vius_vmt_by_st.to_csv(os.path.join(path_to_moves, 'turnover', 'vius_vmt_forecast.csv'))
+vius_vmt_by_st.to_csv(os.path.join(path_to_moves, 'turnover', 'vius_vmt_forecast_mandate.csv'))
 
 
 # <codecell>
@@ -136,6 +136,6 @@ ax = sns.lineplot(data=com_vmt_rate, x="yearID", y="Cumulative VMT growth rate",
              hue = "sourceTypeName", style = "sourceTypeName")
 plt.legend(fontsize = 12)
 plt.ylim([1, 2.5])
-plt.savefig(os.path.join(plot_dir, 'com_growth_factor_vius.png'), dpi = 300,
+plt.savefig(os.path.join(plot_dir, 'com_growth_factor_vius_mandate.png'), dpi = 300,
             bbox_inches = 'tight')
 plt.show()
