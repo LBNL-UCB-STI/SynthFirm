@@ -333,10 +333,11 @@ for vt in veh_types:
                                alpha = 0.6, 
                                linewidth=0.01, 
                                legend=True, figsize = (8,6),
-                               legend_kwds = {'shrink': 0.5}) 
+                               legend_kwds = {'shrink': 0.5})
+    us_states.plot(ax = ax, facecolor='none', edgecolor='k',linewidth = 0.5)
     plt.title(vt)
     ax.set_axis_off()
-    plt.savefig(os.path.join(us_fleet_to_plot, 'plot', 
+    plt.savefig(os.path.join(path_to_output, 'plot', 
                              'experian_count_state_for_' + vt + '.png'), 
                 dpi = 300, bbox_inches = 'tight')
     plt.show()
@@ -362,25 +363,39 @@ national_count_by_type_ct = pd.pivot_table(national_count_by_type_ct,
                                            fill_value = 0)
 national_count_by_type_ct = national_count_by_type_ct.astype(int)
 national_count_by_type_ct = national_count_by_type_ct.reset_index()
-
+national_count_by_type_ct.loc[:, 'NAME'] = \
+    national_count_by_type_ct.loc[:, 'NAME'].str.strip()
 # <codecell>
+# from fuzzywuzzy import fuzz
+# from fuzzywuzzy import process
 
+# us_counties_df = pd.DataFrame(us_counties.drop(columns = ['geometry']))
+# print(us_counties_df.columns)
+# us_counties_df = us_counties_df[['state', 'NAME']]
+
+
+import matplotlib
 # plot county level results
+us_counties = shift_geometry(us_counties)
 us_counties_to_plot = us_counties.merge(national_count_by_type_ct, 
                                 on = ['state', 'NAME'], how = 'left')
 for vt in veh_types:
 
     ax = us_counties_to_plot.plot(column = vt,
-                               cmap='viridis',
-                               alpha = 0.6, 
-                               linewidth=0.01, 
-                               legend=True, figsize = (8,6),
-                               legend_kwds = {'shrink': 0.5}) 
+                                cmap='viridis',
+                                alpha = 0.6, 
+                                linewidth=0.01, 
+                                legend=True, figsize = (8,6),
+                                norm=matplotlib.colors.LogNorm(vmin=1, 
+                                                              vmax = us_counties_to_plot[vt].max()),
+                                legend_kwds = {'shrink': 0.5}) 
     plt.title(vt)
+    us_states.plot(ax = ax, facecolor='none', edgecolor='k',linewidth = 0.5)
     ax.set_axis_off()
-    plt.savefig(os.path.join(us_fleet_to_plot, 'plot', 
-                             'experian_count_county_for_' + vt + '.png'), 
+    plt.savefig(os.path.join(path_to_output, 'plot', 
+                              'experian_count_county_for_' + vt + '.png'), 
                 dpi = 300, bbox_inches = 'tight')
+    
     plt.show()
 
 
