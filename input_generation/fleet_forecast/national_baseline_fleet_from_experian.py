@@ -336,6 +336,10 @@ for vt in veh_types:
                                legend_kwds = {'shrink': 0.5})
     us_states.plot(ax = ax, facecolor='none', edgecolor='k',linewidth = 0.5)
     plt.title(vt)
+    for idx, row in us_states.iterrows():
+        centroid = row.geometry.centroid
+        ax.annotate(text=row['state'], xy=(centroid.x, centroid.y), 
+                    ha='center', fontsize=6)
     ax.set_axis_off()
     plt.savefig(os.path.join(path_to_output, 'plot', 
                              'experian_count_state_for_' + vt + '.png'), 
@@ -391,6 +395,10 @@ for vt in veh_types:
                                 legend_kwds = {'shrink': 0.5}) 
     plt.title(vt)
     us_states.plot(ax = ax, facecolor='none', edgecolor='k',linewidth = 0.5)
+    for idx, row in us_states.iterrows():
+        centroid = row.geometry.centroid
+        ax.annotate(text=row['state'], xy=(centroid.x, centroid.y), 
+                    ha='center', fontsize=6)
     ax.set_axis_off()
     plt.savefig(os.path.join(path_to_output, 'plot', 
                               'experian_count_county_for_' + vt + '.png'), 

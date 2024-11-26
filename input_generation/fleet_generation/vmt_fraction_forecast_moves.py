@@ -40,10 +40,11 @@ pop_turnover_rate = \
 read_csv(os.path.join(path_to_moves, 'turnover', 'pop_growth_and_turnover_rate.csv'))
 
 age_distribution_forecast = read_csv(os.path.join(path_to_moves, 'turnover', 
-                                                  'age_distribution_moves_mandate.csv'))
+                                                  'age_distribution_moves_baseline.csv'))
 age_distribution_forecast = pd.merge(age_distribution_forecast, source_type_hpms,
                                      on = 'sourceTypeID', how = 'left')
 print(age_distribution_forecast.columns)
+print(age_distribution_forecast.ageFraction.sum())
 baseline_year = 2021
 selected_type = [32, 52, 53, 61, 62]
 
@@ -86,9 +87,21 @@ fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] = \
 fleet_mix_by_hpms.loc[:, 'vmt_fraction'] =  \
     fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] / \
         fleet_mix_by_hpms.groupby(['yearID'])['weighted_vmt_by_hpms'].transform('sum')
-fleet_mix_by_hpms.to_csv(os.path.join(path_to_moves, 'turnover', 'vmt_fraction_moves_mandate.csv'))         
+        
+print(fleet_mix_by_hpms.loc[:, 'vmt_fraction'].sum())
+
+fleet_mix_com_only = \
+    fleet_mix_by_hpms.loc[fleet_mix_by_hpms['sourceTypeID'].isin(selected_type)]
+    
+fleet_mix_com_only.loc[:, 'vmt_fraction'] =  \
+    fleet_mix_com_only.loc[:, 'weighted_vmt_by_hpms'] / \
+        fleet_mix_com_only.groupby(['yearID'])['weighted_vmt_by_hpms'].transform('sum')
+
 print('Total VMT after allocation:')
-print(fleet_mix_by_hpms['weighted_vmt_by_hpms'].sum())        
+print(fleet_mix_com_only['weighted_vmt_by_hpms'].sum())   
+        
+fleet_mix_com_only.to_csv(os.path.join(path_to_moves, 'turnover', 'vmt_fraction_moves_baseline.csv'))         
+     
 moves_vmt_by_st = \
     fleet_mix_by_hpms.groupby(['yearID','HPMSVtypeID','HPMSVtypeName', 'sourceTypeID','sourceTypeName'])['weighted_vmt_by_hpms'].sum()
 moves_vmt_by_st = moves_vmt_by_st.reset_index()
@@ -175,6 +188,7 @@ plt.legend(fontsize = 12)
 plt.savefig(os.path.join(plot_dir, 'com_VMT_growth_vius.png'), dpi = 300,
             bbox_inches = 'tight')
 plt.show()
+
 
   
 

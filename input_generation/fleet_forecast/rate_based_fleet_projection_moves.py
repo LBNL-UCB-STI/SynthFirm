@@ -322,7 +322,7 @@ fleet_mix_by_year = pd.merge(fleet_mix_by_year, source_type_hpms,
                     on = 'sourceTypeID', how = 'left')
 # plot selected age distribution
 fleet_mix_to_plot = fleet_mix_by_year.loc[fleet_mix_by_year['sourceTypeID'].isin(selected_type)]
-fleet_mix_to_plot = fleet_mix_to_plot.loc[fleet_mix_to_plot['yearID'].isin([2021, 2030, 2050])]
+fleet_mix_to_plot = fleet_mix_to_plot.loc[fleet_mix_to_plot['yearID'].isin([2021, 2030, 2040, 2050])]
 fleet_mix_to_plot = fleet_mix_to_plot.sort_values(by = 'sourceTypeID', ascending = True)
 ax = sns.relplot(data = fleet_mix_to_plot, x= 'ageID', y = 'ageFraction',
             hue = 'yearID', col='sourceTypeName', col_wrap = 3, kind = 'line', palette='Spectral')
@@ -466,7 +466,7 @@ fleet_mix_by_year = pd.merge(fleet_mix_by_year, source_type_hpms,
                     on = 'sourceTypeID', how = 'left')
 # plot selected age distribution
 fleet_mix_to_plot = fleet_mix_by_year.loc[fleet_mix_by_year['sourceTypeID'].isin(selected_type)]
-fleet_mix_to_plot = fleet_mix_to_plot.loc[fleet_mix_to_plot['yearID'].isin([2021, 2030, 2050])]
+fleet_mix_to_plot = fleet_mix_to_plot.loc[fleet_mix_to_plot['yearID'].isin([2021, 2030, 2040, 2050])]
 fleet_mix_to_plot = fleet_mix_to_plot.sort_values(by = 'sourceTypeID', ascending = True)
 ax = sns.relplot(data = fleet_mix_to_plot, x= 'ageID', y = 'ageFraction',
             hue = 'yearID', col='sourceTypeName', col_wrap = 3, kind = 'line', palette='Spectral')
