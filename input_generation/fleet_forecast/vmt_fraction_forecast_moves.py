@@ -106,7 +106,7 @@ moves_vmt_by_st = \
     fleet_mix_by_hpms.groupby(['yearID','HPMSVtypeID','HPMSVtypeName', 'sourceTypeID','sourceTypeName'])['weighted_vmt_by_hpms'].sum()
 moves_vmt_by_st = moves_vmt_by_st.reset_index()
 moves_vmt_by_st = moves_vmt_by_st.rename(columns = {'weighted_vmt_by_hpms':'annualVMT'})
-moves_vmt_by_st.to_csv(os.path.join(path_to_moves, 'turnover', 'moves_vmt_forecast_mandate.csv')) 
+moves_vmt_by_st.to_csv(os.path.join(path_to_moves, 'turnover', 'moves_vmt_forecast_baseline.csv')) 
 
 # <codecell>
 
@@ -122,7 +122,8 @@ LDT_VMT_by_year = LDT_VMT_by_year.reset_index()
 sns.lineplot(LDT_VMT_by_year, x = 'yearID', y = 'weighted_vmt_by_hpms', hue = 'sourceTypeName')
 plt.show()
 # <codecell>
-
+sns.set(font_scale=1.4)  # larger font  
+sns.set_style("whitegrid")
 moves_vmt_by_st = moves_vmt_by_st.sort_values(by = 'yearID', ascending = True)
 moves_vmt_by_st.loc[:, 'PreYearVMT'] = \
     moves_vmt_by_st.groupby('sourceTypeID')['annualVMT'].shift(1)
@@ -145,7 +146,7 @@ sns.lineplot(data=hpms_rate_to_plot, x="yearID", y="Cumulative VMT growth rate",
 
 plt.legend(fontsize = 12)
 plt.ylim([1, 2.5])
-plt.savefig(os.path.join(plot_dir, 'LDV_growth_factor_moves_mandate.png'), dpi = 300,
+plt.savefig(os.path.join(plot_dir, 'LDV_growth_factor_moves_baseline.png'), dpi = 300,
             bbox_inches = 'tight')
 plt.show()
 
@@ -156,12 +157,15 @@ plt.show()
 
 com_vmt_rate = \
     moves_vmt_by_st.loc[moves_vmt_by_st['sourceTypeID'].isin(selected_type)]
+year_to_plot = [2021, 2030, 2040, 2050]
+com_vmt_rate = \
+    com_vmt_rate.loc[com_vmt_rate['yearID'].isin(year_to_plot)]
 com_vmt_rate = com_vmt_rate.sort_values(by = 'sourceTypeID')    
 ax = sns.lineplot(data=com_vmt_rate, x="yearID", y="Cumulative VMT growth rate", 
              hue = "sourceTypeName", style = "sourceTypeName")
 plt.legend(fontsize = 12)
-plt.ylim([1, 2.5])
-plt.savefig(os.path.join(plot_dir, 'com_growth_factor_moves_mandate.png'), dpi = 300,
+plt.ylim([1, 2])
+plt.savefig(os.path.join(plot_dir, 'com_growth_factor_moves_baseline.png'), dpi = 300,
             bbox_inches = 'tight')
 plt.show()
 

@@ -126,7 +126,7 @@ print(vius_fleet.HPMSVtypeName.unique())
 
 # define stacked bar chart generator
 
-def plot_clustered_stacked(dfall, size, labels, title, ylabelname, unit, H="/", **kwargs):
+def plot_clustered_stacked(dfall, size, labels, title, ylabelname, unit, H="//", **kwargs):
     """Given a list of dataframes, with identical columns and index, create a clustered stacked bar plot. 
 labels is a list of the names of the dataframe, used for the legend
 title is a string for the title of the plot
@@ -140,7 +140,7 @@ H is the hatch used for identification of the different dataframe"""
     for df in dfall : # for each data frame
         axe = df.plot(kind="bar",
                       linewidth=0,
-                      stacked=True,
+                      stacked=True, edgecolor = 'k',
                       ax=axe,
                       legend=False,
                       grid=False, cmap= 'plasma_r',

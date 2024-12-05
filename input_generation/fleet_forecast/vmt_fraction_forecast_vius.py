@@ -44,7 +44,7 @@ hpms_vmt_from_vius = pd.merge(hpms_vmt_from_vius, hpms_definition,
                                      on = 'HPMSVtypeID', how = 'left')
 
 age_distribution_forecast = read_csv(os.path.join(path_to_moves, 'turnover', 
-                                                  'age_distribution_vius_mandate.csv'))
+                                                  'age_distribution_vius_baseline.csv'))
 age_distribution_forecast = pd.merge(age_distribution_forecast, source_type_hpms,
                                      on = 'sourceTypeID', how = 'left')
 age_distribution_forecast = pd.merge(age_distribution_forecast, hpms_definition,
@@ -117,7 +117,8 @@ vius_vmt_by_st.to_csv(os.path.join(path_to_moves, 'turnover', 'vius_vmt_forecast
 
 
 # <codecell>
-
+sns.set(font_scale=1.4)  # larger font  
+sns.set_style("whitegrid")
 # calculate VMT growth factor from VIUS
 vius_vmt_by_st = vius_vmt_by_st.sort_values(by = 'yearID', ascending = True)
 vius_vmt_by_st.loc[:, 'PreYearVMT'] = \
@@ -131,11 +132,14 @@ vius_vmt_by_st.loc[:, 'Cumulative VMT growth rate'] = \
     
 com_vmt_rate = \
     vius_vmt_by_st.loc[vius_vmt_by_st['sourceTypeID'].isin(selected_type)]
+year_to_plot = [2021, 2030, 2040, 2050]
+com_vmt_rate = \
+        com_vmt_rate.loc[com_vmt_rate['yearID'].isin(year_to_plot)]
 com_vmt_rate = com_vmt_rate.sort_values(by = 'sourceTypeID')    
 ax = sns.lineplot(data=com_vmt_rate, x="yearID", y="Cumulative VMT growth rate", 
              hue = "sourceTypeName", style = "sourceTypeName")
 plt.legend(fontsize = 12)
-plt.ylim([1, 2.5])
-plt.savefig(os.path.join(plot_dir, 'com_growth_factor_vius_mandate.png'), dpi = 300,
+plt.ylim([1, 2])
+plt.savefig(os.path.join(plot_dir, 'com_growth_factor_vius_baseline.png'), dpi = 300,
             bbox_inches = 'tight')
 plt.show()
