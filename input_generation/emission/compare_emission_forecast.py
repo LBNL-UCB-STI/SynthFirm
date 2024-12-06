@@ -238,7 +238,8 @@ for pol in pol_to_plot:
                 bbox_inches='tight', dpi = 300)
     plt.show()
 # <codecell>
-  
+sns.set(font_scale=1.4)  # larger font 
+sns.set_style("whitegrid")  
 # plot results for 2050 only  
 for pol in pol_to_plot:  
     emission_rate_sel = \
@@ -248,6 +249,7 @@ for pol in pol_to_plot:
     ax = sns.catplot(emission_rate_sel, x = 'scenario', y = 'emissions',
                 hue = 'avft_scenario', col = 'HPMSVtypeName', 
                 kind="bar", palette = 'rainbow_r', hue_order = color_order,
+                height=4, aspect=1.05,
                 facet_kws={'sharey': False})
     
     pol_label = title_lookup[pol]
@@ -269,6 +271,8 @@ def to_percent(y, position):
     return s + '%'  
 
 # plot % change from baseline for 2050 only  
+sns.set(font_scale=1.4)  # larger font 
+sns.set_style("whitegrid")  
 for pol in pol_to_plot:  
     emission_rate_sel = \
         emission_rate_to_plot.loc[emission_rate_to_plot['pollutant']== pol]
@@ -288,6 +292,7 @@ for pol in pol_to_plot:
     ax = sns.catplot(emission_rate_sel, x = 'scenario', y = 'change',
                 hue = 'avft_scenario', col = 'HPMSVtypeName', 
                 kind="bar", palette = 'rainbow_r', hue_order = color_order,
+                height=4, aspect=1.05,
                 facet_kws={'sharey': False})
     
     pol_label = title_lookup[pol]
