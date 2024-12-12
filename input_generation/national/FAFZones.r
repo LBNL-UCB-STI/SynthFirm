@@ -218,6 +218,9 @@ zip_ct_file = data.table::fread("RawData/CBP/ZIP_COUNTY_LOOKUP_2016_clean.csv",c
    character = c("zip", "geoid")), h = T)
 zip_ct_file <- zip_ct_file %>% select(zip, geoid)
 
+us_geoids <- unique(combined_counties$GEOID)
+zip_ct_file <- zip_ct_file %>% filter(geoid %in% us_geoids)
+
 spatial_crosswalk_na <- spatial_crosswalk_na %>% 
   merge(zip_ct_file, by = 'zip', all.x = TRUE) %>% rename(GEOID = geoid)
 
