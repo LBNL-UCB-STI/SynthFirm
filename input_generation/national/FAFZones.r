@@ -23,7 +23,7 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-region_name = 'national'
+region_name = 'Seattle'
 state_name = 'WA'
 analysis_year = 2016 # cbp year
 # this is a critical step in selecting study area boundary

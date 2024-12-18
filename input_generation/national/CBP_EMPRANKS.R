@@ -19,8 +19,8 @@ path2file <-
   "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 setwd(path2file)
 
-selected_state = 'TX'
-selected_region = 'Austin'
+selected_state = 'WA'
+selected_region = 'Seattle'
 
 naics = c(
   "n11",
@@ -73,7 +73,7 @@ f1 = data.table::fread(selected_file,colClasses = list(character=c("ANSI_ST","AN
 f1_in_study_area <- f1 %>% filter(CBPZONE>=1000)
 study_area_faf <- unique(f1_in_study_area$FAFID) # VERY IMPORTANT: check if the region generated here is accurate
 
-f3 = f1 %>% filter(FAFID %in% study_area_faf) %>% select(ST_CNTY,CBPZONE1)
+f3 = f1 %>% filter(FAFID %in% study_area_faf) %>% select(ST_CNTY,CBPZONE)
 
 naics_file_name = paste0('inputs_', selected_region, '/', selected_state, '_naics.csv') # employment data
 f2 = data.table::fread(naics_file_name,colClasses = list(character=c("GEOID","metalayer_id")),h=T)
@@ -85,34 +85,35 @@ f2_rank = f2
 # naics_df4 = f2_rank
 f2_rank = f2_rank %>% mutate(cnty_id = substr(GEOID, 1, 5))
 f2_rank = f2_rank %>% left_join(f3, by=c("cnty_id"="ST_CNTY")) #employment within study area
+f2_rank[is.na(f2_rank)] <- 0
 f2_rank = na.omit(f2_rank)
-f2_rank$MESOZONE = seq(1,length(unique(f2_rank$GEOID)))
+f2_rank$MESOZONE = f2_rank$GEOID
 
 naics_df6 = f2_rank
 #df_length = as.integer(nrow(f2_rank))
-f2_rank[f2_rank == 0] <- NA
-f2_rank <- f2_rank %>%
-  group_by(cnty_id) %>% 
-  mutate(n11 = rank(n11, ties.method = "first",na='keep'),
-         n21 = rank(n21, ties.method = "first",na='keep'),
-         n22 = rank(n22, ties.method = "first",na='keep'),
-         n23 = rank(n23, ties.method = "first",na='keep'),
-         n3133 = rank(n3133, ties.method = "first",na='keep'),
-         n42 = rank(n42, ties.method = "first",na='keep'),
-         n4445 = rank(n4445, ties.method = "first",na='keep'),
-         n4849 = rank(n4849, ties.method = "first",na='keep'),
-         n51 = rank(n51, ties.method = "first",na='keep'),
-         n52 = rank(n52, ties.method = "first",na='keep'),
-         n53 = rank(n53, ties.method = "first",na='keep'),
-         n54 = rank(n54, ties.method = "first",na='keep'),
-         n55 = rank(n55, ties.method = "first",na='keep'),
-         n56 = rank(n56, ties.method = "first",na='keep'),
-         n61 = rank(n61, ties.method = "first",na='keep'),
-         n62 = rank(n62, ties.method = "first",na='keep'),
-         n71 = rank(n71, ties.method = "first",na='keep'),
-         n72 = rank(n72, ties.method = "first",na='keep'),
-         n81 = rank(n81, ties.method = "first",na='keep'),
-         n92 = rank(n92, ties.method = "first",na='keep'))
+# f2_rank[f2_rank == 0] <- NA
+# f2_rank <- f2_rank %>%
+#   group_by(cnty_id) %>% 
+#   mutate(n11 = rank(n11, ties.method = "first",na='keep'),
+#          n21 = rank(n21, ties.method = "first",na='keep'),
+#          n22 = rank(n22, ties.method = "first",na='keep'),
+#          n23 = rank(n23, ties.method = "first",na='keep'),
+#          n3133 = rank(n3133, ties.method = "first",na='keep'),
+#          n42 = rank(n42, ties.method = "first",na='keep'),
+#          n4445 = rank(n4445, ties.method = "first",na='keep'),
+#          n4849 = rank(n4849, ties.method = "first",na='keep'),
+#          n51 = rank(n51, ties.method = "first",na='keep'),
+#          n52 = rank(n52, ties.method = "first",na='keep'),
+#          n53 = rank(n53, ties.method = "first",na='keep'),
+#          n54 = rank(n54, ties.method = "first",na='keep'),
+#          n55 = rank(n55, ties.method = "first",na='keep'),
+#          n56 = rank(n56, ties.method = "first",na='keep'),
+#          n61 = rank(n61, ties.method = "first",na='keep'),
+#          n62 = rank(n62, ties.method = "first",na='keep'),
+#          n71 = rank(n71, ties.method = "first",na='keep'),
+#          n72 = rank(n72, ties.method = "first",na='keep'),
+#          n81 = rank(n81, ties.method = "first",na='keep'),
+#          n92 = rank(n92, ties.method = "first",na='keep'))
 
 # rank from small to large, with rank = 1 means smallest value within group
 
@@ -153,14 +154,14 @@ f2_rank <- f2_rank %>%
 # naics_df5$MESOZONE = seq(1,length(unique(naics_df5$GEOID)))
 #naics_df6$n99 = floor(runif(nrow(naics_df6),0,10))
 #naics_df6[naics_df6==0] <- NA
-naics_df7 = f2_rank %>% select(CBPZONE1,MESOZONE,all_of(naics))
+naics_df7 = f2_rank %>% select(cnty_id, CBPZONE,MESOZONE,all_of(naics))
 names(naics_df7)[4:23] = rank_vars
-naics_df7 = naics_df7 %>% rename(COUNTY = CBPZONE1)
+naics_df7 = naics_df7 %>% rename(COUNTY = CBPZONE)
 
 output_path = paste0('inputs_', selected_region, '/data_mesozone_emprankings.csv')
 data.table::fwrite(naics_df7, output_path)
 output_path_2 = paste0('inputs_', selected_region, '/MESOZONE_GEOID_LOOKUP.csv')
-data.table::fwrite(naics_df6[,c("CBPZONE1","GEOID","MESOZONE")], output_path_2)
+data.table::fwrite(naics_df6[,c("CBPZONE","GEOID","MESOZONE")], output_path_2)
 
 
 
