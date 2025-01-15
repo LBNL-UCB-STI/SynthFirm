@@ -25,7 +25,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employm
     # load model inputs
     cbp = read_csv(cbp_file)
     mzemp = read_csv(mzemp_file)
-    mzemp = mzemp.drop(columns = ['cnty_id'])
+    # mzemp = mzemp.drop(columns = ['cnty_id'])
     c_n6_n6io_sctg = read_csv(c_n6_n6io_sctg_file)
     employment_per_firm = read_csv(employment_per_firm_file)
     employment_per_firm_gapfill = read_csv(employment_per_firm_gapfill_file)
