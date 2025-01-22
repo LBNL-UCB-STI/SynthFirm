@@ -108,7 +108,7 @@ fmcsa_carrier_data.loc[:, 'FLEET_SIZE_BIN'] = \
 carrier_summary_by_state = \
 fmcsa_carrier_data.groupby(['PHY_STATE','CARRIER_TYPE', 'FLEET_SIZE_BIN']).agg({'TRUCK_UNITS':['sum', 'count']})
 carrier_summary_by_state = carrier_summary_by_state.reset_index()
-carrier_summary_by_state.columns = ['HB_STATE', 'CARREIR_TYPE', 'FLEET_SIZE', 'TRUCK_COUNT', 'CARRIER_COUNT']
+carrier_summary_by_state.columns = ['HB_STATE', 'CARRIER_TYPE', 'FLEET_SIZE', 'TRUCK_COUNT', 'CARRIER_COUNT']
 
 # <codecell>
 
@@ -152,6 +152,50 @@ plt.ylabel('Home-base state')
 plt.savefig(os.path.join(data_path, 'FMCSA_carrier_by_fleet_size.png'),
             dpi = 300, bbox_inches = 'tight')
 plt.show()
+
+# <codecell>
+
+# plot state-level results -carrier type
+carrier_types = carrier_summary_by_state.CARRIER_TYPE.unique()
+truck_count_by_state = pd.pivot_table(carrier_summary_by_state,
+                                        index = 'HB_STATE', columns = 'CARRIER_TYPE',
+                                        values = 'TRUCK_COUNT', aggfunc='sum')
+
+truck_count_by_state.loc[:, carrier_types] = \
+    truck_count_by_state.loc[:, carrier_types].div(truck_count_by_state.loc[:, carrier_types].sum(axis=1), axis=0)
+
+# plt.figure(figsize=(10,4))
+truck_count_by_state.plot(kind = 'barh', stacked = True, cmap = 'coolwarm_r',
+                          figsize=(6, 10))
+# plt.xticks(rotation = 60, ha = 'right')
+plt.legend(title = 'Carrier type', bbox_to_anchor = (1.01, 0.8))
+plt.xlabel('Vehicle fraction')
+plt.ylabel('Home-base state')
+plt.savefig(os.path.join(data_path, 'FMCSA_truck_by_carrier_type.png'),
+           dpi = 300, bbox_inches = 'tight')
+plt.show()
+
+
+# <codecell>
+
+# plot state-level results
+carrier_count_by_state = pd.pivot_table(carrier_summary_by_state,
+                                        index = 'HB_STATE', columns = 'CARRIER_TYPE',
+                                        values = 'CARRIER_COUNT', aggfunc='sum')
+
+carrier_count_by_state.loc[:, carrier_types] = \
+    carrier_count_by_state.loc[:, carrier_types].div(carrier_count_by_state.loc[:, carrier_types].sum(axis=1), axis=0)
+
+# plt.figure(figsize=(10,4))
+carrier_count_by_state.plot(kind = 'barh', stacked = True, cmap = 'coolwarm_r',
+                          figsize=(6, 10))
+# plt.xticks(rotation = 60, ha = 'right')
+plt.legend(title = 'Carrier type', bbox_to_anchor = (1.01, 0.8))
+plt.xlabel('Carrier fraction')
+plt.ylabel('Home-base state')
+plt.savefig(os.path.join(data_path, 'FMCSA_carrier_by_carrier_type.png'),
+            dpi = 300, bbox_inches = 'tight')
+plt.show()
 # <codecell>
 
 # write carrier output
@@ -162,7 +206,7 @@ carrier_summary_by_state = carrier_summary_by_state.fillna(0)
 carrier_summary_by_state.to_csv(os.path.join(data_path, 'FMCSA_statistics_by_fleet_size.csv'),
                                 index = False)
 
-truck_count_by_state = carrier_summary_by_state.groupby('HB_STATE')[['TRUCK_COUNT']].sum()
+truck_count_by_state = carrier_summary_by_state.groupby('HB_STATE')[['TRUCK_COUNT', 'CARRIER_COUNT']].sum()
 truck_count_by_state = truck_count_by_state.reset_index()
 truck_count_by_state.to_csv(os.path.join(data_path, 'FMCSA_truck_count_by_state.csv'),
                                 index = False)
