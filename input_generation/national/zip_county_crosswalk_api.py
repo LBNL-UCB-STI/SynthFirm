@@ -16,6 +16,7 @@ os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 # Note that type is set to 1 which will return values for the ZIP to Tract file and query is set to VA which will return Zip Codes in Virginia
 url = "https://www.huduser.gov/hudapi/public/usps?type=2&query=All&year=2016"
+# type = 1 - tract; type = 2 - county
 token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6IjNkZWNjZmE2MDY5MGQ4YjU3NTBjZWVkOTFlNDk3M2E3NTUwYTdhZjA1NmUxZWRlNjNmMWUzYWZiOTIxNjc1YTJlZjdjYjVhMGY3ZmM2M2QyIn0.eyJhdWQiOiI2IiwianRpIjoiM2RlY2NmYTYwNjkwZDhiNTc1MGNlZWQ5MWU0OTczYTc1NTBhN2FmMDU2ZTFlZGU2M2YxZTNhZmI5MjE2NzVhMmVmN2NiNWEwZjdmYzYzZDIiLCJpYXQiOjE2OTQ4MTAyNjAsIm5iZiI6MTY5NDgxMDI2MCwiZXhwIjoyMDEwNDI5NDYwLCJzdWIiOiI1ODc2OSIsInNjb3BlcyI6W119.D0ks3vKCvsM2KTXJ1tyRhjgJZRPAzgHtLxLmJujiqYHm7Y0G2Yjx-QrrtMPMXvkTlaL_b9xsQwd8Z6TdBZtwHg"
 headers = {"Authorization": "Bearer {0}".format(token)}
 

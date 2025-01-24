@@ -34,7 +34,7 @@ faf_zone = gpd.read_file(faf_zone_file)
 cbg_boundary = gpd.read_file(lehd_boundary_file)
 CFS_FAF_lookup = read_csv(cfs_faf_file, sep = ',')
 
-lehd_employment.drop(columns = ['metalayer_id'], inplace = True)
+# lehd_employment.drop(columns = ['metalayer_id'], inplace = True)
 
 lehd_employment.loc[:, 'GEOID'] = lehd_employment.loc[:, 'GEOID'].astype(str).str.zfill(12)
 lehd_employment.loc[:, 'ST_CNTY'] = lehd_employment.loc[:, 'GEOID'].str[0:5]
@@ -120,11 +120,34 @@ spatial_crosswalk = lehd_employment_by_mesozone[['FAFID', 'MESOZONE', 'CBPZONE',
 # collect cbg within study area
 region_cbg = spatial_crosswalk.loc[spatial_crosswalk['IS_CBG'] == 1]
 region_cbg.loc[:, 'GEOID'] = region_cbg.loc[:, 'MESOZONE']
+region_fafid = region_cbg.FAFID.unique()
+region_county = \
+    faf_county_crosswalk.loc[faf_county_crosswalk['FAFID'].isin(region_fafid)]
+# <codecell>
 cbg_boundary.loc[:, 'GEOID'] = cbg_boundary.loc[:, 'GEOID'].astype(str).str.zfill(12)
 cbg_boundary = cbg_boundary[['GEOID', 'geometry']]
-cbg_boundary_in_region = cbg_boundary.merge(region_cbg, on = 'GEOID', how = 'inner')
-cbg_boundary_in_region = cbg_boundary_in_region[['GEOID', 'FAFID', 'MESOZONE', 'CBPZONE', 'geometry']]
+cbg_boundary.loc[:, 'ST_CNTY'] = cbg_boundary.loc[:, 'GEOID'].str[0:5]
+region_county = region_county[['ST_CNTY', 'FAFID']]
+cbg_boundary_in_region = \
+    cbg_boundary.merge(region_county, on = 'ST_CNTY', how = 'inner')
+region_cbg = region_cbg[['MESOZONE', 'CBPZONE', 'GEOID']]
+region_cbg['CBPZONE'] =region_cbg['CBPZONE'].astype(int)
+region_cbg['CBPZONE'] = region_cbg['CBPZONE'].astype(str).str.zfill(5)
+cbg_boundary_in_region = cbg_boundary_in_region.merge(region_cbg, on = 'GEOID', how = 'left')
 
+
+# <codecell>
+
+# fill in NA mesozone
+na_idx = (cbg_boundary_in_region['MESOZONE'].isna())
+cbg_boundary_in_region.loc[na_idx, 'MESOZONE'] = \
+    cbg_boundary_in_region.loc[na_idx, 'GEOID']
+cbg_boundary_in_region.loc[na_idx, 'CBPZONE'] = \
+    cbg_boundary_in_region.loc[na_idx, 'ST_CNTY']
+    
+
+cbg_boundary_in_region = \
+    cbg_boundary_in_region[['GEOID', 'FAFID', 'MESOZONE', 'CBPZONE', 'geometry']]
 # <codecell>
 
 # collect faf zones outside study area
