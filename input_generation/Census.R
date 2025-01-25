@@ -86,7 +86,7 @@ naics = c(
 
 state_wac <- state_wac %>% 
   rename(GEOID = w_bg) %>% 
-  mutate(metalayer_id = substr(GEOID, 1, 8),
+  mutate(
          n11 = CNS01, 
          n21 = CNS02, 
          n22 = CNS03,
@@ -110,7 +110,7 @@ state_wac <- state_wac %>%
          )
 
 state_wac = state_wac %>% 
-  select(GEOID, metalayer_id, all_of(naics)) # note: metalayer id is not used in following analysis
+  select(GEOID, all_of(naics)) # note: metalayer id is not used in following analysis
 
 
 state_bg_df = get_acs(
@@ -132,6 +132,10 @@ if (output_state =='US'){
 }
 
 state_bg_df_filtered <- state_bg_df %>% filter(! grepl('Block Group 0', NAME)) # with population
+state_bg_df <- state_bg_df%>% mutate(county = substr(GEOID, 1, 5))
+print(length(unique(state_bg_df$county)))
+# state_bg_df_filtered <- state_bg_df_filtered%>% mutate(county = substr(GEOID, 1, 5))
+# print(length(unique(state_bg_df_filtered$county)))
 list_of_geoid <- unique(state_bg_df_filtered$GEOID)
 bg_name = paste0('inputs_', region_name, '/', output_state, '_bg.geojson')
 sf::st_write(state_bg_df_filtered, bg_name, append=FALSE)
