@@ -27,6 +27,7 @@ warnings.filterwarnings("ignore")
 
 def Random_Points_in_Bounds(polygon, number, map_crs):   
     bounds = polygon.bounds
+    #print(bounds)
     x = np.random.uniform( float(bounds['minx']), float(bounds['maxx']), number )
     y = np.random.uniform( float(bounds['miny']), float(bounds['maxy']), number )
     df = pd.DataFrame()
@@ -48,6 +49,9 @@ def firm_location_generation(synthetic_firms_no_location_file,
     mesozone_shapefile = gpd.read_file(spatial_boundary_file)
     mesozone_to_faf = read_csv(mesozone_to_faf_file)
     
+    # convert mesozone to integer
+    firms.loc[:, 'MESOZONE'] = firms.loc[:, 'MESOZONE'].astype(np.int64)
+    mesozone_shapefile.loc[:, 'MESOZONE'] = mesozone_shapefile.loc[:, 'MESOZONE'].astype(np.int64)
     # <codecell>
     
     # remove remote island
@@ -73,11 +77,12 @@ def firm_location_generation(synthetic_firms_no_location_file,
             print('processed ' + str(counter) + ' zones')
         region = mesozone_to_faf.loc[mesozone_to_faf['MESOZONE']== zone, 'FAFNAME'].values[0]
         region = str(region)
-        # print(zone, region)
+        print(zone, region)
         counter += 1
         firm_selected = firms.loc[firms['MESOZONE'] == zone]
         sample_size = len(firm_selected)
         polygon = mesozone_shapefile.loc[mesozone_shapefile['MESOZONE'] == zone]
+
         if region == 'Rest of HI':
             gdf_points = Random_Points_in_Bounds(polygon.geometry, 100 * sample_size, map_crs)
         else:
