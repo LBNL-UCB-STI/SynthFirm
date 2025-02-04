@@ -36,7 +36,7 @@ def main():
     SynthFirm Business-to-business (B2B) flow generation"
     """
     parser = argparse.ArgumentParser(description=des)
-    parser.add_argument("--config", type = str, help = "config file name", default= 'configs/Seattle_2030.conf')
+    parser.add_argument("--config", type = str, help = "config file name", default= 'configs/national_base.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -66,8 +66,12 @@ def main():
     param_path = os.path.join(file_path, parameter_dir)
     
     # Get the defined synthFirm regions
-    region_code_str = config['ENVIRONMENT']['region_code']
-    region_code = [int(num) for num in region_code_str.split(',')]
+    regional_analysis = config.getboolean('ENVIRONMENT', 'regional_analysis') 
+    if regional_analysis:
+        region_code_str = config['ENVIRONMENT']['region_code']
+        region_code = [int(num) for num in region_code_str.split(',')]
+    else:
+        region_code = None
     # print(region_code_str)
     
 
