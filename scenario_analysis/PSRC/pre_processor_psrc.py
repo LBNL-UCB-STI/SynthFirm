@@ -211,10 +211,13 @@ while diff_ratio > adj_threshold:
     emp_ranking_long.loc[emp_ranking_long['imp_flag']==1, 'emp_adj'] = \
         emp_ranking_long.loc[emp_ranking_long['imp_flag']==1,'emp_adj'] * \
             emp_ranking_long.loc[emp_ranking_long['imp_flag']==1,'adj_factor']
-    emp_ranking_long.loc[:, 'emp_adj'] = emp_ranking_long.loc[:, 'emp_adj'].astype(int)        
+    emp_ranking_long.loc[:, 'emp_adj'] = np.round(emp_ranking_long.loc[:, 'emp_adj'], 0)  
+     
     print('total employment from LEHD data (after adjustment):')
     print(emp_ranking_long.loc[:, 'emp_adj'].sum())
     diff_ratio = abs(emp_ranking_long.loc[:, 'emp_adj'].sum()/psrc_total - 1)
+    
+    print(diff_ratio)
     iterator += 1
 
 # <codecell>
