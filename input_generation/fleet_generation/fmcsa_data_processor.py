@@ -39,6 +39,9 @@ st_to_drop = ['PR', 'VI', 'AS', 'GU', 'MP']
 fmcsa_carrier_data = fmcsa_carrier_data[~fmcsa_carrier_data['PHY_STATE'].isin(st_to_drop)]
 # owning truck
 fmcsa_carrier_data = fmcsa_carrier_data.loc[fmcsa_carrier_data['TRUCK_UNITS'] > 0]
+
+# no passenger carriers
+fmcsa_carrier_data = fmcsa_carrier_data.loc[fmcsa_carrier_data['CRGO_PASSENGERS'] != 'X']
 # 1,869,374 rows
 
 # drop record without class definition
@@ -97,6 +100,44 @@ print(fmcsa_carrier_data.groupby('CARRIER_TYPE')[['TRUCK_UNITS']].sum())
 
 # <codecell>
 
+# assign commodity group
+
+headers = fmcsa_carrier_data.columns
+
+# String to match at the start
+prefix = 'CRGO'
+
+# Find elements that start with the specified string
+cargo_elements = [s for s in headers if s.startswith(prefix)]
+cargo_elements.remove('CRGO_CARGOOTHR_DESC')
+print(cargo_elements)
+
+fmcsa_carrier_data[cargo_elements] = fmcsa_carrier_data[cargo_elements].replace(np.nan, 0)
+fmcsa_carrier_data[cargo_elements] = fmcsa_carrier_data[cargo_elements].replace('X', 1)
+
+SCTG_group_mapping = {
+    1: ['CRGO_GENFREIGHT', 'CRGO_LOGPOLE', 'CRGO_BLDGMAT', 'CRGO_INTERMODAL',
+        'CRGO_GRAINFEED', 'CRGO_COALCOKE', 'CRGO_DRYBULK', 'CRGO_CONSTRUCT'],
+    2: ['CRGO_GENFREIGHT', 'CRGO_LIQGAS', 'CRGO_INTERMODAL', 'CRGO_CHEM'],
+    3: ['CRGO_GENFREIGHT', 'CRGO_PRODUCE', 'CRGO_INTERMODAL', 'CRGO_LIVESTOCK',
+        'CRGO_MEAT', 'CRGO_COLDFOOD', 'CRGO_BEVERAGES'],
+    4: ['CRGO_GENFREIGHT', 'CRGO_HOUSEHOLD', 'CRGO_METALSHEET', 'CRGO_MOTOVEH',
+        'CRGO_DRIVETOW', 'CRGO_MOBILEHOME', 'CRGO_MACHLRG', 'CRGO_INTERMODAL',
+        'CRGO_USMAIL', 'CRGO_PAPERPROD', 'CRGO_FARMSUPP', 'CRGO_CONSTRUCT',
+        'CRGO_WATERWELL'],
+    5: ['CRGO_GENFREIGHT', 'CRGO_INTERMODAL', 'CRGO_OILFIELD', 'CRGO_GARBAGE',
+        'CRGO_CARGOOTHR']}
+
+list_of_sctgs = []
+for col, values in SCTG_group_mapping.items():
+    attr_to_add = 'SCTG' + str(col)
+    list_of_sctgs.append(attr_to_add)
+    fmcsa_carrier_data.loc[:, attr_to_add] = \
+        fmcsa_carrier_data.loc[:, values].sum(axis = 1)
+    fmcsa_carrier_data.loc[fmcsa_carrier_data[attr_to_add] > 1, attr_to_add] = 1
+print(fmcsa_carrier_data[list_of_sctgs].head(5))
+# <codecell>
+
 # post-process carrier data
 fleet_size_bin = [0, 2, 5, 10, 50, 100, 1000, fmcsa_carrier_data.TRUCK_UNITS.max()]
 fleet_size_label = ['<=2', '3-5', '6-10', '11-50', '51-100', '101-1000', '>1000']
@@ -132,6 +173,7 @@ plt.savefig(os.path.join(data_path, 'FMCSA_truck_by_fleet_size.png'),
 plt.show()
 
 
+    
 # <codecell>
 
 # plot state-level results
