@@ -55,12 +55,15 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                                     right_on = 'ST_MA', how = 'left')
     cost_by_location_faf = cost_by_location_faf[['FAF', 'Commodity_SCTG', 'UnitCost']] # cost per ton
     # $/ton
+    producer.loc[:, 'Zone'] = producer.loc[:, 'Zone'].astype(np.int64)
+    mesozone_to_faf_lookup.loc[:, 'MESOZONE'] = \
+        mesozone_to_faf_lookup.loc[:, 'MESOZONE'].astype(np.int64)
     producer = pd.merge(producer, mesozone_to_faf_lookup, 
                         left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
     producer.loc[:, 'FAFID'] = producer.loc[:, 'FAFID'].replace(np.nan, 0)
     producer = producer[['SellerID', 'Zone', 'NAICS', 'Commodity_SCTG', 'OutputCapacitylb', 'FAFID']]
     int_vars = ['SellerID', 'Zone', 'OutputCapacitylb', 'FAFID']
-    producer.loc[:, int_vars] = producer.loc[:, int_vars].astype(int)
+    producer.loc[:, int_vars] = producer.loc[:, int_vars].astype(np.int64)
     consumer = pd.merge(consumer, sctg_group,
                          left_on = "Commodity_SCTG", right_on = "SCTG_Code", how = 'left')
     # shipment_distance_lookup = shipment_distance_lookup.loc[shipment_distance_lookup['Alternative'] == 'Air']
@@ -73,6 +76,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
         print('process SCTG group ' + str(sctg))
         shipment_by_distance_bin_distribution.loc[:, 'probability'] = shipment_by_distance_bin_distribution.loc[:, str(sctg)]
         g1_consm = consumer.loc[consumer['SCTG_Group'] == sctg]
+        g1_consm.loc[:, 'Zone'] = g1_consm.loc[:, 'Zone'].astype(np.int64)
         g1_consm = pd.merge(g1_consm, mesozone_to_faf_lookup, 
                             left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
         g1_consm.loc[:, 'FAFID'] = g1_consm.loc[:, 'FAFID'].replace(np.nan, 0)
@@ -80,7 +84,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
         g1_consm = g1_consm[['BuyerID', 'Zone', 'Commodity_SCTG', 'SCTG_Group', 'NAICS', 
                              'InputCommodity', 'PurchaseAmountlb', 'FAFID']] 
         int_vars = ['BuyerID','Zone', 'Commodity_SCTG', 'SCTG_Group', 'PurchaseAmountlb', 'FAFID']
-        g1_consm.loc[:, int_vars] = g1_consm.loc[:, int_vars].astype(int)    
+        g1_consm.loc[:, int_vars] = g1_consm.loc[:, int_vars].astype(np.int64)    
         g1_consm = pd.merge(g1_consm, supplier_selection_param,
                             on = 'SCTG_Group', how = 'left') # append supplier selection param
         list_of_commodity = g1_consm.InputCommodity.unique()
@@ -140,7 +144,8 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                     # chunksize = 5000
                     # chunks_of_buyers = split_dataframe(selected_buyer_by_level, chunksize)
                     
-                    supplier_pool = supplier_with_distance_cost.loc[supplier_with_distance_cost['supply_rank'] >= level]
+                    supplier_pool = \
+                        supplier_with_distance_cost.loc[supplier_with_distance_cost['supply_rank'] >= level]
                     if len(supplier_pool) == 0:                        
                             supplier_pool = supplier_with_distance_cost.copy()
     
@@ -153,10 +158,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                                     left_on = 'distance_bin', right_on = 'IDs', how = 'left')
                     supplier_pool = supplier_pool[['SellerID', 'Zone', 'NAICS', 'Commodity_SCTG',
                                                    'OutputCapacitylb', 'supply_rank', 'Distance', 'UnitCost', 'SHIPMT_WGHT', 'probability']]
-                    # for chunk in chunks_of_buyers: 
-                    #     # print(len(chunk))
-                    #     if len(chunk) == 0:
-                    #         continue
+
                     sample_size = min(2 * len(selected_buyer_by_level), len(supplier_pool))
                     if len(supplier_pool) == 0:
                         continue
@@ -175,9 +177,31 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                
                     paired_buyer_supplier = paired_buyer_supplier.loc[paired_buyer_supplier['BuyerID'] != paired_buyer_supplier['SellerID']]
                     
+                    # missing_values = sum(paired_buyer_supplier.isna().any())
+                    # if missing_values > 0:
+                    #     print(str(missing_values) + ' missing present after pairing')
+                    #     paired_buyer_supplier.to_csv(os.path.join(output_dir,'supplier_selection_qaqc.csv'))
+                    #     selected_buyer_by_level.to_csv(os.path.join(output_dir,'buyer_sample_qaqc.csv'))
+                    #     selected_supplier.to_csv(os.path.join(output_dir,'supplier_sample_qaqc.csv'))
+                    #     print(len(selected_buyer_by_level))
+                    #     print(len(selected_supplier))
+                        #break
+                    # print(sum(paired_buyer_supplier.isna().any()))
+                    paired_buyer_supplier = paired_buyer_supplier.dropna()
                     if len(paired_buyer_supplier) == 0:
-                        print('pairing failed for selected buyers ' + str(len(selected_buyer_by_level)))
-                        continue
+                        # print('pairing failed for selected buyers ' + str(len(selected_buyer_by_level)))
+                        # print('drop buyer commodity type and retry')
+                        selected_buyer_by_level.drop(columns = ['Commodity_SCTG'], inplace = True)
+                        paired_buyer_supplier = pd.merge(selected_buyer_by_level, selected_supplier,
+                                                    left_on = ["InputCommodity"], 
+                                                    right_on = ["NAICS"], 
+                                                    how = 'left')
+                        paired_buyer_supplier = \
+                        paired_buyer_supplier.loc[paired_buyer_supplier['BuyerID'] != paired_buyer_supplier['SellerID']]
+                        if len(paired_buyer_supplier) == 0:
+                            print('pairing failed for selected buyers ' + str(len(selected_buyer_by_level)))
+                            print('retry failed')
+                            continue
                     paired_buyer_supplier.loc[:,'Value'] = paired_buyer_supplier.loc[:,'PurchaseAmountlb'] * paired_buyer_supplier.loc[:,'UnitCost'] / 2000
                     criteria1 = (paired_buyer_supplier['PurchaseAmountlb'] >= paired_buyer_supplier['SHIPMT_WGHT'])
                     paired_buyer_supplier.loc[criteria1,'Value'] = paired_buyer_supplier.loc[criteria1,'SHIPMT_WGHT'] * \
@@ -206,6 +230,11 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                         print('pairing failed for selected buyers ' + str(len(selected_buyer_by_level)))
                         continue
                     # formatting output
+                    missing_values = sum(selected_b2b_flow.isna().any())
+                    if missing_values > 0:
+                         print(str(missing_values) + ' missing present after sampling')
+                         
+                    #     break
                     selected_b2b_flow = selected_b2b_flow.rename(columns={"Zone_x": "BuyerZone", 
                                                                           "NAICS_x": "BuyerNAICS", 
                                                                           "Zone_y": "SellerZone",
@@ -220,8 +249,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                     # increasing cost for selected suppliers (prevent same suppliers were overly selected)
                     selected_sellers = selected_b2b_flow.SellerID.unique()
                     supplier_with_distance_cost.loc[supplier_with_distance_cost['SellerID'].isin(selected_sellers), 'Distance'] += step_size
-                    #break
-            #         break
+
                     
             #     break
     
@@ -231,7 +259,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                 continue
             print('writing output for commodity ' + str(com))
             output_b2b_flow.to_csv(path_to_output, index = False)
-        # break
+          
     print('end of supplier selection')
     print('-------------------------')
     return

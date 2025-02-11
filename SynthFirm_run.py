@@ -148,20 +148,17 @@ def main():
     consumer_by_sctg_filehead = os.path.join(output_path, config['OUTPUTS']['consumer_by_sctg_filehead'])
     sample_consumer_file = os.path.join(output_path, config['OUTPUTS']['sample_consumer_file'])
     io_filtered_file = os.path.join(output_path, config['OUTPUTS']['io_filtered_file'])
-    
     mesozone_to_faf_file = os.path.join(input_path, config['INPUTS']['mesozone_to_faf_file'])
-    shipment_by_distance_file = os.path.join(param_path, config['PARAMETERS']['shipment_by_distance_bin_file'])    
-    shipment_distance_lookup_file = os.path.join(param_path, config['PARAMETERS']['shipment_distance_lookup_file'])
-    cost_by_location_file = os.path.join(param_path, config['PARAMETERS']['cost_by_location_file'])
     
+
     # inputs/outputs first appear in demand forecast 
     if run_demand_forecast:
         prod_forecast_name = config['PARAMETERS']['prod_forecast_filehead'] + forecast_year + '.csv'
         prod_forecast_file = os.path.join(param_path, prod_forecast_name)
         cons_forecast_name = config['PARAMETERS']['cons_forecast_filehead'] + forecast_year + '.csv'
         cons_forecast_file = os.path.join(param_path, cons_forecast_name)
-        
-    #inputs/outputs first appear in firm location generation
+    
+    # inputs/outputs first appear in firm location generation
     spatial_boundary_file_fileend = config['INPUTS']['spatial_boundary_file_fileend']
     spatial_boundary_file_name = scenario_name + spatial_boundary_file_fileend
     spatial_boundary_file = os.path.join(input_path, spatial_boundary_file_name)
@@ -170,12 +167,25 @@ def main():
     zonal_output_fileend = config['OUTPUTS']['zonal_output_fileend']
     zonal_output_file = os.path.join(output_path, scenario_name + zonal_output_fileend)
 
+
+    # inputs/outputs first appear in supplier selection
+    
+    shipment_by_distance_file = os.path.join(param_path, config['PARAMETERS']['shipment_by_distance_bin_file'])    
+    shipment_distance_lookup_file = os.path.join(param_path, config['PARAMETERS']['shipment_distance_lookup_file'])
+    cost_by_location_file = os.path.join(param_path, config['PARAMETERS']['cost_by_location_file'])
+    supplier_selection_param_file = os.path.join(param_path, config['PARAMETERS']['supplier_selection_param_file'])
+    
+    
+    # inputs/outputs first appear in shipment size
     cfs_to_faf_file = os.path.join(param_path, config['PARAMETERS']['cfs_to_faf_file'])
     max_load_per_shipment_file = os.path.join(param_path, config['PARAMETERS']['max_load_per_shipment_file'])
     
-    supplier_selection_param_file = os.path.join(param_path, config['PARAMETERS']['supplier_selection_param_file'])
+    # inputs/outputs first appear in mode choice
     mode_choice_param_file = os.path.join(input_path, config['INPUTS']['mode_choice_param_file'])
     distance_travel_skim_file = os.path.join(param_path, config['PARAMETERS']['distance_travel_skim_file'])
+        
+
+
     
     # input/output appear in fleet generation
     private_fleet_file = os.path.join(input_path, config['FLEET_IO']['private_fleet_file'])

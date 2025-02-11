@@ -175,7 +175,7 @@ def process_chunk(args):
     # select domestic shipment
 
     modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg.SellerNAICS.astype(str).str[:2] # generate 2-digit NAICS code
-    modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg['NAICS_code'].astype(int)
+    modeled_OD_by_sctg['NAICS_code'] = modeled_OD_by_sctg['NAICS_code'].astype(np.int64)
     modeled_OD_by_sctg["shipment_id"] = modeled_OD_by_sctg.index + 1 # generate shipment ID for matching
     modeled_OD_by_sctg = pd.concat([modeled_OD_by_sctg, 
                                      pd.DataFrame(columns = list_of_alternative)], 
@@ -221,7 +221,7 @@ def process_chunk(args):
                                               'probability', 'Distance', 'Travel_time']]
     int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 'shipment_id',
     'orig_FAFID', 'dest_FAFID']
-    modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(int)
+    modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(np.int64)
     float_var = ['TruckLoad', 'probability', 'Distance', 'Travel_time']
     modeled_OD_by_sctg.loc[:, float_var] = modeled_OD_by_sctg.loc[:, float_var].astype(float)
     # i += 1
