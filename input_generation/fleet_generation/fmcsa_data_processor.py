@@ -138,6 +138,11 @@ for col, values in SCTG_group_mapping.items():
 print(fmcsa_carrier_data[list_of_sctgs].head(5))
 # <codecell>
 
+sample_cargo_data = fmcsa_carrier_data[list_of_sctgs].sample(100000)
+corr_mat = sample_cargo_data.corr()
+print(corr_mat)
+# <codecell>
+
 # post-process carrier data
 fleet_size_bin = [0, 2, 5, 10, 50, 100, 1000, fmcsa_carrier_data.TRUCK_UNITS.max()]
 fleet_size_label = ['<=2', '3-5', '6-10', '11-50', '51-100', '101-1000', '>1000']
