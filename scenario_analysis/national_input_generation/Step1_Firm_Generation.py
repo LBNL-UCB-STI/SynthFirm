@@ -17,8 +17,8 @@ from pandas import read_csv
 #### step 1 - configure environment and load inputs ####
 ########################################################
 
-scenario_name = 'national'
-out_scenario_name = 'national'
+scenario_name = 'Seattle'
+out_scenario_name = 'Seattle'
 file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 number_of_processes = 4
@@ -282,7 +282,8 @@ firms_in_boundary_withzip = firms_in_boundary.loc[firms_in_boundary['ZIPCODE'] !
 # create tract ID from CBG id
 emp_ranking_in_boundary.loc[:, 'MESOZONE'] = \
     emp_ranking_in_boundary.loc[:, 'MESOZONE'].astype(int).astype(str).str.zfill(12)
-emp_ranking_in_boundary.loc[:, 'geoid'] = emp_ranking_in_boundary.loc[:, 'MESOZONE'].str[0:11]
+emp_ranking_in_boundary.loc[:, 'geoid'] = \
+    emp_ranking_in_boundary.loc[:, 'MESOZONE'].str[0:11]
 
 # <codecell>
 zip_to_tract_crosswalk.loc[:, 'geoid'] = \
@@ -387,9 +388,6 @@ for ind in industries:
     
     # break
 print(len(firms_out_nozip))
-
-
-
 
 
 # <codecell> 

@@ -22,7 +22,7 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-region_name = 'national'
+region_name = 'Seattle'
 with_zipcode = 1 # 0 = no zip code, 1 = with zip code
 naics_code <-
   data.table::fread('SynthFirm_parameters/corresp_naics6_n6io_sctg_revised.csv', h = T)
