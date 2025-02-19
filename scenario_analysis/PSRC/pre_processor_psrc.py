@@ -101,8 +101,11 @@ psrc_emp_by_cbg.loc[:, 'empsvc_p']
 # <codecell>
 
 # adjust employment within PSRC boundary
+missing_geoid = 530530729073
 mesozone_ids = parcel_geography.Census2010BlockGroup.unique()
+
 mesozone_ids = [int(element) for element in mesozone_ids]
+mesozone_ids.append(missing_geoid)
 print(len(mesozone_ids))
 
 emp_ranking.loc[:, 'MESOZONE'] = emp_ranking.loc[:, 'MESOZONE'].astype(int)

@@ -27,7 +27,7 @@ output_path = 'outputs_' + out_scenario_name
 
 os.chdir(file_path)    
 cbp_file = os.path.join(input_dir, 'data_emp_cbp_imputed.csv')
-mzemp_file = os.path.join(input_dir, 'data_mesozone_emprankings.csv')
+mzemp_file = os.path.join(input_dir, 'data_mesozone_emprankings_calibrated.csv')
 mesozone_to_faf_file = os.path.join(input_dir, 'zonal_id_lookup_final.csv')
 
 c_n6_n6io_sctg_file = os.path.join(parameter_dir, 'corresp_naics6_n6io_sctg_revised.csv')
@@ -205,8 +205,10 @@ print(lehd_emp_for_scaling.emp_lehd.sum())
 # develop firm emp scaling factor
 firms.loc[:, 'industry'] = firms.loc[:, 'n2']
 firms.loc[firms['industry'].isin(["31", "32", "33"]), 'industry'] = "3133"
-firms.loc[firms['industry'].isin(["44", "45"]), 'industry'] = "4445"
+firms.loc[firms['industry'].isin(["44", "45", "4A"]), 'industry'] = "4445"
 firms.loc[firms['industry'].isin(["48", "49"]), 'industry'] = "4849"
+firms.loc[firms['industry'].isin(["S0"]), 'industry'] = "92"
+# print(firms['industry'].unique())
 
 emp_sim = \
     firms.groupby(['industry', 'CBPZONE'])[['emp_per_est']].sum()
@@ -274,7 +276,7 @@ firms_out_boundary = \
     firms_out_boundary.groupby(essential_attr).sample(1, replace = False, random_state = 1)
 
 # assign mesozone for firms within boundary
-
+# <codecell>
 # separate firms with/without zipcode
 firms_in_boundary_nozip = firms_in_boundary.loc[firms_in_boundary['ZIPCODE'] == 99999]
 firms_in_boundary_withzip = firms_in_boundary.loc[firms_in_boundary['ZIPCODE'] != 99999]
@@ -317,9 +319,11 @@ print(len(firms_in_boundary_withzip))
 # <codecell>
 firms_out_withzip = None
 
+nozip_col = firms_in_boundary_nozip.columns
 for ind in industries:
 
-    firms_to_assign = firms_in_boundary_withzip.loc[firms_in_boundary_withzip['industry'] == ind]
+    firms_to_assign = \
+        firms_in_boundary_withzip.loc[firms_in_boundary_withzip['industry'] == ind]
     print('numbers of firms to assign from industry = ' + str(ind))
     print(len(firms_to_assign.BusID.unique()))
     
@@ -327,31 +331,51 @@ for ind in industries:
                                on = 'ZIPCODE', how = 'left')
     firms_to_assign = pd.merge(firms_to_assign, emp_ranking_in_boundary,
                                on = ['CBPZONE', 'geoid', 'industry'], how = 'left')
-    firms_to_assign['emp_lehd'] = firms_to_assign['emp_lehd'].fillna(1)
+    
+    # find firms that do not have valid mesozone in the CBP region
+    firms_in_boundary_nozip_add = firms_to_assign.loc[firms_to_assign['emp_lehd'].isna()]
+    firms_in_boundary_nozip_add = firms_in_boundary_nozip_add[nozip_col]
+    firms_in_boundary_nozip_add.drop_duplicates(keep = 'first', inplace = True)
+
+        
+    firms_to_assign = firms_to_assign.dropna(subset = ['emp_lehd'])
+    bus_ids = firms_to_assign.BusID.unique()
+    firms_in_boundary_nozip_add = \
+        firms_in_boundary_nozip_add[~firms_in_boundary_nozip_add['BusID'].isin(bus_ids)]
+    print('firms without valid CBG in Zip code:')
+    print(len(firms_in_boundary_nozip_add))
+    firms_in_boundary_nozip = \
+        pd.concat([firms_in_boundary_nozip, firms_in_boundary_nozip_add])
+    if firms_to_assign is not None:
     # print(len(firms_to_assign.BusID.unique()))
     
     # Sometimes, LODES report 0 employment in a county, while firm data as non-zero
     # may attributed to imputation for non-payroll workers
     # fill minimum ranking for all zones as no information is available for the ranking
     
-    firms_to_assign = \
-        firms_to_assign.groupby(essential_attr).sample(1,
-                                                        weights = firms_to_assign['emp_lehd'],
-                                                        replace = False, random_state = 1)
-    firms_to_assign = \
-        firms_to_assign.drop(columns = ['index', 'industry', 'emp_lehd'])
-    firms_to_assign.loc[:, 'MESOZONE'].fillna(method = 'ffill', inplace = True)
-    firms_to_assign.loc[:, 'MESOZONE'].fillna(method = 'bfill', inplace = True)
-    
-    firms_out_withzip = pd.concat([firms_out_withzip, firms_to_assign])
+        firms_to_assign = \
+            firms_to_assign.groupby(essential_attr).sample(1,
+                                                            weights = firms_to_assign['emp_lehd'],
+                                                            replace = False, random_state = 1)
+        firms_to_assign = \
+            firms_to_assign.drop(columns = ['index', 'industry', 'emp_lehd'])
+        firms_to_assign.loc[:, 'MESOZONE'].fillna(method = 'ffill', inplace = True)
+        firms_to_assign.loc[:, 'MESOZONE'].fillna(method = 'bfill', inplace = True)
+        
+        firms_out_withzip = pd.concat([firms_out_withzip, firms_to_assign])
     
     # break
+print('firms in region with valid zip')
 print(len(firms_out_withzip))
+
+print('firms in region without valid zip')
+print(len(firms_in_boundary_nozip))
 
 # <codecell>
 
 # assign mesozone to firms without zip code
 firms_out_nozip = None
+final_missing = None
 
 def split_dataframe(df, chunk_size = 10 ** 5): 
     chunks = list()
@@ -371,10 +395,19 @@ for ind in industries:
 
         chunk = pd.merge(chunk, emp_ranking_in_boundary,
                                    on = ['CBPZONE', 'industry'], how = 'left')
-        # print(len(firms_to_assign.BusID.unique()))
-        chunk['emp_lehd'] = chunk['emp_lehd'].fillna(1)
-        # print(len(firms_to_assign.BusID.unique()))
         
+        chunk_missing = chunk.loc[chunk['emp_lehd'].isna()]
+        chunk_missing = chunk_missing[nozip_col]
+        chunk_missing.drop_duplicates(keep = 'first', inplace = True)
+
+            
+        chunk = chunk.dropna(subset = ['emp_lehd'])
+        bus_ids = chunk.BusID.unique()
+        chunk_missing = \
+            chunk_missing[~chunk_missing['BusID'].isin(bus_ids)]
+        final_missing = pd.concat([final_missing, chunk_missing])
+
+        chunk = chunk.dropna(subset = ['emp_lehd'])
         chunk = \
             chunk.groupby(essential_attr).sample(1,
                                                  weights = chunk['emp_lehd'],
@@ -391,40 +424,21 @@ print(len(firms_out_nozip))
 
 
 # <codecell> 
-# unique_counties = firms_in_boundary.CBPZONE.unique()
-# firms_in_boundary_out = None
-# # randomly assign CBG
-# # loop through counties, so it doesn't explode memory usage
 
-# for ct in unique_counties:
-#     # print('assigning CBG within county fips ' + str(ct))
-#     firms_in_boundary_sel = firms_in_boundary.loc[firms_in_boundary['CBPZONE'] == ct]
-#     firms_in_boundary_sel = pd.merge(firms_in_boundary_sel, 
-#                               emp_ranking_in_boundary,
-#                               on = ["CBPZONE", "n2"],
-#                               how = 'left') # Merge the rankings dataset to the firms database based on county
-#     firms_in_boundary_sel['EmpRank'] = firms_in_boundary_sel['EmpRank'].fillna(1)
-    
+# impute last chunk of missing --> county has no lehd emp by industry, so drop industry
+final_missing.drop(columns = ['industry'], inplace = True)
+final_missing = pd.merge(final_missing, emp_ranking_in_boundary,
+                           on = ['CBPZONE'], how = 'left')
 
-#     firms_in_boundary_sel = \
-#         firms_in_boundary_sel.groupby(essential_attr).sample(1, 
-#                                                         weights = firms_in_boundary_sel['EmpRank'],
-#                                                         replace = False, random_state = 1)
-#     firms_in_boundary_sel = \
-#         firms_in_boundary_sel.drop(columns = ['index', 'industry', 'EmpRank'])
-#     firms_in_boundary_sel.loc[:, 'MESOZONE'].fillna(method = 'ffill', inplace = True)
-#     firms_in_boundary_sel.loc[:, 'MESOZONE'].fillna(method = 'bfill', inplace = True)
-#     # for firms with no emp ranking, forward fill it with locations from nearest industry
-#     # check na
-#     firms_with_na = firms_in_boundary_sel.loc[firms_in_boundary_sel['MESOZONE'].isna()]
-#     if len(firms_with_na) > 0:
-#         print(str(len(firms_with_na)) + ' firms failed to have zone assigned')
-#         print('and their firm ids are:')
-#         print(firms_with_na.BusID.unique())
-#         print('WARNING!!: The following pipeline can fail due to this error')
-#         # break
-#     firms_in_boundary_out = pd.concat([firms_in_boundary_out, firms_in_boundary_sel])
-#     # break
+final_missing = final_missing.dropna(subset = ['emp_lehd']) 
+essential_attr = ['CBPZONE', 'FAFZONE',	'esizecat', 'Industry_NAICS6_Make', 'COUNTY', 'ZIPCODE',
+                'Commodity_SCTG', 'emp_per_est', 'BusID']
+final_missing = \
+            final_missing.groupby(essential_attr).sample(1,
+                                                 weights = final_missing['emp_lehd'],
+                                                 replace = False, random_state = 1)
+final_missing.drop(columns = ['index', 'industry', 'emp_lehd'], inplace = True)
+
 
     
 # <codecell>
@@ -433,7 +447,7 @@ print(len(firms_out_nozip))
 # Step 4 - final formatting and writing outputs ####
 ####################################################
 
-firms = pd.concat([firms_out_boundary, firms_out_withzip, firms_out_nozip])
+firms = pd.concat([firms_out_boundary, firms_out_withzip, firms_out_nozip, final_missing])
 
 print('number of firms before writing output:')
 print(len(firms))
