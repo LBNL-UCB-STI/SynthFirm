@@ -170,28 +170,144 @@ print(len(synthetic_firm_with_parcel))
 # <codecell>
 
 # impute firms with missing parcel
+if len(synthetic_firm_to_impute) > 0:
+    sample_size = len(synthetic_firm_to_impute)
+    print('parcel IDs are imputed for ' + str(sample_size) + ' firms')
+    psrc_emp_by_cbg = psrc_parcels.groupby(['Census2010BlockGroup', 'ParcelID'])[['emptot_p']].sum()
+    psrc_emp_by_cbg = psrc_emp_by_cbg.reset_index()
+    psrc_emp_by_cbg.columns = ['MESOZONE', 'ParcelID', 'PSRC_emp']
+    psrc_emp_by_cbg = psrc_emp_by_cbg.loc[psrc_emp_by_cbg['PSRC_emp'] > 0]
+    
+    synthetic_firm_to_impute.drop(columns = ['ParcelID', 'PSRC_emp'], inplace = True)
+    
+    synthetic_firm_to_impute = pd.merge(synthetic_firm_to_impute, psrc_emp_by_cbg,
+                                          on = ['MESOZONE'], how = 'left')
+    
+    # remaining CBG do not have parcels with valid employment --> mostly due to crosswalk issue between zip and cbg
+    synthetic_firm_remaining = \
+    synthetic_firm_to_impute.loc[synthetic_firm_to_impute['PSRC_emp'].isna()]
+    
+    # # assign parcel ID to CBGs with non-zero parcels
+    synthetic_firm_to_impute = synthetic_firm_to_impute.dropna(subset = ['PSRC_emp'])
+    
+    synthetic_firm_to_impute = \
+        synthetic_firm_to_impute.groupby(essential_attr).sample(1,
+                                         weights = synthetic_firm_with_parcel['PSRC_emp'],
+                                         replace = True, random_state = 1)
+    print('firms after assign parcel ID:')
+    print(len(synthetic_firm_to_impute))
+    synthetic_firm_with_parcel = pd.concat([synthetic_firm_with_parcel, 
+                                            synthetic_firm_to_impute])
 
-psrc_emp_by_cbg = psrc_parcels.groupby(['Census2010BlockGroup', 'ParcelID'])[['emptot_p']].sum()
-psrc_emp_by_cbg = psrc_emp_by_cbg.reset_index()
-psrc_emp_by_cbg.columns = ['MESOZONE', 'ParcelID', 'PSRC_emp']
-psrc_emp_by_cbg = psrc_emp_by_cbg.loc[psrc_emp_by_cbg['PSRC_emp'] > 0]
-
-synthetic_firm_to_impute.drop(columns = ['ParcelID', 'PSRC_emp'], inplace = True)
-
-synthetic_firm_to_impute = pd.merge(synthetic_firm_to_impute, psrc_emp_by_cbg,
-                                      on = ['MESOZONE'], how = 'left')
 
 # <codecell>
-# remaining CBG do not have parcels with valid employment --> mostly due to crosswalk issue between zip and cbg
-synthetic_firm_remaining = \
-synthetic_firm_to_impute.loc[synthetic_firm_to_impute['PSRC_emp'].isna()]
 
-# # assign parcel ID to CBGs with non-zero parcels
-# synthetic_firm_with_parcel = synthetic_firm_with_parcel.dropna()
+# assign lat/lon to parcels
+wgs84_crs = 'EPSG:4326'
+psrc_parcels_gdf_short = psrc_parcels_gdf[['ParcelID', 'TAZ', 'geometry']]
+psrc_parcels_gdf_short = psrc_parcels_gdf_short.to_crs(wgs84_crs)
+synthetic_firm_with_parcel = psrc_parcels_gdf_short.merge(synthetic_firm_with_parcel, 
+                                      on = 'ParcelID', how = 'inner')
+# <codecell>
+# plt.figure()
+ax = synthetic_firm_with_parcel.plot(column = 'Emp',
+                               cmap='viridis',figsize = (6,5), markersize = 0.1, alpha = 0.3)
 
-synthetic_firm_to_impute = \
-    synthetic_firm_to_impute.groupby(essential_attr).sample(1,
-                                     weights = synthetic_firm_with_parcel['PSRC_emp'],
-                                     replace = True, random_state = 1)
-print('firms after assign parcel ID:')
-print(len(synthetic_firm_to_impute))
+cx.add_basemap(ax, source = cx.providers.CartoDB.Positron, crs = wgs84_crs)
+plt.title('Firm location and employment')
+plt.axis('off')
+plt.savefig(os.path.join(plot_dir, 'parcel_level_synthetic_firms.png'), dpi = 300, 
+            bbox_inches = 'tight')
+
+# <codecell>
+# add random noise to coordinates
+noise_meters = 100
+
+# Convert the noise to degrees
+noise_degrees = noise_meters / 111320
+
+# Generate a random noise in degrees
+synthetic_firm_with_parcel['lat'] = synthetic_firm_with_parcel.geometry.y
+synthetic_firm_with_parcel['lon'] = synthetic_firm_with_parcel.geometry.x
+
+synthetic_firm_with_parcel_df = \
+    pd.DataFrame(synthetic_firm_with_parcel.drop(columns = 'geometry'))
+
+# Add the noise to the coordinates
+synthetic_firm_with_parcel_df['lat'] = \
+    synthetic_firm_with_parcel_df['lat'] + np.random.uniform(0, noise_degrees)
+synthetic_firm_with_parcel_df['lon'] = \
+    synthetic_firm_with_parcel_df['lon'] + np.random.uniform(0, noise_degrees)
+
+# <codecell>
+# PLOT RESULTS
+firm_parcels_gdf = gps.GeoDataFrame(
+    synthetic_firm_with_parcel_df, 
+    geometry=gps.points_from_xy(synthetic_firm_with_parcel_df.lon, 
+                                synthetic_firm_with_parcel_df.lat), crs = wgs84_crs)
+
+ax = firm_parcels_gdf.plot(figsize = (6,5), markersize = 0.1, alpha = 0.3)
+
+cx.add_basemap(ax, source = cx.providers.CartoDB.Positron, crs = wgs84_crs)
+plt.axis('off')
+plt.savefig(os.path.join(plot_dir, 'parcel_level_synthetic_firms_w_noise.png'), dpi = 300, 
+            bbox_inches = 'tight')
+# <codecell>
+# compare results by CBG
+from sklearn.metrics import mean_squared_error 
+from sklearn.metrics import r2_score
+
+synthfirm_by_cbg = synthetic_firm_with_parcel_df.groupby('MESOZONE')[['Emp']].sum()
+synthfirm_by_cbg = synthfirm_by_cbg.reset_index()
+psrc_emp_by_cbg = psrc_parcels.groupby(['Census2010BlockGroup'])[['emptot_p']].sum()
+psrc_emp_by_cbg = psrc_emp_by_cbg.reset_index()
+psrc_emp_by_cbg.columns = ['MESOZONE', 'PSRC_emp']
+firm_comparison_by_cbg = pd.merge(synthfirm_by_cbg, psrc_emp_by_cbg, 
+                                     on = 'MESOZONE',
+                                     how = 'left')
+firm_comparison_by_cbg.columns = ['GEOID', 'SynthFirm employment', 'PSRC employment']
+rmse_emp = mean_squared_error(firm_comparison_by_cbg['SynthFirm employment'], 
+                              firm_comparison_by_cbg['PSRC employment'], squared = False)
+r2_emp = r2_score(firm_comparison_by_cbg['PSRC employment'], 
+                  firm_comparison_by_cbg['SynthFirm employment'])
+rmse_emp = np.round(rmse_emp, 1)
+r2_emp = np.round(r2_emp, 2)
+print(firm_comparison_by_cbg['PSRC employment'].sum())
+print(firm_comparison_by_cbg['SynthFirm employment'].sum())
+print(rmse_emp, r2_emp)
+plt.style.use('seaborn-v0_8-white')
+# plt.rcParams['axes.facecolor'] = 'white'
+sns.set(font_scale=1.4)  # crazy big
+sns.set_style("white")
+sns.lmplot(
+    data=firm_comparison_by_cbg,
+    x="PSRC employment", y="SynthFirm employment", 
+    height=4.5, aspect = 1.2, line_kws={'color': 'grey'}, 
+    scatter_kws = {'alpha':0.3})
+# g.set_facecolor("white")
+
+plt.xlim([0, 60000])
+plt.ylim([0, 60000])
+plt.xlabel('PSRC Employment')
+plt.ylabel('SynthFirm Employment')
+plt.title('Employment by CBG, $R^{2}$ = ' + str(r2_emp) + \
+          ' , RMSE =' + str(rmse_emp), fontsize = 14)
+plt.savefig(os.path.join(plot_dir, 'emp_by_CBG_validation_synthfirm.png'), dpi = 200,
+           bbox_inches = 'tight')
+
+
+# <codecell>
+
+# write output
+output_attr = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon', 
+       'ParcelID', 'TAZ']
+synthetic_firm_in_region = synthetic_firm_with_parcel_df[output_attr]
+synthetic_firm_output = pd.concat([synthetic_firm_in_region,
+                                   synthetic_firm_out_region])
+
+calibrated_firm_file = os.path.join(output_dir, 'synthetic_firms_with_location_cal.csv')
+synthetic_firm_output.to_csv(calibrated_firm_file, index = False)
+
+
+
