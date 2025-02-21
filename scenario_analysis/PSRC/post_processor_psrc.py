@@ -232,12 +232,13 @@ synthetic_firm_with_parcel['lon'] = synthetic_firm_with_parcel.geometry.x
 
 synthetic_firm_with_parcel_df = \
     pd.DataFrame(synthetic_firm_with_parcel.drop(columns = 'geometry'))
-
+# <codecell>
 # Add the noise to the coordinates
+sample_size = len(synthetic_firm_with_parcel_df)
 synthetic_firm_with_parcel_df['lat'] = \
-    synthetic_firm_with_parcel_df['lat'] + np.random.uniform(0, noise_degrees)
+    synthetic_firm_with_parcel_df['lat'] + np.random.uniform(0, noise_degrees, sample_size)
 synthetic_firm_with_parcel_df['lon'] = \
-    synthetic_firm_with_parcel_df['lon'] + np.random.uniform(0, noise_degrees)
+    synthetic_firm_with_parcel_df['lon'] + np.random.uniform(0, noise_degrees, sample_size)
 
 # <codecell>
 # PLOT RESULTS
