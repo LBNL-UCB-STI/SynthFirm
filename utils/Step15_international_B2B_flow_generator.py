@@ -96,9 +96,9 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     export_output_truck_only.loc[:, 'low_load'] = 0
     export_output_truck_only.loc[export_output_truck_only['load_frac'] <= payload_frac_thres, 'low_load'] = 1
     
-    print(export_output_truck_only.total_weight.min())
-    print(export_output_truck_only.total_weight.max())
-    print(export_output_truck_only.groupby('low_load')[['shipments']].sum())
+    print(export_output_truck_only.total_weight.sum())
+    # print(export_output_truck_only.total_weight.max())
+    # print(export_output_truck_only.groupby('low_load')[['shipments']].sum())
     
     export_output_truck_only.loc[:, 'sample_size'] = \
         np.round(export_output_truck_only.loc[:, 'load_frac'], 0)
@@ -108,12 +108,16 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     export_output_truck_only.loc[truckload_criteria, 'sample_size'] = \
         export_output_truck_only.loc[truckload_criteria, 'shipments']
     
-    export_output_truck_only.loc[:, 'TruckLoad'] = \
-    export_output_truck_only.loc[:, 'total_weight'] /export_output_truck_only.loc[:, 'sample_size']
+    # export_output_truck_only.loc[:, 'TruckLoad'] = \
+    # export_output_truck_only.loc[:, 'TruckLoad'] /export_output_truck_only.loc[:, 'sample_size']
     
     export_output_truck_only.loc[:, 'shipments'] = \
     export_output_truck_only.loc[:, 'shipments'] /export_output_truck_only.loc[:, 'sample_size']
     
+    # export_output_truck_only.loc[:, 'total_weight'] = \
+    #     export_output_truck_only.loc[:, 'TruckLoad'] * export_output_truck_only.loc[:, 'shipments'] \
+    #     * export_output_truck_only.loc[:, 'sample_size']
+    # print(export_output_truck_only.loc[:, 'total_weight'].sum())
     export_truck_shipments = pd.DataFrame(np.repeat(export_output_truck_only.values, 
                                                 export_output_truck_only.sample_size, axis=0))
     export_truck_shipments.columns = export_output_truck_only.columns
@@ -124,7 +128,7 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     export_truck_shipments.loc[:, 'shipments'] = np.round(export_truck_shipments.loc[:, 'shipments'].astype(float),0)
     export_truck_shipments.loc[:, 'TruckLoad'] = \
     export_truck_shipments.loc[:, 'total_weight'] /export_truck_shipments.loc[:, 'shipments']
-    
+    print(export_truck_shipments.loc[:, 'total_weight'].sum())
     export_truck_shipments.drop(columns = ['value_2017', 'value_density', 
                                        'bundle_id', 'total_weight',
                                        'load_frac', 'low_load', 'sample_size'],
@@ -181,7 +185,7 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     # <codecell>
     # assign failed ones (drop SCTG)
     producer_to_match = domestic_producer_to_match.sample(frac = 0.5) # reduce size for sampling
-    print(len(export_truck_shipment_failed))
+    # print(len(export_truck_shipment_failed))
     producer_to_match.drop(columns = ['SCTG_Code'], inplace = True) # ignore SCTG from producers
     export_truck_shipment_reassign = pd.merge(export_truck_shipment_failed, 
                                             producer_to_match,
@@ -196,13 +200,13 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
                                                                  weights = export_truck_shipment_reassign['Size'],
                                                                  replace = True, 
                                                                  random_state = 1)
-    print(len(export_truck_shipment_reassign))
+    # print(len(export_truck_shipment_reassign))
     export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
                                                 export_truck_shipment_reassign])
     
     # final imputation -- drop all SCTG
     producer_to_match = domestic_producer_to_match.sample(frac = 0.1) # reduce size for sampling
-    print(len(failed_shipment))
+    # print(len(failed_shipment))
     producer_to_match.drop(columns = ['SCTG_Code', 'SCTG_Group'], inplace = True) # ignore SCTG from producers
     export_truck_shipment_reassign = pd.merge(failed_shipment, 
                                             producer_to_match,
@@ -217,7 +221,7 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
                                                                  weights = export_truck_shipment_reassign['Size'],
                                                                  replace = True, 
                                                                  random_state = 1)
-    print(len(export_truck_shipment_reassign))
+    # print(len(export_truck_shipment_reassign))
     
     export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
                                                 export_truck_shipment_reassign])
@@ -237,9 +241,9 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     import_output_truck_only.loc[:, 'low_load'] = 0
     import_output_truck_only.loc[import_output_truck_only['load_frac'] <= payload_frac_thres, 'low_load'] = 1
     
-    print(import_output_truck_only.total_weight.min())
-    print(import_output_truck_only.total_weight.max())
-    print(import_output_truck_only.groupby('low_load')[['shipments']].sum())
+    print(import_output_truck_only.total_weight.sum())
+    # print(import_output_truck_only.total_weight.max())
+    # print(import_output_truck_only.groupby('low_load')[['shipments']].sum())
     
     import_output_truck_only.loc[:, 'sample_size'] = \
         np.round(import_output_truck_only.loc[:, 'load_frac'], 0)
@@ -249,8 +253,8 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     import_output_truck_only.loc[truckload_criteria, 'sample_size'] = \
         import_output_truck_only.loc[truckload_criteria, 'shipments']
     
-    import_output_truck_only.loc[:, 'TruckLoad'] = \
-    import_output_truck_only.loc[:, 'total_weight'] /import_output_truck_only.loc[:, 'sample_size']
+    # import_output_truck_only.loc[:, 'TruckLoad'] = \
+    # import_output_truck_only.loc[:, 'total_weight'] /import_output_truck_only.loc[:, 'sample_size']
     
     import_output_truck_only.loc[:, 'shipments'] = \
     import_output_truck_only.loc[:, 'shipments'] /import_output_truck_only.loc[:, 'sample_size']
@@ -267,7 +271,7 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
         np.round(import_truck_shipments.loc[:, 'shipments'].astype(float),0)
     import_truck_shipments.loc[:, 'TruckLoad'] = \
     import_truck_shipments.loc[:, 'total_weight'] /import_truck_shipments.loc[:, 'shipments']
-    
+    print(import_truck_shipments.total_weight.sum())
     import_truck_shipments.drop(columns = ['value_2017', 'value_density', 
                                         'bundle_id', 'total_weight',
                                         'load_frac', 'low_load', 'sample_size'],
@@ -320,7 +324,7 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     # <codecell>
     # assign failed ones (drop SCTG)
     consumer_to_match = domestic_consumer_to_match.sample(frac = 0.05) # reduce size for sampling
-    print(len(import_truck_shipment_failed))
+    # print(len(import_truck_shipment_failed))
     consumer_to_match.drop(columns = ['SCTG_Code'], inplace = True) # ignore SCTG from producers
     import_truck_shipment_reassign = pd.merge(import_truck_shipment_failed, 
                                             consumer_to_match,
@@ -335,13 +339,13 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
                                                                  weights = import_truck_shipment_reassign['Size'],
                                                                  replace = True, 
                                                                  random_state = 1)
-    print(len(import_truck_shipment_reassign))
+    # print(len(import_truck_shipment_reassign))
     import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
                                                 import_truck_shipment_reassign])
     
     # final imputation -- drop all SCTG
     consumer_to_match = domestic_consumer_to_match.sample(frac = 0.05) # reduce size for sampling
-    print(len(failed_shipment))
+    # print(len(failed_shipment))
     consumer_to_match.drop(columns = ['SCTG_Code', 'SCTG_Group'], inplace = True) # ignore SCTG from producers
     import_truck_shipment_reassign = pd.merge(failed_shipment, 
                                             consumer_to_match,
@@ -356,7 +360,7 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
                                                                   weights = import_truck_shipment_reassign['Size'],
                                                                   replace = True, 
                                                                   random_state = 1)
-    print(len(import_truck_shipment_reassign))
+    # print(len(import_truck_shipment_reassign))
     
     import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
                                                 import_truck_shipment_reassign])
