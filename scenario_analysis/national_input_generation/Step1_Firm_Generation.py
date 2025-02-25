@@ -17,8 +17,8 @@ from pandas import read_csv
 #### step 1 - configure environment and load inputs ####
 ########################################################
 
-scenario_name = 'Seattle'
-out_scenario_name = 'Seattle'
+scenario_name = 'national'
+out_scenario_name = 'national'
 file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 number_of_processes = 4
@@ -27,14 +27,14 @@ output_path = 'outputs_' + out_scenario_name
 
 os.chdir(file_path)    
 cbp_file = os.path.join(input_dir, 'data_emp_cbp_imputed.csv')
-mzemp_file = os.path.join(input_dir, 'data_mesozone_emprankings_calibrated.csv')
+mzemp_file = os.path.join(input_dir, 'data_mesozone_emprankings.csv')
 mesozone_to_faf_file = os.path.join(input_dir, 'zonal_id_lookup_final.csv')
 
 c_n6_n6io_sctg_file = os.path.join(parameter_dir, 'corresp_naics6_n6io_sctg_revised.csv')
 employment_per_firm_file = os.path.join(parameter_dir, 'employment_by_firm_size_naics.csv')
 employment_per_firm_gapfill_file = os.path.join(parameter_dir, 'employment_by_firm_size_gapfill.csv')
 zip_to_tract_file = os.path.join(parameter_dir, 'ZIP_TRACT_LOOKUP_2016.csv')
-synthetic_firms_no_location_file = os.path.join(output_path, 'synthetic_firms.csv')
+synthetic_firms_no_location_file = os.path.join(output_path, 'synthetic_firms_v2.csv')
 
 # def synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, employment_per_firm_file,
 #                               employment_per_firm_gapfill_file, synthetic_firms_no_location_file,
