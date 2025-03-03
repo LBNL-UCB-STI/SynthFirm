@@ -80,6 +80,8 @@ criteria_3 = (fmcsa_carrier_data.loc[:, 'FOR-HIRE'] == True) & \
     (fmcsa_carrier_data.loc[:, 'PRIVATE'] == True)
 fmcsa_carrier_data.loc[criteria_3, 'CARRIER_TYPE'] = 'FOR-HIRE AND PRIVATE'
 
+#1,855,613 rows
+
 print(fmcsa_carrier_data.groupby('CARRIER_TYPE').size())
 # print(fmcsa_carrier_data.groupby('CARRIER_TYPE')[['TRUCK_UNITS']].sum())
 
@@ -87,22 +89,27 @@ print(fmcsa_carrier_data.groupby('CARRIER_TYPE').size())
 # drop record not in freight carriers
 fmcsa_carrier_data = \
     fmcsa_carrier_data.loc[fmcsa_carrier_data['CARRIER_TYPE'] != 'OTHER']
-# 1,824,146 rows
-
-print(fmcsa_carrier_data.groupby('PRIOR_REVOKE_FLAG').size())
-print(len(fmcsa_carrier_data)) 
-
-# keep data subject to FMCSA regulation
+# 1,816,054 rows
+ 
+# drop record being revoked
 fmcsa_carrier_data = \
-    fmcsa_carrier_data.loc[fmcsa_carrier_data['CARRIER_OPERATION'].isin(['A', 'B'])]
+    fmcsa_carrier_data.loc[fmcsa_carrier_data['PRIOR_REVOKE_FLAG'] == 'N']
 
+# 877,372 rows
+
+print(len(fmcsa_carrier_data)) 
+print(fmcsa_carrier_data.groupby('BUSINESS_ORG_ID')['TRUCK_UNITS'].sum())
+print(fmcsa_carrier_data.groupby('CARRIER_OPERATION')['TRUCK_UNITS'].sum())
 print(fmcsa_carrier_data.groupby('CARRIER_TYPE')[['TRUCK_UNITS']].sum())
 
 # <codecell>
 
+# keep data subject to FMCSA regulation
+fmcsa_carrier_data_forhire = \
+    fmcsa_carrier_data.loc[fmcsa_carrier_data['CARRIER_TYPE'].isin(['FOR-HIRE', 'FOR-HIRE AND PRIVATE'])]
 # assign commodity group
 
-headers = fmcsa_carrier_data.columns
+headers = fmcsa_carrier_data_forhire.columns
 
 # String to match at the start
 prefix = 'CRGO'
@@ -112,8 +119,8 @@ cargo_elements = [s for s in headers if s.startswith(prefix)]
 cargo_elements.remove('CRGO_CARGOOTHR_DESC')
 print(cargo_elements)
 
-fmcsa_carrier_data[cargo_elements] = fmcsa_carrier_data[cargo_elements].replace(np.nan, 0)
-fmcsa_carrier_data[cargo_elements] = fmcsa_carrier_data[cargo_elements].replace('X', 1)
+fmcsa_carrier_data_forhire[cargo_elements] = fmcsa_carrier_data_forhire[cargo_elements].replace(np.nan, 0)
+fmcsa_carrier_data_forhire[cargo_elements] = fmcsa_carrier_data_forhire[cargo_elements].replace('X', 1)
 
 SCTG_group_mapping = {
     1: ['CRGO_GENFREIGHT', 'CRGO_LOGPOLE', 'CRGO_BLDGMAT', 'CRGO_INTERMODAL',
@@ -132,13 +139,26 @@ list_of_sctgs = []
 for col, values in SCTG_group_mapping.items():
     attr_to_add = 'SCTG' + str(col)
     list_of_sctgs.append(attr_to_add)
-    fmcsa_carrier_data.loc[:, attr_to_add] = \
-        fmcsa_carrier_data.loc[:, values].sum(axis = 1)
-    fmcsa_carrier_data.loc[fmcsa_carrier_data[attr_to_add] > 1, attr_to_add] = 1
-print(fmcsa_carrier_data[list_of_sctgs].head(5))
+    fmcsa_carrier_data_forhire.loc[:, attr_to_add] = \
+        fmcsa_carrier_data_forhire.loc[:, values].sum(axis = 1)
+    fmcsa_carrier_data_forhire.loc[fmcsa_carrier_data_forhire[attr_to_add] > 1, attr_to_add] = 1
+print(fmcsa_carrier_data_forhire[list_of_sctgs].head(5))
+
 # <codecell>
 
-sample_cargo_data = fmcsa_carrier_data[list_of_sctgs].sample(100000)
+cargo_groups = fmcsa_carrier_data_forhire.loc[:, list_of_sctgs]
+
+cargo_groups_fraction = cargo_groups.sum()/len(cargo_groups)
+
+cargo_groups_fraction = cargo_groups_fraction.to_frame()
+cargo_groups_fraction = cargo_groups_fraction.reset_index()
+cargo_groups_fraction.columns = ['SCTG_group', 'probability']
+print(cargo_groups_fraction)
+cargo_groups_fraction.to_csv(os.path.join(data_path, 'probability_of_cargo_group.csv'),
+                             index = False)
+# <codecell>
+
+sample_cargo_data = fmcsa_carrier_data_forhire[list_of_sctgs].sample(100000)
 corr_mat = sample_cargo_data.corr()
 print(corr_mat)
 # <codecell>
@@ -246,16 +266,27 @@ plt.show()
 # <codecell>
 
 # write carrier output
-carrier_summary_by_state.loc[:, 'TRUCK_PER_CARRIER'] = \
-    carrier_summary_by_state.loc[:, 'TRUCK_COUNT'] / carrier_summary_by_state.loc[:, 'CARRIER_COUNT']
+
+# carrier_summary_by_state.loc[:, 'TRUCK_PER_CARRIER'] = \
+#     carrier_summary_by_state.loc[:, 'TRUCK_COUNT'] / carrier_summary_by_state.loc[:, 'CARRIER_COUNT']
 carrier_summary_by_state['FLEET_SIZE']  = carrier_summary_by_state['FLEET_SIZE'].astype(str)
+
 carrier_summary_by_state = carrier_summary_by_state.fillna(0)
+carrier_summary_by_state = carrier_summary_by_state.loc[carrier_summary_by_state['TRUCK_COUNT'] > 0]
+# export for-hire statistics only
+carrier_summary_by_state = \
+    carrier_summary_by_state.loc[carrier_summary_by_state['CARRIER_TYPE'].isin(['FOR-HIRE', 'FOR-HIRE AND PRIVATE'])]
 carrier_summary_by_state.to_csv(os.path.join(data_path, 'FMCSA_statistics_by_fleet_size.csv'),
                                 index = False)
 
-truck_count_by_state = carrier_summary_by_state.groupby('HB_STATE')[['TRUCK_COUNT', 'CARRIER_COUNT']].sum()
+truck_count_by_state = carrier_summary_by_state.groupby(['HB_STATE'])[['TRUCK_COUNT', 'CARRIER_COUNT']].sum()
 truck_count_by_state = truck_count_by_state.reset_index()
 truck_count_by_state.to_csv(os.path.join(data_path, 'FMCSA_truck_count_by_state.csv'),
+                                index = False)
+
+truck_count_by_state_size = carrier_summary_by_state.groupby(['HB_STATE', 'FLEET_SIZE'])[['TRUCK_COUNT', 'CARRIER_COUNT']].sum()
+truck_count_by_state_size = truck_count_by_state_size.reset_index()
+truck_count_by_state_size.to_csv(os.path.join(data_path, 'FMCSA_truck_count_by_state_size.csv'),
                                 index = False)
 # create sample dataset
 # fmcsa_carrier_data_sample = fmcsa_carrier_data.sample(10000)
