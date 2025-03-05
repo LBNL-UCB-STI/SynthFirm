@@ -273,6 +273,7 @@ carrier_summary_by_state['FLEET_SIZE']  = carrier_summary_by_state['FLEET_SIZE']
 
 carrier_summary_by_state = carrier_summary_by_state.fillna(0)
 carrier_summary_by_state = carrier_summary_by_state.loc[carrier_summary_by_state['TRUCK_COUNT'] > 0]
+
 # export for-hire statistics only
 carrier_summary_by_state = \
     carrier_summary_by_state.loc[carrier_summary_by_state['CARRIER_TYPE'].isin(['FOR-HIRE', 'FOR-HIRE AND PRIVATE'])]

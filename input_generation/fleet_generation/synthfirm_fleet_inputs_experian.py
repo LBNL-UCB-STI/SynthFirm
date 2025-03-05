@@ -365,14 +365,14 @@ for veh in veh_classes:
 # <codecell>
 
 # write fuel mix output
-to_keep = ['Diesel', 'Gasoline']
+to_keep = ['Diesel', 'Gasoline', 'Electric']
 national_fuel_distribution_out = \
     national_fuel_distribution.loc[national_fuel_distribution['fuel_type'].isin(to_keep)]
 
-national_fuel_distribution_out.loc[:, 'fuel_fraction'] = \
-    national_fuel_distribution_out.loc[:, 'vehicle_count'] / \
-        national_fuel_distribution_out.groupby(['state_abbr', 'veh_class', 'service_type'])['vehicle_count'].transform('sum')
-national_fuel_distribution_out.drop(columns = ['vehicle_count'], inplace = True)
+# national_fuel_distribution_out.loc[:, 'fuel_fraction'] = \
+#     national_fuel_distribution_out.loc[:, 'vehicle_count'] / \
+#         national_fuel_distribution_out.groupby(['state_abbr', 'veh_class', 'service_type'])['vehicle_count'].transform('sum')
+# national_fuel_distribution_out.drop(columns = ['vehicle_count'], inplace = True)
 # write output
 national_fuel_distribution_out.to_csv(os.path.join(path_to_output, 
                                               'experian_national_fuel_distribution.csv'))
