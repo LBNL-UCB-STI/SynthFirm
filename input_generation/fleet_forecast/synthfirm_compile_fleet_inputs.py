@@ -214,7 +214,7 @@ def gen_fuel_mix(age_df, fuel_df, service_type, fuel_sel = ['Diesel', 'Gasoline'
     fuel_df = \
         fuel_df.loc[fuel_df['service_type']  == service_type]
     group_var = ['veh_class']
-    idx_var = ['yearID', 'veh_class', 'fuel scenario', 'rules']
+    idx_var = ['yearID', 'veh_class', 'scenario', 'fuel scenario', 'rules']
     
     if loc_attr is not None:
         group_var.append(loc_attr)
