@@ -192,6 +192,7 @@ for file in file_names:
         # combine two phev
         PHEV_classes = ['PHEV Diesel', 'PHEV Gasoline']
         new_sale.loc[new_sale['Powertrain'].isin(PHEV_classes), 'Powertrain'] = 'PHEV'
+        vehicle_stock.loc[vehicle_stock['Powertrain'].isin(PHEV_classes), 'Powertrain'] = 'PHEV'
         
         avft_from_tda = new_sale.groupby(agg_var)[['Stock']].sum()
         avft_from_tda = avft_from_tda.reset_index()
@@ -202,15 +203,17 @@ for file in file_names:
         output_attr = ['vehicleType', 'modelYearID', 'fuelType', 'stmyFraction']
         avft_from_tda = avft_from_tda.loc[avft_from_tda['fuelType'] == 'Electric',
                                           output_attr]   
-        agg_var_2 = ['vehicleType', 'modelYearID', 'fuelType', 'Powertrain']
-        powertrain_from_tda = new_sale.groupby(agg_var_2)[['Stock']].sum()
+        
+        agg_var_2 = ['vehicleType', 'Year', 'fuelType', 'Powertrain']
+        
+        powertrain_from_tda = vehicle_stock.groupby(agg_var_2)[['Stock']].sum()
         powertrain_from_tda = powertrain_from_tda.reset_index()
-        powertrain_from_tda = powertrain_from_tda.loc[powertrain_from_tda['modelYearID'] >= begin_year]
+        powertrain_from_tda = powertrain_from_tda.loc[powertrain_from_tda['Year'] >= begin_year]
         powertrain_from_tda = \
             powertrain_from_tda.loc[powertrain_from_tda['fuelType'] == 'Electric']
 
         powertrain_from_tda.loc[:, 'row_sum'] = \
-                powertrain_from_tda.groupby(['vehicleType', 'modelYearID', 'fuelType'])['Stock'].transform('sum')
+                powertrain_from_tda.groupby(['vehicleType', 'Year', 'fuelType'])['Stock'].transform('sum')
         imp_idx = (powertrain_from_tda['row_sum'] == 0) & \
             (powertrain_from_tda['Powertrain'] == 'Battery Electric')
         powertrain_from_tda.loc[imp_idx, 'Stock'] = 1 # if entire stock missing, assuming 100% BEV
@@ -220,7 +223,7 @@ for file in file_names:
                 powertrain_from_tda.loc[:, 'row_sum']
         
         powertrain_from_tda = \
-            powertrain_from_tda[['vehicleType', 'modelYearID', 'fuelType', 'Powertrain', 'Fraction']]    
+            powertrain_from_tda[['vehicleType', 'Year', 'fuelType', 'Powertrain', 'Fraction']]    
         powertrain_from_tda.fillna(0, inplace = True)
         avft_from_tda.loc[:, 'scenario'] = scenario_name
         powertrain_from_tda.loc[:, 'scenario'] = scenario_name
