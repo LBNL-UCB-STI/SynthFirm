@@ -109,6 +109,7 @@ lease_fuel_mix = \
                          (hire_fuel_mix['yearID'] == fleet_year)]
     
 ev_availability = ev_availability.loc[ev_availability['scenario'] == fleet_name]
+ev_availability = ev_availability.loc[ev_availability['Year'] == fleet_year]
 
 private_stock = private_stock.loc[private_stock['yearID'] == fleet_year]
 hire_stock = hire_stock.loc[hire_stock['yearID'] == fleet_year]
@@ -229,27 +230,12 @@ private_fleet_small = private_fleet_small.groupby(idx_var).sample(n=1,
 # combine small and large fleets
 
 private_fleet_truck = pd.concat([private_fleet_large, private_fleet_small])
-private_fleet_truck.loc[:, 'veh_type'] = \
-    private_fleet_truck.loc[:, 'fuel type'] + ' ' + private_fleet_truck.loc[:, 'veh_class']
+
 # veh_comb = private_fleet_truck.veh_type.unique()
 
 private_fleet_truck = private_fleet_truck.loc[private_fleet_truck['number_of_veh'] > 0]
 private_fleet_truck.loc[:, 'fleet_id']=private_fleet_truck.groupby('BusID').cumcount() + 1
-idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id']
-# convert long table to wide
-private_fleet_truck = pd.pivot_table(private_fleet_truck, index=idx_var,
-                                     columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
 
-private_fleet_truck = private_fleet_truck.reset_index()
-private_fleet_truck.fillna(0, inplace = True)
-
-for veh in veh_comb:
-    if veh not in private_fleet_truck.columns:
-            private_fleet_truck[veh] = 0
-private_fleet_truck.loc[:, 'n_trucks'] = private_fleet_truck.loc[:, veh_comb].sum(axis = 1)
-print(private_fleet_truck[veh_comb].sum())
 
 # <codecell>
 
@@ -430,27 +416,11 @@ carriers_with_fleet_small = carriers_with_fleet_small.groupby(idx_var).sample(n=
 
 # combine small and large fleets
 carriers_with_fleet = pd.concat([carriers_with_fleet_large, carriers_with_fleet_small])
-carriers_with_fleet.loc[:, 'veh_type'] = \
-    carriers_with_fleet.loc[:, 'fuel type'] + ' ' + carriers_with_fleet.loc[:, 'veh_class']
+
 
 carriers_with_fleet = carriers_with_fleet.loc[carriers_with_fleet['number_of_veh'] > 0]
 carriers_with_fleet.loc[:, 'fleet_id']=carriers_with_fleet.groupby('BusID').cumcount() + 1
-idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id']
-idx_var.extend(unique_cargo)
-# convert long table to wide
-carriers_with_fleet = pd.pivot_table(carriers_with_fleet, index=idx_var,
-                                     columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
 
-carriers_with_fleet = carriers_with_fleet.reset_index()
-carriers_with_fleet.fillna(0, inplace = True)
-
-for veh in veh_comb:
-    if veh not in carriers_with_fleet.columns:
-            carriers_with_fleet[veh] = 0
-carriers_with_fleet.loc[:, 'n_trucks'] = carriers_with_fleet.loc[:, veh_comb].sum(axis = 1)
-print(carriers_with_fleet[veh_comb].sum())
 
 # <codecell>
 
@@ -562,23 +532,157 @@ leasing_with_fleet_small = leasing_with_fleet_small.groupby(idx_var).sample(n=1,
 
 # combine small and large fleets
 leasing_with_fleet = pd.concat([leasing_with_fleet_large, leasing_with_fleet_small])
-leasing_with_fleet.loc[:, 'veh_type'] = \
-    leasing_with_fleet.loc[:, 'fuel type'] + ' ' + leasing_with_fleet.loc[:, 'veh_class']
+
 
 leasing_with_fleet = leasing_with_fleet.loc[leasing_with_fleet['number_of_veh'] > 0]
 leasing_with_fleet.loc[:, 'fleet_id'] = leasing_with_fleet.groupby('BusID').cumcount() + 1
+
+
+# <codecell>
+
+# --------------------------------------------------------
+# Section 6: Assign powertrain and writing outputs
+# --------------------------------------------------------
+
+############# assign EV type #############
+print('Assign EV powertrain types...')
+body_types = ev_availability['vehicleType'].unique()
+private_fleet_truck.loc[:, 'EV_powertrain (if any)'] = np.nan
+carriers_with_fleet.loc[:, 'EV_powertrain (if any)'] = np.nan
+leasing_with_fleet.loc[:, 'EV_powertrain (if any)'] = np.nan
+
+firms_with_fleet_out = None
+carriers_with_fleet_out = None
+leasing_with_fleet_out = None
+
+for bt in body_types:
+    print(bt)
+    ev_availability_select = \
+    ev_availability.loc[ev_availability['vehicleType'] == bt]
+    powertrain = ev_availability_select.Powertrain.to_numpy()
+    probability = ev_availability_select.Fraction.to_numpy()
+    
+    firm_to_assign = \
+    private_fleet_truck.loc[private_fleet_truck['veh_class'].str.contains(bt)].reset_index()    
+    sample_size_1 = len(firm_to_assign)
+    firm_to_assign.loc[:, 'EV_powertrain (if any)'] = \
+    pd.Series(np.random.choice(powertrain, size = sample_size_1, p=probability) )
+    
+    carrier_to_assign = \
+    carriers_with_fleet.loc[carriers_with_fleet['veh_class'].str.contains(bt)].reset_index()   
+    sample_size_2 = len(carrier_to_assign)
+    carrier_to_assign.loc[:, 'EV_powertrain (if any)'] = \
+    pd.Series(np.random.choice(powertrain, size = sample_size_2, p=probability) )
+        
+    lease_to_assign = \
+    leasing_with_fleet.loc[leasing_with_fleet['veh_class'].str.contains(bt)].reset_index()   
+    sample_size_3 = len(lease_to_assign)
+    lease_to_assign.loc[:, 'EV_powertrain (if any)'] = \
+    pd.Series(np.random.choice(powertrain, size = sample_size_3, p=probability) )
+    
+    firms_with_fleet_out = pd.concat([firms_with_fleet_out, firm_to_assign])
+    carriers_with_fleet_out = pd.concat([carriers_with_fleet_out, carrier_to_assign])
+    leasing_with_fleet_out = pd.concat([leasing_with_fleet_out, lease_to_assign])
+
+veh_class_renaming = {'Heavy-duty Tractor': 'Class 7&8 Tractor', 
+                      'Heavy-duty Vocational': 'Class 7&8 Vocational',
+                      'Light-duty Class12A': 'Class 1&2A Vocational', 
+                      'Light-duty Class2B3': 'Class 2&B3 Vocational',
+                      'Medium-duty Vocational': 'Class 4-6 Vocational'}
+
+firms_with_fleet_out.loc[:, 'veh_class'] = \
+firms_with_fleet_out.loc[:, 'veh_class'].map(veh_class_renaming)
+firms_with_fleet_out.loc[:, 'veh_type'] = \
+    firms_with_fleet_out.loc[:, 'fuel type'] + ' ' + firms_with_fleet_out.loc[:, 'veh_class']
+
+carriers_with_fleet_out.loc[:, 'veh_class'] = \
+carriers_with_fleet_out.loc[:, 'veh_class'].map(veh_class_renaming)    
+carriers_with_fleet_out.loc[:, 'veh_type'] = \
+    carriers_with_fleet_out.loc[:, 'fuel type'] + ' ' + carriers_with_fleet_out.loc[:, 'veh_class']
+
+leasing_with_fleet_out.loc[:, 'veh_class'] = \
+leasing_with_fleet_out.loc[:, 'veh_class'].map(veh_class_renaming)    
+leasing_with_fleet_out.loc[:, 'veh_type'] = \
+    leasing_with_fleet_out.loc[:, 'fuel type'] + ' ' + leasing_with_fleet_out.loc[:, 'veh_class']
+
+private_fuel_mix.loc[:, 'veh_class'] = \
+    private_fuel_mix.loc[:, 'veh_class'].map(veh_class_renaming)
+private_fuel_mix.loc[:, 'veh_type'] = \
+    private_fuel_mix.loc[:, 'fuel type'] + ' ' + private_fuel_mix.loc[:, 'veh_class']
+veh_comb = private_fuel_mix.veh_type.unique()
+
+# <codecell>
+
+# convert long table to wide table
+
 idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
        'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id']
+       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)']
 # convert long table to wide
-leasing_with_fleet = pd.pivot_table(leasing_with_fleet, index=idx_var,
+firms_with_fleet_out = pd.pivot_table(firms_with_fleet_out, index=idx_var,
                                      columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
 
-leasing_with_fleet = leasing_with_fleet.reset_index()
-leasing_with_fleet.fillna(0, inplace = True)
+firms_with_fleet_out = firms_with_fleet_out.reset_index()
+firms_with_fleet_out.fillna(0, inplace = True)
+
+idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)']
+idx_var.extend(unique_cargo)
+# convert long table to wide
+carriers_with_fleet_out = pd.pivot_table(carriers_with_fleet_out, index=idx_var,
+                                     columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
+
+carriers_with_fleet_out = carriers_with_fleet_out.reset_index()
+carriers_with_fleet_out.fillna(0, inplace = True)
+
+idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)']
+# convert long table to wide
+leasing_with_fleet_out = pd.pivot_table(leasing_with_fleet_out, index=idx_var,
+                                     columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
+
+leasing_with_fleet_out = leasing_with_fleet_out.reset_index()
+leasing_with_fleet_out.fillna(0, inplace = True)
+
 
 for veh in veh_comb:
-    if veh not in leasing_with_fleet.columns:
-            leasing_with_fleet[veh] = 0
-leasing_with_fleet.loc[:, 'n_trucks'] = leasing_with_fleet.loc[:, veh_comb].sum(axis = 1)
-print(leasing_with_fleet[veh_comb].sum())
+    if veh not in firms_with_fleet_out.columns:
+            firms_with_fleet_out[veh] = 0    
+    if veh not in carriers_with_fleet_out.columns:
+            carriers_with_fleet_out[veh] = 0
+    if veh not in leasing_with_fleet_out.columns:
+            leasing_with_fleet_out[veh] = 0
+
+print('Final private fleet:')
+firms_with_fleet_out.loc[:, 'n_trucks'] = firms_with_fleet_out.loc[:, veh_comb].sum(axis = 1)
+print(firms_with_fleet_out[veh_comb].sum())
+private_fleet_no_truck.drop(columns = ['industry', 'st', 'stname'], inplace = True)
+firms_with_fleet_out = pd.concat([firms_with_fleet_out, private_fleet_no_truck])
+firms_with_fleet_out.loc[:, 'EV_powertrain (if any)'] = \
+    firms_with_fleet_out.loc[:, 'EV_powertrain (if any)'].fillna('Battery Electric')
+firms_with_fleet_out.fillna(0, inplace = True)
+
+print('Final for-hire fleet:')           
+carriers_with_fleet_out.loc[:, 'n_trucks'] = carriers_with_fleet_out.loc[:, veh_comb].sum(axis = 1)
+print(carriers_with_fleet_out[veh_comb].sum())
+
+print('Final lease fleet:')
+leasing_with_fleet_out.loc[:, 'n_trucks'] = leasing_with_fleet_out.loc[:, veh_comb].sum(axis = 1)
+print(leasing_with_fleet_out[veh_comb].sum())
+
+# <codecell>
+
+
+firms_sample_file = os.path.join(result_dir,'sample_firms_with_fleet.csv')
+
+sample_firms = firms_with_fleet_out.sample(n = 10000)
+sample_firms.to_csv(firms_sample_file, index = False)
+
+firms_with_fleet_out.to_csv(firms_with_fleet_file, index = False)
+carriers_with_fleet_out.to_csv(carriers_with_fleet_file, index = False)
+leasing_with_fleet_out.to_csv(leasing_with_fleet_file, index = False)
+
+print('Finished! please find outputs under ' + result_dir)
+
