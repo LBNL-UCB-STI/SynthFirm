@@ -367,6 +367,9 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     print('Total number of wholesalers (among producers):')
     print(len(wholesalers_output))
     
+    print('Total load from production in 1000 tons:')
+    print(producers_output.OutputCapacitylb.sum()/2000/1000)
+    
     wholesalers_with_value.to_csv(wholesaler_file, index = False)
     producers_output.to_csv(producer_file, index = False)
     io_with_wholesale.to_csv(io_filtered_file, index = False)
