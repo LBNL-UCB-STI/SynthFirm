@@ -195,6 +195,8 @@ def consumer_generation(synthetic_firms_no_location_file, mesozone_to_faf_file,
     print('Total number of consumers is:')
     print(len(consumers_out))
     # 8,968,556
+    print('Total load from consumption in 1000 tons:')
+    print(consumers_out.PurchaseAmountlb.sum()/2000/1000)
     
     consumers_out.to_csv(os.path.join(output_path, consumer_file), index = False)
     sample_consumers.to_csv(os.path.join(output_path, sample_consumer_file), index = False)
