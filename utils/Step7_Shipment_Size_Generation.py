@@ -55,6 +55,7 @@ def shipment_size_generation(mesozone_to_faf_file, max_load_per_shipment_file,
     chunk_size = 10 ** 5
     lb_to_ton = 0.0005
     # assign shipment size for each SCTG group
+    total_load = 0
     for k in range(5):
         sctg = 'sctg' + str(k + 1)
         print('generate shipment size for SCTG group ' + sctg)
@@ -98,10 +99,13 @@ def shipment_size_generation(mesozone_to_faf_file, max_load_per_shipment_file,
             # print(chunk_dup.head(5))
             out_file_name = 'shipment_' + sctg + '_od' + str(q) + '.csv.zip'
             chunk_dup.to_csv(os.path.join(output_dir, out_file_name), index = False)
+            load_to_add = float(chunk_dup.TruckLoad.sum())
+            total_load += load_to_add/1000
             q += 1
         # break
 
     print('end of shipping size generation')
+    print('Total load assigned = ' + str(total_load))
     print('-------------------------------')
     
     return
