@@ -224,7 +224,7 @@ private_fleet_large.loc[:, 'number_of_veh'] = \
 private_fleet_small = private_fleet.loc[private_fleet['number_of_veh'] < fleet_threshold]
 idx_var.append('veh_class')
 private_fleet_small = private_fleet_small.groupby(idx_var).sample(n=1, 
-                                      weights = private_fleet['veh_fraction'],
+                                      weights = private_fleet_small['veh_fraction'],
                                       replace = False, random_state = 1)
 
 # combine small and large fleets
