@@ -415,5 +415,5 @@ for i in range(5):
 firms_with_fleet_out = firms_with_fleet_out.drop(columns=['veh_capacity'])
 firms_output = pd.concat([firms_with_fleet_out, firms_without_adj])
 
-firms_with_fleet_mc_adj_files = os.path.join(result_dir, 'synthetic_firms_with_fleet_mc_adjusted.csv', index = False)
-firms_output.to_csv(firms_with_fleet_mc_adj_files)
+firms_with_fleet_mc_adj_files = os.path.join(result_dir, 'synthetic_firms_with_fleet_mc_adjusted.csv')
+firms_output.to_csv(firms_with_fleet_mc_adj_files, index = False)
