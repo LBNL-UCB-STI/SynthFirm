@@ -44,6 +44,9 @@ warnings.filterwarnings("ignore")
     # need_domestic_adjustment = 1 # 1 - yes, 0 - no
     # location_from = [61, 63]
     # location_to = [62, 64, 65, 69]
+    
+
+
 def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                     sctg_group_file, int_shipment_size_file,
                                     regional_import_file, regional_export_file, 
@@ -63,132 +66,125 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     port_level_import = read_csv(port_level_import_file)
     port_level_export = read_csv(port_level_export_file)
     
+    # pre-select data
+    sctg_lookup_short = sctg_lookup[['SCTG_Code', 'SCTG_Group']]
+    int_shipment_size_short = \
+        int_shipment_size[['SCTG', 'CFS_CODE', 'median_weight_ton']]  
+    int_shipment_size_short = \
+        int_shipment_size_short.rename(columns = {'SCTG': 'SCTG_Code'})
     
-    # <codecell>
+    # split fuel and non-automobile transport equipment
+    port_level_import_fuel = port_level_import.loc[port_level_import['HS Code'] == 27]
+    port_level_import_te = port_level_import.loc[port_level_import['HS Code'] == 88]
+    port_level_import = port_level_import.loc[~port_level_import['HS Code'].isin([27,88])]
+    
+    port_level_export_te = port_level_export.loc[port_level_export['HS Code'] == 88]
+    port_level_export = port_level_export.loc[~port_level_export['HS Code'].isin([88])]
+    
+    regional_import_fuel = regional_import.loc[regional_import['sctg2'] == 16]
+    regional_import_te = regional_import.loc[regional_import['sctg2'] == 37]
+    regional_import = regional_import.loc[~regional_import['sctg2'].isin([16, 37])]
+    
+    regional_export_te = regional_export.loc[regional_export['sctg2'] == 37]
+    regional_export = regional_export.loc[~regional_export['sctg2'].isin([37])]
+    
+    calibrated_sctg = 37
+    calibrated_value = 200
     
     ########################################################
     #### step 1 - Scale regional import-export flow ########
     ########################################################
     
-    # total import in region
-    faf_import_scaling = \
-        regional_import.groupby(['CFS_CODE', 'CFS_NAME'])['value_2017'].sum()
+    def scale_demand(faf_data, usato_data, usato_value, output_attr): 
+        faf_scaling = \
+            faf_data.groupby(['CFS_CODE', 'CFS_NAME'])['value_2017'].sum()
+        faf_scaling = faf_scaling.reset_index()
+        faf_scaling = \
+        faf_scaling.rename(columns = {'value_2017':'region total'})    
+        usato_scaling = \
+            usato_data.groupby(['CFS_CODE', 'CFS_NAME'])[[usato_value]].sum()
+        usato_scaling.columns = ['usato value']
+        usato_scaling.loc[:, 'usato value'] /= 10 ** 6 # convert value to million
+        usato_scaling = usato_scaling.reset_index()
+        regional_scaling = pd.merge(usato_scaling, faf_scaling,
+                                  on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
+        regional_scaling.loc[:, output_attr] = \
+            regional_scaling.loc[:, 'usato value']/ \
+            regional_scaling.loc[:, 'region total']
+        regional_scaling = \
+            regional_scaling[['CFS_CODE', 'CFS_NAME', output_attr]]
+        return(regional_scaling)
     
-    faf_import_scaling = faf_import_scaling.reset_index()
-    faf_import_scaling = \
-        faf_import_scaling.rename(columns = {'value_2017':'region import total'})
+    regional_import_scaling = scale_demand(regional_import, port_level_import,
+                                           'Customs Value (Gen) ($US)', 'import_frac')
+    regional_import_scaling_te = scale_demand(regional_import_te, port_level_import_te,
+                                           'Customs Value (Gen) ($US)', 'import_frac')
+
+    regional_export_scaling = scale_demand(regional_export, port_level_export,
+                                           'Total Exports Value ($US)', 'export_frac')
+    regional_export_scaling_te = scale_demand(regional_export_te, port_level_export_te,
+                                           'Total Exports Value ($US)', 'export_frac')
     
-    # total export in region
-    faf_export_scaling = \
-        regional_export.groupby(['CFS_CODE', 'CFS_NAME'])['value_2017'].sum()
-    
-    faf_export_scaling = faf_export_scaling.reset_index()
-    faf_export_scaling = \
-        faf_export_scaling.rename(columns = {'value_2017':'region export total'})
-    
-    # total import from usato    
-    usato_import_scaling = \
-        port_level_import.groupby(['CFS_CODE', 'CFS_NAME'])[['Customs Value (Gen) ($US)']].sum()
-    usato_import_scaling.columns = ['import value']
-    usato_import_scaling.loc[:, 'import value'] /= 10 ** 6 # convert value to million
-    usato_import_scaling = usato_import_scaling.reset_index()
-    
-    # total export from usato 
-    usato_export_scaling = \
-        port_level_export.groupby(['CFS_CODE', 'CFS_NAME'])[['Total Exports Value ($US)']].sum()
-    usato_export_scaling.columns = ['export value']
-    usato_export_scaling.loc[:, 'export value'] /= 10 ** 6 # convert value to million
-    usato_export_scaling = usato_export_scaling.reset_index()
-    
-    # derive regional scaling factor
-    regional_import_scaling = pd.merge(usato_import_scaling, faf_import_scaling,
-                              on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
-    regional_export_scaling = pd.merge(usato_export_scaling, faf_export_scaling,
-                              on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
-    
-    regional_import_scaling.loc[:, 'import_frac'] = \
-        regional_import_scaling.loc[:, 'import value']/ \
-        regional_import_scaling.loc[:, 'region import total']
-    
-    # print(regional_import_scaling.loc[:, 'import_frac'].min(), 
-    #       regional_import_scaling.loc[:, 'import_frac'].max())    
-    
-    regional_export_scaling.loc[:, 'export_frac'] = \
-        regional_export_scaling.loc[:, 'export value']/ \
-        regional_export_scaling.loc[:, 'region export total']
-    # print(regional_export_scaling.loc[:, 'export_frac'].min(), 
-    #       regional_export_scaling.loc[:, 'export_frac'].max())  
     
     # <codecell>
     
     ########################################################
     #### step 2 - Generate list of shipments ###############
     ########################################################
-    regional_import_scaling = \
-        regional_import_scaling[['CFS_CODE', 'CFS_NAME', 'import_frac']]
-    regional_export_scaling = \
-        regional_export_scaling[['CFS_CODE', 'CFS_NAME', 'export_frac']]
+    # regional_import_scaling = \
+    #     regional_import_scaling[['CFS_CODE', 'CFS_NAME', 'import_frac']]
+    # regional_export_scaling = \
+    #     regional_export_scaling[['CFS_CODE', 'CFS_NAME', 'export_frac']]
+
+            
+    def assign_weight_to_flow(regional_flow, scaling_factor, int_shipment_size, scale_attr, trim_tail = False):
+        regional_flow = \
+                regional_flow.rename(columns = {'sctg2': 'SCTG_Code'})
+        regional_flow_scaled = pd.merge(regional_flow, scaling_factor,
+                                          on = ['CFS_CODE', 'CFS_NAME'], how = 'left') 
+        regional_flow_scaled.loc[:, 'tons_2017'] *= regional_flow_scaled.loc[:, scale_attr]   
+        regional_flow_scaled.loc[:, 'value_2017'] *= regional_flow_scaled.loc[:, scale_attr]   
+        regional_flow_scaled = pd.merge(regional_flow_scaled,
+                                           int_shipment_size,
+                                           on = ['SCTG_Code', 'CFS_CODE'], how = 'left')
+        regional_flow_scaled.loc[:, "ship_count"] = \
+            regional_flow_scaled.loc[:, "tons_2017"] * 1000 / \
+                    regional_flow_scaled.loc[:, "median_weight_ton"] 
+        regional_flow_scaled.loc[:, "ship_count"] = \
+            np.round(regional_flow_scaled.loc[:, "ship_count"], 0)
+            
+        regional_flow_scaled.loc[regional_flow_scaled["ship_count"] < 1, "ship_count"] = 1
+        
+        # import count can be really large, trim off the long tail
+        if trim_tail:
+            cut_off = np.round(regional_flow_scaled["ship_count"].quantile(0.999), 0)
+            regional_flow_scaled.loc[regional_flow_scaled["ship_count"] >= cut_off, "ship_count"] = cut_off      
+        return(regional_flow_scaled)  
     
+    regional_import_by_size = assign_weight_to_flow(regional_import, 
+                                                    regional_import_scaling,
+                                                    int_shipment_size_short, 
+                                                    'import_frac', trim_tail = True)
+    regional_export_by_size = assign_weight_to_flow(regional_export, 
+                                                    regional_export_scaling,
+                                                    int_shipment_size_short, 
+                                                    'export_frac', trim_tail = False)
+    # calibrate sctg weight (for airplane)
+
+    int_shipment_size_cal = int_shipment_size_short.copy()
+    int_shipment_size_cal.loc[int_shipment_size_cal['SCTG_Code'] == calibrated_sctg, 
+                              'median_weight_ton'] = calibrated_value
     
+    regional_import_by_size_te = assign_weight_to_flow(regional_import_te, 
+                                                    regional_import_scaling_te,
+                                                    int_shipment_size_cal, 
+                                                    'import_frac', trim_tail = False)
+    regional_export_by_size_te = assign_weight_to_flow(regional_export_te, 
+                                                    regional_export_scaling_te,
+                                                    int_shipment_size_cal, 
+                                                    'export_frac', trim_tail = False)
+
     # append shipment size
-    sctg_lookup_short = sctg_lookup[['SCTG_Code', 'SCTG_Group']]
-    int_shipment_size_short = \
-        int_shipment_size[['SCTG', 'CFS_CODE', 'median_weight_ton']]
-        
-    regional_import = \
-        regional_import.rename(columns = {'sctg2': 'SCTG_Code'})
-    
-    regional_import_scaled = pd.merge(regional_import, regional_import_scaling,
-                                      on = ['CFS_CODE', 'CFS_NAME'], how = 'left') 
-    regional_import_scaled.loc[:, 'tons_2017'] *= regional_import_scaled.loc[:, 'import_frac']   
-    regional_import_scaled.loc[:, 'value_2017'] *= regional_import_scaled.loc[:, 'import_frac']   
-    
-    regional_export = \
-        regional_export.rename(columns = {'sctg2': 'SCTG_Code'})
-    
-    regional_export_scaled = pd.merge(regional_export, regional_export_scaling,
-                                      on = ['CFS_CODE', 'CFS_NAME'], how = 'left') 
-    regional_export_scaled.loc[:, 'tons_2017'] *= regional_export_scaled.loc[:, 'export_frac']   
-    regional_export_scaled.loc[:, 'value_2017'] *= regional_export_scaled.loc[:, 'export_frac']   
-    
-    int_shipment_size_short = \
-        int_shipment_size_short.rename(columns = {'SCTG': 'SCTG_Code'})
-        
-       
-    regional_import_by_size = pd.merge(regional_import_scaled,
-                                       int_shipment_size_short,
-                                       on = ['SCTG_Code', 'CFS_CODE'], how = 'left')
-    
-    
-    regional_export_by_size = pd.merge(regional_export_scaled,
-                                       int_shipment_size_short,
-                                       on = ['SCTG_Code', 'CFS_CODE'], how = 'left')
-    
-    # generate shipment count
-    regional_import_by_size.loc[:, "ship_count"] = \
-        regional_import_by_size.loc[:, "tons_2017"] * 1000 / \
-                regional_import_by_size.loc[:, "median_weight_ton"] 
-    regional_import_by_size.loc[:, "ship_count"] = \
-        np.round(regional_import_by_size.loc[:, "ship_count"], 0)
-        
-    regional_import_by_size.loc[regional_import_by_size["ship_count"] < 1, "ship_count"] = 1
-    
-    # import count can be really large, trim off the long tail
-    cut_off = np.round(regional_import_by_size["ship_count"].quantile(0.999), 0)
-    # cut_off = regional_import_by_size["ship_count"].quantile(0.75) + \
-    #     1.5 * (regional_import_by_size["ship_count"].quantile(0.75) - \
-    #            regional_import_by_size["ship_count"].quantile(0.25))
-    # cut_off = np.round(cut_off, 0)
-    print(cut_off)
-    regional_import_by_size.loc[regional_import_by_size["ship_count"] >= cut_off, "ship_count"] = cut_off      
-    
-    regional_export_by_size.loc[:, "ship_count"] = \
-        regional_export_by_size.loc[:, "tons_2017"] * 1000 / \
-                regional_export_by_size.loc[:, "median_weight_ton"] 
-    regional_export_by_size.loc[:, "ship_count"] = \
-        np.round(regional_export_by_size.loc[:, "ship_count"], 0)
-    regional_export_by_size.loc[regional_export_by_size["ship_count"] < 1, "ship_count"] = 1
-    
                 
     print('Total import shipments before scaling:')
     print(regional_import_by_size.loc[:, "ship_count"].sum())
@@ -207,6 +203,7 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     
     print('Total export tonnage before scaling:')
     print(regional_export_by_size.loc[:, "tons_2017"].sum() * 1000)
+    
     # <codecell>
     
     ########################################################
@@ -222,11 +219,21 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     import_by_port.loc[:, 'import value'] /= 10 ** 6 # convert value to million
     import_by_port = import_by_port.reset_index()
     
+    import_by_port_te = port_level_import_te.groupby(var_to_group)[['Customs Value (Gen) ($US)']].sum()
+    import_by_port_te.columns = ['import value']
+    import_by_port_te.loc[:, 'import value'] /= 10 ** 6 # convert value to million
+    import_by_port_te = import_by_port_te.reset_index()
+    
     # export by port
     export_by_port = port_level_export.groupby(var_to_group)[['Total Exports Value ($US)']].sum()
     export_by_port.columns = ['export value']
     export_by_port.loc[:, 'export value'] /= 10 ** 6 # convert value to million
     export_by_port = export_by_port.reset_index()
+    
+    export_by_port_te = port_level_export_te.groupby(var_to_group)[['Total Exports Value ($US)']].sum()
+    export_by_port_te.columns = ['export value']
+    export_by_port_te.loc[:, 'export value'] /= 10 ** 6 # convert value to million
+    export_by_port_te = export_by_port_te.reset_index()
     
     # split airport/other port
     import_by_airport = import_by_port.loc[import_by_port['TYPE'] == 'Airport']
@@ -242,35 +249,29 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     
     faf_import_ap_only = \
         regional_import_by_size.loc[regional_import_by_size['SCTG_Code'].isin(sctg_with_ap_access)]
-    faf_import_scaling_ap_only = faf_import_ap_only.groupby(['CFS_CODE', 'CFS_NAME'])['value_2017'].sum()
-    
-    faf_import_scaling_ap_only = faf_import_scaling_ap_only.reset_index()
-    faf_import_scaling_ap_only = \
-        faf_import_scaling_ap_only.rename(columns = {'value_2017':'airport import total'})
-        
     faf_export_ap_only = \
-        regional_export_by_size.loc[regional_export_by_size['SCTG_Code'].isin(sctg_with_ap_access)]
-    faf_export_scaling_ap_only = faf_export_ap_only.groupby(['CFS_CODE', 'CFS_NAME'])['value_2017'].sum()
+            regional_export_by_size.loc[regional_export_by_size['SCTG_Code'].isin(sctg_with_ap_access)]
     
-    faf_export_scaling_ap_only = faf_export_scaling_ap_only.reset_index()
-    faf_export_scaling_ap_only = \
-        faf_export_scaling_ap_only.rename(columns = {'value_2017':'airport export total'})
-        
-    # <codecell>
-    # calculating fraction of airport-level value among sctgs available to airport
+    def port_allocation_factor(faf_data, flow_by_port, input_attr, output_attr):
+        faf_data = faf_data.groupby(['CFS_CODE', 'CFS_NAME'])['value_2017'].sum()
+        faf_data = faf_data.reset_index()
+        faf_data = \
+            faf_data.rename(columns = {'value_2017':'sector total'})
+        flow_by_port = pd.merge(flow_by_port, faf_data,
+                                  on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
+        flow_by_port.loc[:, output_attr] = flow_by_port.loc[:, input_attr]/ \
+            flow_by_port.loc[:, 'sector total']
+        return(flow_by_port)
     
-    import_by_airport = pd.merge(import_by_airport, faf_import_scaling_ap_only,
-                              on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
-    export_by_airport = pd.merge(export_by_airport, faf_export_scaling_ap_only,
-                              on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
+    import_by_airport = port_allocation_factor(faf_import_ap_only, 
+                                               import_by_airport, 'import value', 'import_frac')
+    export_by_airport = port_allocation_factor(faf_export_ap_only, 
+                                               export_by_airport, 'export value', 'export_frac')
     
-    import_by_airport.loc[:, 'import_frac'] = import_by_airport.loc[:, 'import value']/ \
-        import_by_airport.loc[:, 'airport import total']
-        
-    export_by_airport.loc[:, 'export_frac'] = export_by_airport.loc[:, 'export value']/ \
-        export_by_airport.loc[:, 'airport export total']
-        
-    # import_by_airport['import_frac'].hist()
+    import_by_port_te = port_allocation_factor(regional_import_by_size_te, 
+                                               import_by_port_te, 'import value', 'import_frac')
+    export_by_port_te = port_allocation_factor(regional_export_by_size_te, 
+                                               export_by_port_te, 'export value', 'export_frac')
     print('range of import adj. factors')
     print(import_by_airport['import_frac'].min(), import_by_airport['import_frac'].max())
     # export_by_airport['export_frac'].hist()
@@ -279,32 +280,40 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     
     
     # <codecell>
+    def adjust_demand(faf_data, adjustment_factor, multiplier, agg_var = None):
+        if agg_var is not None:
+            """Adjust international demand"""
+            faf_data = faf_data.groupby(agg_var)[['tons_2017', 'value_2017', 'ship_count']].sum()
+            faf_data = faf_data.reset_index()
+            faf_data = \
+            faf_data.loc[faf_data['value_2017'] > 0]
+        
+        flow_by_port_to_adj = pd.merge(adjustment_factor, faf_data,  
+                                       on= ['CFS_CODE', 'CFS_NAME'], 
+                                       how='left')
+        
+        
+        flow_by_port_to_adj.loc[:, 'tons_2017'] *= flow_by_port_to_adj.loc[:, multiplier]
+        flow_by_port_to_adj.loc[:, 'value_2017'] *= flow_by_port_to_adj.loc[:, multiplier]
+        flow_by_port_to_adj.loc[:, 'ship_count'] *= flow_by_port_to_adj.loc[:, multiplier]
+        # print(flow_by_port_to_adj['ship_count'].sum())
+        flow_by_port_to_adj = flow_by_port_to_adj.loc[flow_by_port_to_adj['ship_count'] >= 1]
+        flow_by_port_to_adj.loc[:, 'ship_count'] = np.round(flow_by_port_to_adj.loc[:, 'ship_count'], 0)
+        
+        flow_by_port_to_adj.loc[:, 'value_density'] = \
+            flow_by_port_to_adj.loc[:, 'value_2017'] / flow_by_port_to_adj.loc[:, 'tons_2017'] * 1000
+        # $/ton
+        flow_by_port_to_adj.loc[:, "TruckLoad"] = flow_by_port_to_adj.loc[:, "tons_2017"] * 1000  / \
+                    flow_by_port_to_adj.loc[:, "ship_count"] # unit is ton
+        # ton            
+        return flow_by_port_to_adj
     
     # assign destination to airport import
     agg_var_in = ['CFS_CODE', 'CFS_NAME', 'dms_dest', 'SCTG_Code']
-    airport_import_agg = \
-        faf_import_ap_only.groupby(agg_var_in)[['tons_2017', 'value_2017', 'ship_count']].sum()
-    airport_import_agg = airport_import_agg.reset_index()
-    airport_import_agg = \
-        airport_import_agg.loc[airport_import_agg['value_2017'] > 0]
-    
-    import_by_airport_by_dest = pd.merge(import_by_airport,
-                                      airport_import_agg,
-                                      on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
-    
-    # print(len(import_by_airport_by_dest))
-    import_by_airport_by_dest.loc[:, 'value_2017'] *= import_by_airport_by_dest.loc[:, 'import_frac']
-    import_by_airport_by_dest.loc[:, 'tons_2017'] *= import_by_airport_by_dest.loc[:, 'import_frac']
-    import_by_airport_by_dest.loc[:, 'ship_count'] *= import_by_airport_by_dest.loc[:, 'import_frac']
-    
-    import_by_airport_by_dest = import_by_airport_by_dest.loc[import_by_airport_by_dest['ship_count']  >= 1]
-    import_by_airport_by_dest.loc[:, 'ship_count'] = np.round(import_by_airport_by_dest.loc[:, 'ship_count'], 0)
-    # print(len(import_by_airport_by_dest))
-    import_by_airport_by_dest.loc[:, 'value_density'] = \
-        import_by_airport_by_dest.loc[:, 'value_2017'] / import_by_airport_by_dest.loc[:, 'tons_2017'] * 1000
-    import_by_airport_by_dest.loc[:, "TruckLoad"] = import_by_airport_by_dest.loc[:, "tons_2017"] * 1000  / \
-                import_by_airport_by_dest.loc[:, "ship_count"] # unit is ton
-    
+    import_by_airport_by_dest = adjust_demand(faf_import_ap_only, import_by_airport, 
+                                              'import_frac', agg_var_in)
+    import_by_port_te = adjust_demand(regional_import_by_size_te, import_by_port_te, 
+                                              'import_frac', agg_var_in)
     # $/ton
     
     print('airport import shipment after disaggregation:')
@@ -319,27 +328,10 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     
     # FAF value grouped by foreign country, domestic destination and sctg for entire region
     agg_var_out = ['CFS_CODE', 'CFS_NAME', 'dms_orig', 'SCTG_Code']
-    airport_export_agg = \
-        faf_export_ap_only.groupby(agg_var_out)[['tons_2017', 'value_2017', 'ship_count']].sum()    
-    airport_export_agg = airport_export_agg.reset_index()
-    airport_export_agg = \
-        airport_export_agg.loc[airport_export_agg['value_2017'] > 0]
-        
-    export_by_airport_by_orig = pd.merge(export_by_airport,
-                                      airport_export_agg,
-                                      on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
-    # print(len(export_by_airport_by_orig))
-    export_by_airport_by_orig.loc[:, 'value_2017'] *= export_by_airport_by_orig.loc[:, 'export_frac']
-    export_by_airport_by_orig.loc[:, 'tons_2017'] *= export_by_airport_by_orig.loc[:, 'export_frac']
-    export_by_airport_by_orig.loc[:, 'ship_count'] *= export_by_airport_by_orig.loc[:, 'export_frac']
-    export_by_airport_by_orig = export_by_airport_by_orig.loc[export_by_airport_by_orig['ship_count']  >= 1]
-    export_by_airport_by_orig.loc[:, 'ship_count'] = np.round(export_by_airport_by_orig.loc[:, 'ship_count'], 0)
-    # print(len(export_by_airport_by_orig))
-    export_by_airport_by_orig.loc[:, 'value_density'] = \
-        export_by_airport_by_orig.loc[:, 'value_2017'] / export_by_airport_by_orig.loc[:, 'tons_2017'] * 1000
-    export_by_airport_by_orig.loc[:, "TruckLoad"] = export_by_airport_by_orig.loc[:, "tons_2017"] * 1000  / \
-                export_by_airport_by_orig.loc[:, "ship_count"] # unit is ton
-    
+    export_by_airport_by_orig = adjust_demand(faf_export_ap_only, export_by_airport, 
+                                              'export_frac', agg_var_out)
+    export_by_port_te = adjust_demand(regional_export_by_size_te, export_by_port_te, 
+                                              'export_frac', agg_var_out)
     print('airport export shipment after disaggregation:')
     print(export_by_airport_by_orig['ship_count'].sum())  
     
@@ -355,93 +347,50 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     ########################################################
     #### step 5 - Assign rest of flow to other port ########
     ########################################################
+    def exclude_ap_demand(faf_data, airport_flow, agg_var):
+        """Adjust international demand"""
+        faf_data_agg = faf_data.groupby(agg_var)[['tons_2017', 'value_2017', 'ship_count']].sum()
+        faf_data_agg = faf_data_agg.reset_index()
+        faf_data_agg = \
+        faf_data_agg.loc[faf_data_agg['value_2017'] > 0]
+        
+        airport_flow = \
+            airport_flow.groupby(agg_var)[['value_2017']].sum()
+        airport_flow = airport_flow.reset_index()
+        airport_flow = \
+        airport_flow.rename(columns = {'value_2017': 'values_airport'})
+        
+        flow_by_port_to_adj = pd.merge(faf_data_agg, airport_flow, 
+                                       on= agg_var, 
+                                       how='left')
+        
+        flow_by_port_to_adj = flow_by_port_to_adj.fillna(0)
+        flow_by_port_to_adj.loc[:, 'value_other'] = \
+            flow_by_port_to_adj.loc[:, 'value_2017'] - \
+                flow_by_port_to_adj.loc[:, 'values_airport']
+        
+        flow_by_port_to_adj.loc[:, 'scaling_factor'] = \
+            flow_by_port_to_adj.loc[:, 'value_other'] / \
+                flow_by_port_to_adj.loc[:, 'value_2017']
+        
+        flow_by_port_to_adj.loc[:, 'tons_2017'] *= flow_by_port_to_adj.loc[:,'scaling_factor']
+        flow_by_port_to_adj.loc[:, 'value_2017'] *= flow_by_port_to_adj.loc[:, 'scaling_factor']
+        flow_by_port_to_adj.loc[:, 'ship_count'] *= flow_by_port_to_adj.loc[:, 'scaling_factor']
+        flow_by_port_to_adj.drop(columns = ['values_airport','value_other'], inplace = True)                 
+        return flow_by_port_to_adj
     
     # adjust import to assign
-    total_faf_imports = \
-        regional_import_by_size.groupby(agg_var_in)[['tons_2017', 'value_2017', 'ship_count']].sum()
-    total_faf_imports = total_faf_imports.reset_index()
-    total_faf_imports = total_faf_imports.loc[total_faf_imports['value_2017']> 0]
-    import_assigned_to_ap = \
-        import_by_airport_by_dest.groupby(agg_var_in)[['value_2017']].sum()
-    import_assigned_to_ap = import_assigned_to_ap.reset_index()
-    import_assigned_to_ap = \
-    import_assigned_to_ap.rename(columns = {'value_2017': 'values_airport'})
-    
-    remain_imports_to_assign = pd.merge(total_faf_imports, import_assigned_to_ap,
-                                       on = agg_var_in, how = 'left')
-    remain_imports_to_assign = remain_imports_to_assign.fillna(0)
-    remain_imports_to_assign.loc[:, 'value_other'] = \
-        remain_imports_to_assign.loc[:, 'value_2017'] - \
-            remain_imports_to_assign.loc[:, 'values_airport']
-    
-    remain_imports_to_assign.loc[:, 'scaling_factor'] = \
-        remain_imports_to_assign.loc[:, 'value_other'] / \
-            remain_imports_to_assign.loc[:, 'value_2017']
-            
-    remain_imports_to_assign.loc[:, 'ship_count'] *= remain_imports_to_assign.loc[:, 'scaling_factor']
-    remain_imports_to_assign.loc[:, 'tons_2017'] *= remain_imports_to_assign.loc[:, 'scaling_factor']
-    remain_imports_to_assign.loc[:, 'value_2017'] *= remain_imports_to_assign.loc[:, 'scaling_factor']
-    
-    remain_imports_to_assign = remain_imports_to_assign.drop(columns = ['values_airport',
-                                                                        'value_other'])        
-    # print(remain_imports_to_assign.loc[:, 'scaling_factor'].min())
-    
+    remain_imports_to_assign = exclude_ap_demand(regional_import_by_size, import_by_airport_by_dest, 
+                                                   agg_var_in)
+  
     # adjust export to assign
-    total_faf_exports = \
-        regional_export_by_size.groupby(agg_var_out)[['tons_2017', 'value_2017', 'ship_count']].sum()
-    total_faf_exports = total_faf_exports.reset_index()
-    total_faf_exports = total_faf_exports.loc[total_faf_exports['value_2017']> 0]
-    export_assigned_to_ap = \
-        export_by_airport_by_orig.groupby(agg_var_out)[['value_2017']].sum()
-    export_assigned_to_ap = export_assigned_to_ap.reset_index()
-    export_assigned_to_ap = \
-    export_assigned_to_ap.rename(columns = {'value_2017': 'values_airport'})
+    remain_exports_to_assign = exclude_ap_demand(regional_export_by_size, export_by_airport_by_orig, 
+                                                   agg_var_out)
     
-    remain_exports_to_assign = pd.merge(total_faf_exports, export_assigned_to_ap,
-                                       on = agg_var_out, how = 'left')
-    remain_exports_to_assign = remain_exports_to_assign.fillna(0)
-    remain_exports_to_assign.loc[:, 'value_other'] = \
-        remain_exports_to_assign.loc[:, 'value_2017'] - \
-            remain_exports_to_assign.loc[:, 'values_airport']
-    
-    remain_exports_to_assign.loc[:, 'scaling_factor'] = \
-        remain_exports_to_assign.loc[:, 'value_other'] / \
-            remain_exports_to_assign.loc[:, 'value_2017']
-            
-    remain_exports_to_assign.loc[:, 'ship_count'] *= remain_exports_to_assign.loc[:, 'scaling_factor']
-    remain_exports_to_assign.loc[:, 'tons_2017'] *= remain_exports_to_assign.loc[:, 'scaling_factor']
-    remain_exports_to_assign.loc[:, 'value_2017'] *= remain_exports_to_assign.loc[:, 'scaling_factor']
-    
-    remain_exports_to_assign = remain_exports_to_assign.drop(columns = ['values_airport',
-                                                                        'value_other'])        
-    # print(remain_exports_to_assign.loc[:, 'scaling_factor'].min())
-    # <codecell>
-    
-    faf_import_scaling_no_ap = remain_imports_to_assign.groupby(['CFS_CODE', 'CFS_NAME'])['value_2017'].sum()
-    
-    faf_import_scaling_no_ap = faf_import_scaling_no_ap.reset_index()
-    faf_import_scaling_no_ap = \
-        faf_import_scaling_no_ap.rename(columns = {'value_2017':'other import total'})
-        
-    faf_export_scaling_no_ap = remain_exports_to_assign.groupby(['CFS_CODE', 'CFS_NAME'])['value_2017'].sum()
-    
-    faf_export_scaling_no_ap = faf_export_scaling_no_ap.reset_index()
-    faf_export_scaling_no_ap = \
-        faf_export_scaling_no_ap.rename(columns = {'value_2017':'other export total'})
-    
-    # calculating fraction of other port-level value among remaining sctgs
-    
-    import_by_other_port = pd.merge(import_by_other_port, faf_import_scaling_no_ap,
-                              on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
-    export_by_other_port = pd.merge(export_by_other_port, faf_export_scaling_no_ap,
-                              on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
-    
-    import_by_other_port.loc[:, 'import_frac'] = import_by_other_port.loc[:, 'import value']/ \
-        import_by_other_port.loc[:, 'other import total']
-        
-    export_by_other_port.loc[:, 'export_frac'] = export_by_other_port.loc[:, 'export value']/ \
-        export_by_other_port.loc[:, 'other export total']
-        
+    import_by_other_port = port_allocation_factor(remain_imports_to_assign, 
+                                               import_by_other_port, 'import value', 'import_frac')
+    export_by_other_port = port_allocation_factor(remain_exports_to_assign, 
+                                               export_by_other_port, 'export value', 'export_frac')    
     # import_by_other_port['import_frac'].hist()
     print('range of import adj. factors')
     print(import_by_other_port['import_frac'].min(), 
@@ -453,25 +402,12 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     
     # <codecell>
     # assign destination to other ports import
+    import_by_other_port_by_dest = adjust_demand(remain_imports_to_assign, 
+                                                 import_by_other_port, 
+                                                 'import_frac')
+
     
-    import_by_other_port_by_dest = pd.merge(import_by_other_port,
-                                      remain_imports_to_assign,
-                                      on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
     
-    # print(len(import_by_other_port_by_dest))
-    import_by_other_port_by_dest.loc[:, 'value_2017'] *= import_by_other_port_by_dest.loc[:, 'import_frac']
-    import_by_other_port_by_dest.loc[:, 'tons_2017'] *= import_by_other_port_by_dest.loc[:, 'import_frac']
-    import_by_other_port_by_dest.loc[:, 'ship_count'] *= import_by_other_port_by_dest.loc[:, 'import_frac']
-    
-    import_by_other_port_by_dest = import_by_other_port_by_dest.loc[import_by_other_port_by_dest['ship_count']  >= 1]
-    import_by_other_port_by_dest.loc[:, 'ship_count'] = np.round(import_by_other_port_by_dest.loc[:, 'ship_count'], 0)
-    # print(len(import_by_other_port_by_dest))
-    import_by_other_port_by_dest.loc[:, 'value_density'] = \
-        import_by_other_port_by_dest.loc[:, 'value_2017'] / import_by_other_port_by_dest.loc[:, 'tons_2017'] * 1000
-    import_by_other_port_by_dest.loc[:, "TruckLoad"] = import_by_other_port_by_dest.loc[:, "tons_2017"] * 1000  / \
-                import_by_other_port_by_dest.loc[:, "ship_count"] # unit is ton
-    
-    # $/ton
     
     print('other import shipment after disaggregation:')
     print(import_by_other_port_by_dest['ship_count'].sum()) 
@@ -482,21 +418,10 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     print('other import tonnage after disaggregation:')
     print(import_by_other_port_by_dest['tons_2017'].sum() * 1000)  
     
-    
-    export_by_other_port_by_orig = pd.merge(export_by_other_port,
-                                      remain_exports_to_assign,
-                                      on = ['CFS_CODE', 'CFS_NAME'], how = 'left')
-    # print(len(export_by_other_port_by_orig))
-    export_by_other_port_by_orig.loc[:, 'value_2017'] *= export_by_other_port_by_orig.loc[:, 'export_frac']
-    export_by_other_port_by_orig.loc[:, 'tons_2017'] *= export_by_other_port_by_orig.loc[:, 'export_frac']
-    export_by_other_port_by_orig.loc[:, 'ship_count'] *= export_by_other_port_by_orig.loc[:, 'export_frac']
-    export_by_other_port_by_orig = export_by_other_port_by_orig.loc[export_by_other_port_by_orig['ship_count']  >= 1]
-    export_by_other_port_by_orig.loc[:, 'ship_count'] = np.round(export_by_other_port_by_orig.loc[:, 'ship_count'], 0)
-    # print(len(export_by_other_port_by_orig))
-    export_by_other_port_by_orig.loc[:, 'value_density'] = \
-        export_by_other_port_by_orig.loc[:, 'value_2017'] / export_by_other_port_by_orig.loc[:, 'tons_2017'] * 1000
-    export_by_other_port_by_orig.loc[:, "TruckLoad"] = export_by_other_port_by_orig.loc[:, "tons_2017"] * 1000  / \
-                export_by_other_port_by_orig.loc[:, "ship_count"] # unit is ton
+    export_by_other_port_by_orig = adjust_demand(remain_exports_to_assign, 
+                                                 export_by_other_port, 
+                                                 'export_frac')    
+
     
     print('other export shipment after disaggregation:')
     print(export_by_other_port_by_orig['ship_count'].sum())  
@@ -507,9 +432,7 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     print('other export tonnage after disaggregation:')
     print(export_by_other_port_by_orig['tons_2017'].sum() * 1000)  
     
-    
-    
-    
+      
     # <codecell>
     
     import_attr = ['PORTID', 'CBP Port Location', 'FAF', 'CBPZONE', 'MESOZONE', 'TYPE', 
@@ -521,18 +444,18 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     
     import_output_airport = import_by_airport_by_dest[import_attr]
     import_output_other_port = import_by_other_port_by_dest[import_attr]
-    
+    import_by_port_te = import_by_port_te[import_attr]
     import_by_port_by_dest = pd.concat([import_output_airport,
-                                        import_output_other_port])
-    
-    
+                                        import_output_other_port,
+                                        import_by_port_te])
     
     
     export_output_airport = export_by_airport_by_orig[export_attr]
     export_output_other_port = export_by_other_port_by_orig[export_attr]
-    
+    export_by_port_te = export_by_port_te[export_attr]
     export_by_port_by_orig = pd.concat([export_output_airport,
-                                        export_output_other_port])
+                                        export_output_other_port,
+                                        export_by_port_te])
     
     
     
@@ -543,11 +466,6 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     ########################################################
     #### step 5 - Adjust FAF destination assignment ########
     ########################################################
-    
-    # need_domestic_adjustment = 1 # 1 - yes, 0 - no
-    # location_from = [61, 63]
-    # location_to = [62, 64, 65, 69]
-    
     
     
     if need_domestic_adjustment:
