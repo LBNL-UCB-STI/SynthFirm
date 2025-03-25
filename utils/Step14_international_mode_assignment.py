@@ -97,6 +97,14 @@ def international_mode_choice(int_mode_choice_file, distance_travel_skim_file,
     ########################################################
     #### step 2 - prepare mode choice inputs ###############
     ########################################################
+    
+    # excluding OOS shipment bundles from mode choice
+    # import fuel and transportation equipment does not goes to mode choice
+    import_output = import_output.loc[~import_output['SCTG_Code'].isin([16, 37])]
+    # export transportation equipment does not goes to mode choice
+    export_output = export_output.loc[~export_output['SCTG_Code'].isin([37])]
+    
+    
     import_output["bundle_id"] = import_output.index + 1
     export_output["bundle_id"] = export_output.index + 1
     

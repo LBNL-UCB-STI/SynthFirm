@@ -60,6 +60,7 @@ result_dir = os.path.join(output_path, str(analysis_year), scenario_name)
     
 firms_with_fleet_file = os.path.join(result_dir, 'synthetic_firms_with_fleet.csv')
 private_fleet_file = os.path.join(parameter_dir, 'fleet/veh_per_emp_by_state.csv')
+firms_with_fleet_mc_adj_files = os.path.join(result_dir, 'synthetic_firms_with_fleet_mc_adjusted.csv')
 
 # inputs vary by scenario
 ev_availability_file = os.path.join(parameter_dir, 'fleet/synthfirm_ev_availability.csv')
@@ -415,5 +416,5 @@ for i in range(5):
 firms_with_fleet_out = firms_with_fleet_out.drop(columns=['veh_capacity'])
 firms_output = pd.concat([firms_with_fleet_out, firms_without_adj])
 
-firms_with_fleet_mc_adj_files = os.path.join(result_dir, 'synthetic_firms_with_fleet_mc_adjusted.csv')
+
 firms_output.to_csv(firms_with_fleet_mc_adj_files, index = False)
