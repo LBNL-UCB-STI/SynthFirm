@@ -26,7 +26,7 @@ number_of_processes = 4
 input_dir = 'inputs_' + scenario_name
 output_path = 'outputs_' + out_scenario_name
 
-fleet_year = 2018
+fleet_year = 2030
 fleet_name = 'Ref_highp6'
 regulations = 'ACC and ACT'
 
