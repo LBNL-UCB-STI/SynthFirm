@@ -84,11 +84,11 @@ def shipment_size_generation(mesozone_to_faf_file, max_load_per_shipment_file,
         combined_csv.loc[:, "ship_count"] = np.round(combined_csv.loc[:, "ship_count"], 0)
         combined_csv.loc[combined_csv["ship_count"] < 1, "ship_count"] = 1
         combined_csv = combined_csv.loc[combined_csv['in_study_area'] == 1]
-        print(combined_csv.head(5))
+        # print(combined_csv.head(5))
         # sample_flow = combined_csv.sample(1000)
         chunks_of_flows = split_dataframe(combined_csv, chunk_size)
         q = 1
-        
+        load_by_sctg = 0
         for chunk in chunks_of_flows: 
             print('processing chunk ' + str(q))
             chunk_dup = pd.DataFrame(np.repeat(chunk.values, chunk.ship_count, axis=0))
@@ -101,9 +101,11 @@ def shipment_size_generation(mesozone_to_faf_file, max_load_per_shipment_file,
             chunk_dup.to_csv(os.path.join(output_dir, out_file_name), index = False)
             load_to_add = float(chunk_dup.TruckLoad.sum())
             total_load += load_to_add/1000
+            load_by_sctg += load_to_add/1000
             q += 1
         # break
-
+        print('Total load by ' + sctg)
+        print(load_by_sctg)
     print('end of shipping size generation')
     print('Total load assigned = ' + str(total_load))
     print('-------------------------------')
