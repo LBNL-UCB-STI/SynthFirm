@@ -26,7 +26,7 @@ number_of_processes = 4
 input_dir = 'inputs_' + scenario_name
 output_path = 'outputs_' + out_scenario_name
 
-fleet_year = 2030
+fleet_year = 2018
 fleet_name = 'Ref_highp6'
 regulations = 'ACC and ACT'
 
@@ -35,7 +35,7 @@ os.chdir(file_path)
 
 # from upstream module
 synthetic_firms_with_location_file = os.path.join(output_path, 
-                                                  'synthetic_firms_with_location_cal.csv')
+                                                  'synthetic_firms_with_location.csv')
 
 # inputs not vary by scenario
 private_fleet_file = os.path.join(parameter_dir, 'fleet/veh_per_emp_by_state.csv')
@@ -84,7 +84,7 @@ private_stock = read_csv(private_stock_file)
 hire_stock = read_csv(hire_stock_file)
 lease_stock = read_csv(lease_stock_file)
 
-firms.fillna(-1, inplace = True)
+# firms.fillna(-1, inplace = True)
 
 ev_availability = read_csv(ev_availability_file)
 
@@ -200,8 +200,8 @@ private_fuel_mix = private_fuel_mix[fuel_attr]
 fuel_types = private_fuel_mix['fuel type'].unique()
 
 idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr']
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr'] # 'ZIPCODE'
 
 private_fleet = pd.melt(private_fleet_truck, id_vars = idx_var, value_vars = vehicle_types,
                         var_name='veh_class', value_name='number_of_veh')
@@ -379,8 +379,8 @@ carriers_with_fleet_resampled.loc[carriers_with_fleet_resampled['cargo_check'] =
 # assign carrier fuel type
 
 idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id']
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE',  'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id'] # 'ZIPCODE',
 # add cargo types
 idx_var.extend(unique_cargo)
 
@@ -499,8 +499,8 @@ print(leasing_with_fleet.loc[:, 'n_trucks'].min())
 # assign lease fuel type
 
 idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr']
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr'] # 'ZIPCODE', 
 # add cargo types
 
 leasing_with_fleet = pd.melt(leasing_with_fleet, 
@@ -616,8 +616,8 @@ veh_comb = private_fuel_mix.veh_type.unique()
 # convert long table to wide table
 
 idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)']
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)'] # 'ZIPCODE', 
 # convert long table to wide
 firms_with_fleet_out = pd.pivot_table(firms_with_fleet_out, index=idx_var,
                                      columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
@@ -626,8 +626,8 @@ firms_with_fleet_out = firms_with_fleet_out.reset_index()
 firms_with_fleet_out.fillna(0, inplace = True)
 
 idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)']
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)'] # 'ZIPCODE', 
 idx_var.extend(unique_cargo)
 # convert long table to wide
 carriers_with_fleet_out = pd.pivot_table(carriers_with_fleet_out, index=idx_var,

@@ -48,7 +48,7 @@ number_of_processes = 4
 input_dir = 'inputs_' + scenario_name
 output_path = 'outputs_' + out_scenario_name
 os.chdir(file_path)  
-fleet_year = 2030
+fleet_year = 2018
 fleet_name = 'Ref_highp6'
 regulations = 'ACC and ACT'
 
@@ -144,8 +144,8 @@ print('Regenerate private fleet...')
 
 
 firms_with_adj = firms_with_adj[['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'Production']]
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr', 'Production']] # 'ZIPCODE', 
 
 firms_with_adj = firms_with_adj.drop_duplicates(subset = 'BusID',
                                                 keep = 'first')
@@ -261,8 +261,8 @@ private_fuel_mix = private_fuel_mix[fuel_attr]
 fuel_types = private_fuel_mix['fuel type'].unique()
 
 idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'simulated_capacity']
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr', 'simulated_capacity'] # 'ZIPCODE', 
 
 firms_with_fleet = pd.melt(firms_with_fleet, id_vars = idx_var, value_vars = vehicle_types,
                         var_name='veh_class', value_name='number_of_veh')
@@ -342,8 +342,8 @@ veh_comb = private_fuel_mix.veh_type.unique()
 ###### format and write output #########
 
 idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)', 'veh_capacity']
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)', 'veh_capacity'] # 'ZIPCODE', 
 # convert long table to wide
 firms_with_fleet_out = pd.pivot_table(firms_with_fleet_out, index=idx_var,
                                      columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')

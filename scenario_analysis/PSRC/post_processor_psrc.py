@@ -151,7 +151,7 @@ print(len(synthetic_firm_with_parcel.BusID.unique()))
 
 # random assign parcel ID
 essential_attr = ['CBPZONE', 'FAFZONE',	'esizecat', 'Industry_NAICS6_Make',
-                'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'industry']
+                'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'industry']
 
 # some CBG do not have parcels with valid employment by that industry --> assign those later
 synthetic_firm_to_impute = \
@@ -192,7 +192,7 @@ if len(synthetic_firm_to_impute) > 0:
     
     synthetic_firm_to_impute = \
         synthetic_firm_to_impute.groupby(essential_attr).sample(1,
-                                         weights = synthetic_firm_with_parcel['PSRC_emp'],
+                                         weights = synthetic_firm_to_impute['PSRC_emp'],
                                          replace = True, random_state = 1)
     print('firms after assign parcel ID:')
     print(len(synthetic_firm_to_impute))
@@ -268,7 +268,8 @@ firm_comparison_by_cbg = pd.merge(synthfirm_by_cbg, psrc_emp_by_cbg,
                                      how = 'left')
 firm_comparison_by_cbg.columns = ['GEOID', 'SynthFirm employment', 'PSRC employment']
 rmse_emp = mean_squared_error(firm_comparison_by_cbg['SynthFirm employment'], 
-                              firm_comparison_by_cbg['PSRC employment'], squared = False)
+                              firm_comparison_by_cbg['PSRC employment'])
+rmse_emp = np.sqrt(rmse_emp)
 r2_emp = r2_score(firm_comparison_by_cbg['PSRC employment'], 
                   firm_comparison_by_cbg['SynthFirm employment'])
 rmse_emp = np.round(rmse_emp, 1)
@@ -301,13 +302,13 @@ plt.savefig(os.path.join(plot_dir, 'emp_by_CBG_validation_synthfirm.png'), dpi =
 
 # write output
 output_attr = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon', 
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon', 
        'ParcelID', 'TAZ']
 synthetic_firm_in_region = synthetic_firm_with_parcel_df[output_attr]
 synthetic_firm_output = pd.concat([synthetic_firm_in_region,
                                    synthetic_firm_out_region])
-
-calibrated_firm_file = os.path.join(output_dir, 'synthetic_firms_with_location_cal.csv')
+synthetic_firm_output.fillna(-1, inplace = True)
+calibrated_firm_file = os.path.join(output_dir, 'synthetic_firms_with_location.csv')
 synthetic_firm_output.to_csv(calibrated_firm_file, index = False)
 
 

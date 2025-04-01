@@ -45,13 +45,14 @@ faf_data = read_csv('validation/FAF5.3.csv', sep = ',')
 faf_data = faf_data.loc[faf_data['trade_type'] == 1]
 print(faf_data.columns)
 
-sctg_group_lookup = read_csv('SynthFirm_parameters/SCTG_Groups_revised.csv', sep = ',')
+sctg_group_lookup = read_csv('SynthFirm_parameters/SCTG_Groups_revised_V2.csv', sep = ',')
 sctg_group_lookup.head(5)
 
 cfs_faf_lookup = read_csv('SynthFirm_parameters/CFS_FAF_LOOKUP.csv')
 # sctg_group_lookup.head(5)
 
 faf_data.loc[:, 'mode_def'] = faf_data.loc[:, 'dms_mode'].map(mode_lookup)
+faf_data = faf_data.loc[faf_data['mode_def'] != 'Other']
 faf_data = pd.merge(faf_data, sctg_group_lookup, left_on = 'sctg2', 
                     right_on = 'SCTG_Code', how = 'left')
 # faf_data.head(5)

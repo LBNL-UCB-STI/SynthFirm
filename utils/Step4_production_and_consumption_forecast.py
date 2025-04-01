@@ -93,9 +93,9 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
     production_projected = pd.merge(production_baseline, production_adj_factor_selected,
                                              on = ['FAFID', 'Commodity_SCTG'], how = 'left')
     production_projected.loc[:, 'OutputCapacitylb'] *= production_projected.loc[:, 'adj_factor']
-    
+    print('Total production tonnage after forecast:')
     print(production_projected['OutputCapacitylb'].sum() * lb_to_ton / 1000)
-    print(production_adj_factor_with_firms[forecast_tonnage].sum())
+    # print(production_adj_factor_with_firms[forecast_tonnage].sum())
     
     # <codecell>
     # fill missing firms and productions
@@ -198,9 +198,9 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
     consumption_projected = pd.merge(consumer_baseline, consumption_adj_factor_selected,
                                              on = ['FAFID', 'Commodity_SCTG'], how = 'left')
     consumption_projected.loc[:, 'PurchaseAmountlb'] *= consumption_projected.loc[:, 'adj_factor']
-    
+    print('Total consumption tonnage after forecast:')
     print(consumption_projected['PurchaseAmountlb'].sum() * lb_to_ton / 1000)
-    print(consumption_adj_factor_with_firms[forecast_tonnage].sum())
+    # print(consumption_adj_factor_with_firms[forecast_tonnage].sum())
     
     # <codecell>
     
@@ -250,7 +250,7 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
                                                       right = False)
     
     max_id_2 = firms_added_for_production.BusID.max()
-    print(max_id_2)
+    # print(max_id_2)
     firms_added_formatted_2 = firms_added_formatted_2.reset_index()
     firms_added_formatted_2.loc[:, 'BusID'] = firms_added_formatted_2.index + 1 + max_id_2
     
