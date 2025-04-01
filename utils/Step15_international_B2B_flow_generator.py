@@ -374,14 +374,14 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     
     # write export output
     export_truck_shipment_assigned.drop(columns = ['Size'], inplace = True)
-    export_truck_shipment_assigned.loc[:, 'veh_type']= 'Diesel ' + veh_type_to_assign
+    # export_truck_shipment_assigned.loc[:, 'veh_type']= 'Diesel ' + veh_type_to_assign
     export_truck_shipment_assigned = \
         export_truck_shipment_assigned.rename(columns = {'MESOZONE': 'PORTZONE',
                                                          'SCTG_Code': 'Commodity_SCTG'})
     
     export_truck_shipment_assigned.to_csv(export_with_firm_file, index = False)
     
-    import_truck_shipment_assigned.loc[:, 'veh_type']= 'Diesel ' + veh_type_to_assign
+    # import_truck_shipment_assigned.loc[:, 'veh_type']= 'Diesel ' + veh_type_to_assign
     import_truck_shipment_assigned.drop(columns = ['Size'], inplace = True)
     import_truck_shipment_assigned = \
         import_truck_shipment_assigned.rename(columns = {'MESOZONE': 'PORTZONE',

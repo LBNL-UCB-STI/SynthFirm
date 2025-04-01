@@ -26,7 +26,7 @@ number_of_processes = 4
 input_dir = 'inputs_' + scenario_name
 output_path = 'outputs_' + out_scenario_name
 
-fleet_year = 2018
+fleet_year = 2030
 fleet_name = 'Ref_highp6'
 regulations = 'ACC and ACT'
 
@@ -637,8 +637,8 @@ carriers_with_fleet_out = carriers_with_fleet_out.reset_index()
 carriers_with_fleet_out.fillna(0, inplace = True)
 
 idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
-       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'ZIPCODE', 'lat', 'lon',
-       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)']
+       'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+       'ParcelID', 'TAZ', 'state_abbr', 'fleet_id', 'EV_powertrain (if any)'] # 'ZIPCODE'
 # convert long table to wide
 leasing_with_fleet_out = pd.pivot_table(leasing_with_fleet_out, index=idx_var,
                                      columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
