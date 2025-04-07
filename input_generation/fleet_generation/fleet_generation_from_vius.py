@@ -43,10 +43,19 @@ VIUS_fuel_lookup = {'Gasoline': 'Gasoline',
                     'Alcohol fuels': 'Other',
                     'Electricity': 'Electricity'}
 
+regclass_lookup = {30:'LDT', 41:'LHD2b3', 
+                   42:'LHD45', 46:'MHD67',
+                   47:'HHD8 (w. glider)', 
+                   49:'HHD8 (w. glider)'}
+
 age_bin = [-1, 3, 5, 7, 9, 14, 19, 31]
 
 age_bin_label = ['age<=3', '3<age<=5','5<age<=7', 
                  '7<age<=9', '9<age<=14', '14<age<=19', 'age>=20']
+
+age_bin_order = {'age<=3':1, '3<age<=5':2, '5<age<=7':3, 
+                 '7<age<=9':4, '9<age<=14':5, 
+                 '14<age<=19':6, 'age>=20':7}
 
 # load vius data
 vius_data_path = 'vius_2021_com_crosswalk_20240624.csv'
@@ -72,8 +81,19 @@ analysis_year - vius_fleet.loc[:, 'MODELYEAR'] # model year 1999 -> including pr
 vius_fleet.loc[:, 'VEH_CLASS_MOVES'] = vius_fleet.loc[:, 'VEH_CLASS_MOVES'].str.lower()
 vius_fleet.loc[:, 'sourceTypeID'] = \
     vius_fleet.loc[:, 'VEH_CLASS_MOVES'].map(veh_st_map)
-    
 
+# assign regular class ID    
+vius_fleet.loc[:, 'regClassID'] = 0
+# LDT
+vius_fleet.loc[vius_fleet['GVWR_CLASS'].isin(['1', '2A']), 'regClassID'] = 30
+# LHD2B3
+vius_fleet.loc[vius_fleet['GVWR_CLASS'].isin(['2B', '3']), 'regClassID'] = 41
+# LHD45
+vius_fleet.loc[vius_fleet['GVWR_CLASS'].isin(['4', '5']), 'regClassID'] = 42
+# MHD67
+vius_fleet.loc[vius_fleet['GVWR_CLASS'].isin(['6', '7']), 'regClassID'] = 46
+# HHD8 (including glider)
+vius_fleet.loc[vius_fleet['GVWR_CLASS'].isin(['8']), 'regClassID'] = 47
     
 # <codecell>
 sample_size_by_age = vius_fleet.groupby(['VEH_CLASS_MOVES', 'VEH_AGE']).size()
@@ -209,7 +229,7 @@ plt.ylabel('Annual mileage per truck')
 plt.legend(fontsize = 8, loc = 1)
 plt.savefig('RawData/MOVES/plot/VIUS_VMT_per_truck_by_stmy_imputed.png',
             dpi = 300, bbox_inches = 'tight')
-
+plt.show()
 
 
 # <codecell>
@@ -291,8 +311,32 @@ MOVES_avg_age_by_group = \
 
 MOVES_age_std_by_group = \
     age_distribution_curr_year.groupby('sourceTypeID').apply(weighted_sd)
-    
-    
+  
+# <codecell>
+
+# calculate RMAR factor of VIUS data
+vius_RMAR = vius_age_distribution[['sourceTypeID', 'ageID', 'VMT_per_veh']]   
+vius_RMAR_denominator = vius_RMAR.loc[vius_RMAR['ageID'] == 0]
+vius_RMAR_denominator.rename(columns = {'VMT_per_veh':'base_VMT'}, inplace = True)
+vius_RMAR_denominator.drop(columns = 'ageID', inplace = True)
+vius_RMAR = pd.merge(vius_RMAR, vius_RMAR_denominator, on = 'sourceTypeID', how = 'left')
+vius_RMAR.loc[:, 'relativeMAR'] = vius_RMAR.loc[:, 'VMT_per_veh']/ \
+    vius_RMAR.loc[:, 'base_VMT']
+
+sns.lineplot(vius_RMAR, 
+             x="ageID", y="relativeMAR", 
+             hue="sourceTypeID", palette = 'Set2',
+             errorbar = None)
+# plt.xticks(rotation = 30, ha= 'right')
+plt.xlabel('Age ID')
+plt.ylabel('Relative mileage accumulation factor')
+# plt.legend(fontsize = 8, loc = 1)
+plt.savefig('RawData/MOVES/plot/VIUS_RMAR.png',
+             dpi = 300, bbox_inches = 'tight')   
+plt.show()    
+
+vius_RMAR.to_csv(os.path.join(path_to_vius,'vius_rmar.csv'),
+                             index = False)
 # <codecell>
 
 vius_fleet_with_fuel = \

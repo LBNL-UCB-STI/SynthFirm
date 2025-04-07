@@ -24,10 +24,10 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-selected_state = c('TX')
-output_state = 'TX'
-selected_year = 2017
-region_name = 'Austin'
+selected_state = c('WA', 'OR')
+output_state = 'WA'
+selected_year = 2018
+region_name = 'Seattle'
 
 
 ####### BEGINNING OF CENSUS DATA PROCESSES ######
@@ -106,7 +106,7 @@ bg_name = paste0('inputs_', region_name, '/', output_state, '_bg.geojson')
 sf::st_write(state_bg_df_filtered, bg_name, append=FALSE)
 
 state_wac_filtered <- state_wac %>% filter(GEOID %in% list_of_geoid)
-output_name = paste0('inputs_', region_name, '/', output_state, '_naics.csv')
+output_name = paste0('inputs_', region_name, '/', output_state, '_naics_2018.csv')
 data.table::fwrite(state_wac_filtered, output_name)
 
 
