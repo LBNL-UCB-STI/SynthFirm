@@ -25,18 +25,19 @@ setwd(path2file)
 
 # define inputs
 
-output_state = 'US'
+output_state = c('CA')
+selected_year = 2017
+region_name = 'BayArea'
+
 if (output_state =='US'){
   selected_state = unique(fips_codes$state)[1:56]
   # Workplace area characteristics (latest data from AK is 2016)
   selected_state <- selected_state[!selected_state %in%  c("AS", "GU", "MP", "PR", "UM", "AK")]
 }else{
   # user needs to define the state here
-  selected_state = c('TX')
+  selected_state = output_state
 }
 
-selected_year = 2017
-region_name = 'national'
 
 
 ####### BEGINNING OF CENSUS DATA PROCESSES ######

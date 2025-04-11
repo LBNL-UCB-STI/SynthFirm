@@ -71,9 +71,9 @@
 
 ### step b.2 - collect CBP employment data using [FAFZone.R](FAFZone.R): 
 * Require CFS to FAF crosswalk map from step a.1 (CFS2017_areas.geojson) and CFS zone to FAF zone lookup table (CFS_FAF_LOOKUP.csv) as input (downloaded from FAF5 website under 'Related Information': https://faf.ornl.gov/faf5/)
-* Require CBP complete county file from census.gov (sample: https://www.census.gov/data/datasets/2017/econ/cbp/2017-cbp.html)
-* Produce county and FAF zone lookup table within study area ({region_name}_FAFCNTY.csv)
-* Produce county establishment file before imputation (data_emp_cbp.csv)
+* Require CBP and ZBP (industry detail and total) complete county file from census.gov (sample: https://www.census.gov/data/datasets/2017/econ/cbp/2017-cbp.html)
+* Produce county, zipcode and FAF zone lookup table within study area ({region_name}_FAFCNTY.csv)
+* Produce county/zipcode establishment file before imputation (data_emp_cbp.csv)
 	
 ### step b.3 - impute firms and employment for missing industry in [FAFZones_no_cbp.R](FAFZones_no_cbp.R) (using firm data outside CBP for gap filling)
 * Require department of labor employment data for imputing firm count and employment of missing industries in CBP (https://www.bls.gov/cew/downloadable-data-files.htm)

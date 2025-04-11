@@ -22,9 +22,10 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-region_name = 'national'
+region_name = 'BayArea'
+with_zipcode = 1 # 0 = no zip code, 1 = with zip code
 naics_code <-
-  data.table::fread('RawData/corresp_naics6_n6io_sctg_revised.csv', h = T)
+  data.table::fread('SynthFirm_parameters/corresp_naics6_n6io_sctg_revised.csv', h = T)
 cbp_data <-
   data.table::fread(paste0('inputs_', region_name, '/data_emp_cbp.csv'), h = T)
 region_file_name = paste0('inputs_', region_name, '/', region_name, '_FAFCNTY.csv')
@@ -56,9 +57,15 @@ for (row in 1:nrow(qcew_files_to_add)) {
     summarise(employment = sum(annual_avg_emplvl), establishment = sum(annual_avg_estabs_count))
   firm_emp_by_naics_summary <- firm_emp_by_naics_summary %>% mutate(ST_CNTY = as.integer(area_fips))
   firm_emp_by_naics_summary <- merge(firm_emp_by_naics_summary, faf_county_lookup, by = 'ST_CNTY', all.x = TRUE, all.y = FALSE)
-  firm_emp_by_naics_out <- firm_emp_by_naics_summary %>%
-    group_by(industry_code, FAFID, CBPZONE1) %>%
-    summarise(emp = sum(employment), est = sum(establishment))
+  if (with_zipcode == 1){
+    firm_emp_by_naics_out <- firm_emp_by_naics_summary %>%
+      group_by(industry_code, FAFID, CBPZONE, ST_CNTY) %>%
+      summarise(emp = sum(employment), est = sum(establishment))    
+  }else{
+    firm_emp_by_naics_out <- firm_emp_by_naics_summary %>%
+      group_by(industry_code, FAFID, CBPZONE) %>%
+      summarise(emp = sum(employment), est = sum(establishment))
+  }
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(emp = ifelse(emp == 0, est, emp)) # if not employment found, fill with 1 as a ghost worker (self-employment)
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(firm_size = emp/est)
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% na.exclude()
@@ -72,20 +79,40 @@ for (row in 1:nrow(qcew_files_to_add)) {
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(e5 = ifelse((firm_size < 2500) & (firm_size>=1000), est, 0))
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(e6 = ifelse((firm_size < 5000) & (firm_size>=2500), est, 0))
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(e7 = ifelse(firm_size >= 5000, est, 0))
-  firm_emp_by_naics_out <- firm_emp_by_naics_out %>% select(industry_code,
-                                                            FAFID,
-                                                            CBPZONE1,
-                                                            emp,
-                                                            est,
-                                                            e1,
-                                                            e2,
-                                                            e3,
-                                                            e4,
-                                                            e5,
-                                                            e6,
-                                                            e7)
-  colnames(firm_emp_by_naics_out) <- c('Industry_NAICS6_CBP', 'FAFZONE',	'CBPZONE',
-                    'employment',	'establishment',	'e1',	'e2',	'e3',	'e4',	'e5',	'e6',	'e7')
+  if (with_zipcode == 1){
+    firm_emp_by_naics_out <- firm_emp_by_naics_out %>% select(industry_code,
+                                                              FAFID,
+                                                              CBPZONE, 
+                                                              ST_CNTY,
+                                                              emp,
+                                                              est,
+                                                              e1,
+                                                              e2,
+                                                              e3,
+                                                              e4,
+                                                              e5,
+                                                              e6,
+                                                              e7)   
+    colnames(firm_emp_by_naics_out) <- c('Industry_NAICS6_CBP', 'FAFZONE',	'CBPZONE','COUNTY',
+                                         'employment',	'establishment',	'e1',	'e2',	'e3',	'e4',	'e5',	'e6',	'e7')
+  }else{
+    firm_emp_by_naics_out <- firm_emp_by_naics_out %>% select(industry_code,
+                                                              FAFID,
+                                                              CBPZONE,
+                                                              emp,
+                                                              est,
+                                                              e1,
+                                                              e2,
+                                                              e3,
+                                                              e4,
+                                                              e5,
+                                                              e6,
+                                                              e7)   
+    colnames(firm_emp_by_naics_out) <- c('Industry_NAICS6_CBP', 'FAFZONE',	'CBPZONE',
+                                         'employment',	'establishment',	'e1',	'e2',	'e3',	'e4',	'e5',	'e6',	'e7')    
+  }
+
+
   cbp_filled_out <- rbind(cbp_filled_out, firm_emp_by_naics_out)
   # break
 }
@@ -127,9 +154,16 @@ for (row in 1:nrow(naics_code_to_fill_remaining)) {
     summarise(employment = sum(annual_avg_emplvl), establishment = sum(annual_avg_estabs_count))
   firm_emp_by_naics_summary <- firm_emp_by_naics_summary %>% mutate(ST_CNTY = as.integer(area_fips))
   firm_emp_by_naics_summary <- merge(firm_emp_by_naics_summary, faf_county_lookup, by = 'ST_CNTY', all.x = TRUE, all.y = FALSE)
-  firm_emp_by_naics_out <- firm_emp_by_naics_summary %>%
-    group_by(industry_code, FAFID, CBPZONE1) %>%
-    summarise(emp = sum(employment), est = sum(establishment))
+  if (with_zipcode == 1){
+    firm_emp_by_naics_out <- firm_emp_by_naics_summary %>%
+      group_by(industry_code, FAFID, CBPZONE, ST_CNTY) %>%
+      summarise(emp = sum(employment), est = sum(establishment))    
+  }else{
+    firm_emp_by_naics_out <- firm_emp_by_naics_summary %>%
+      group_by(industry_code, FAFID, CBPZONE) %>%
+      summarise(emp = sum(employment), est = sum(establishment))
+  }
+
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(emp = ifelse(emp == 0, est, emp)) # if not employment found, fill with 1 as a ghost worker (self-employment)
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(firm_size = emp/est)
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% na.exclude()
@@ -143,20 +177,38 @@ for (row in 1:nrow(naics_code_to_fill_remaining)) {
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(e5 = ifelse((firm_size < 2500) & (firm_size>=1000), est, 0))
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(e6 = ifelse((firm_size < 5000) & (firm_size>=2500), est, 0))
   firm_emp_by_naics_out <- firm_emp_by_naics_out %>% mutate(e7 = ifelse(firm_size >= 5000, est, 0))
-  firm_emp_by_naics_out <- firm_emp_by_naics_out %>% select(industry_code,
-                                                            FAFID,
-                                                            CBPZONE1,
-                                                            emp,
-                                                            est,
-                                                            e1,
-                                                            e2,
-                                                            e3,
-                                                            e4,
-                                                            e5,
-                                                            e6,
-                                                            e7)
-  colnames(firm_emp_by_naics_out) <- c('Industry_NAICS_selected', 'FAFZONE',	'CBPZONE',
-                                       'employment',	'establishment',	'e1',	'e2',	'e3',	'e4',	'e5',	'e6',	'e7')
+  if (with_zipcode == 1){
+    firm_emp_by_naics_out <- firm_emp_by_naics_out %>% select(industry_code,
+                                                              FAFID,
+                                                              CBPZONE, 
+                                                              ST_CNTY,
+                                                              emp,
+                                                              est,
+                                                              e1,
+                                                              e2,
+                                                              e3,
+                                                              e4,
+                                                              e5,
+                                                              e6,
+                                                              e7)   
+    colnames(firm_emp_by_naics_out) <- c('Industry_NAICS6_CBP', 'FAFZONE',	'CBPZONE','COUNTY',
+                                         'employment',	'establishment',	'e1',	'e2',	'e3',	'e4',	'e5',	'e6',	'e7')
+  }else{
+    firm_emp_by_naics_out <- firm_emp_by_naics_out %>% select(industry_code,
+                                                              FAFID,
+                                                              CBPZONE,
+                                                              emp,
+                                                              est,
+                                                              e1,
+                                                              e2,
+                                                              e3,
+                                                              e4,
+                                                              e5,
+                                                              e6,
+                                                              e7)   
+    colnames(firm_emp_by_naics_out) <- c('Industry_NAICS6_CBP', 'FAFZONE',	'CBPZONE',
+                                         'employment',	'establishment',	'e1',	'e2',	'e3',	'e4',	'e5',	'e6',	'e7')    
+  }
   firm_emp_by_naics_out$Industry_NAICS6_CBP = raw_naics
   additional_cbp_filled_out <- rbind(additional_cbp_filled_out, firm_emp_by_naics_out)
 
@@ -167,8 +219,12 @@ for (row in 1:nrow(naics_code_to_fill_remaining)) {
 
 additional_cbp_out <- additional_cbp_filled_out %>% 
   ungroup() %>% 
-  select(Industry_NAICS6_CBP, FAFZONE,	CBPZONE, employment,	establishment,	e1,	e2,	e3,	e4,	e5,	e6,	e7)
+  select(Industry_NAICS6_CBP, FAFZONE,	CBPZONE, COUNTY, employment,	establishment,	e1,	e2,	e3,	e4,	e5,	e6,	e7)
 
+if (with_zipcode == 1){
+  cbp_filled_out <- cbp_filled_out %>% mutate(ZIPCODE = '99999')
+  additional_cbp_out <- additional_cbp_out %>% mutate(ZIPCODE = '99999')
+}
 final_cbp_with_gap_filling <- rbind(cbp_data, cbp_filled_out, additional_cbp_out)
 output_path <- paste0('inputs_', region_name, '/data_emp_cbp_imputed.csv')
 write.csv(final_cbp_with_gap_filling, output_path)

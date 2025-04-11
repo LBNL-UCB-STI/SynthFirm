@@ -122,7 +122,7 @@ import_flow_to_cal = pd.merge(import_flow_to_cal, import_calibrators,
 
 essential_var = ['CFS_CODE', 'CFS_NAME', 'dms_dest', 'Commodity_SCTG', 'TruckLoad',
        'SCTG_Group', 'mode_choice', 'shipments', 'Distance', 'bundle_id',
-       'BuyerID', 'BuyerZone', 'BuyerNAICS', 'veh_type', 'total_load']
+       'BuyerID', 'BuyerZone', 'BuyerNAICS', 'total_load']
 import_flow_to_cal = import_flow_to_cal.groupby(essential_var).sample(n = 1, 
                                                          weights = import_flow_to_cal['Fraction'],
                                                          replace = True, 
@@ -150,7 +150,7 @@ export_flow_to_cal = pd.merge(export_flow_to_cal, export_calibrators,
 
 essential_var = ['CFS_CODE', 'CFS_NAME', 'dms_orig', 'Commodity_SCTG',
 'TruckLoad', 'SCTG_Group', 'mode_choice', 'shipments', 'Distance',
-'bundle_id', 'SellerID', 'SellerZone', 'SellerNAICS', 'veh_type', 'total_load']
+'bundle_id', 'SellerID', 'SellerZone', 'SellerNAICS', 'total_load']
 export_flow_to_cal = export_flow_to_cal.groupby(essential_var).sample(n = 1, 
                                                          weights = export_flow_to_cal['Fraction'],
                                                          replace = True, 

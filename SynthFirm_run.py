@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # Xiaodan Xu 08-22-2023
 import argparse
-from pandas import read_csv
-import pandas as pd
-import numpy as np
+# from pandas import read_csv
+# import pandas as pd
+# import numpy as np
 import os
-import gc
+# import gc
 import warnings
 import configparser
-from sklearn.utils import shuffle
+# from sklearn.utils import shuffle
 # import rpy2
 # import rpy2.robjects as robjects
-import subprocess
+# import subprocess
 
 # import SynthFirm modules
 from utils.Step1_Firm_Generation import synthetic_firm_generation
@@ -36,7 +36,7 @@ def main():
     SynthFirm Business-to-business (B2B) flow generation"
     """
     parser = argparse.ArgumentParser(description=des)
-    parser.add_argument("--config", type = str, help = "config file name", default= 'configs/Seattle_base_psrc.conf')
+    parser.add_argument("--config", type = str, help = "config file name", default= 'SynthFirm.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -120,16 +120,22 @@ def main():
     if run_international_flow:
             print('including international flow generation in the pipeline...')
     
+    # define if regional calibration is needed
+    need_regional_calibration = config.getboolean('ENVIRONMENT', 'need_regional_calibration') 
+    
+    if need_regional_calibration:
+        regional_variable_str = config['ENVIRONMENT']['regional_variable']
+        regional_variable = [var for var in regional_variable_str.split(',')]
     # load inputs  
     
     # inputs/outputs first appear in firm synthesizer
     cbp_file = os.path.join(input_path, config['INPUTS']['cbp_file'])
     mzemp_file = os.path.join(input_path, config['INPUTS']['mzemp_file'])
-    
+    mesozone_to_faf_file = os.path.join(input_path, config['INPUTS']['mesozone_to_faf_file'])
     c_n6_n6io_sctg_file = os.path.join(param_path, config['PARAMETERS']['c_n6_n6io_sctg_file'])
     employment_per_firm_file = os.path.join(param_path, config['PARAMETERS']['employment_per_firm_file'])
     employment_per_firm_gapfill_file = os.path.join(param_path, config['PARAMETERS']['employment_per_firm_gapfill_file'])
-    
+    zip_to_tract_file = os.path.join(param_path, config['PARAMETERS']['zip_to_tract_file'])
     synthetic_firms_no_location_file = os.path.join(output_path, config['OUTPUTS']['synthetic_firms_no_location_file'])
 
     
@@ -148,7 +154,6 @@ def main():
     consumer_by_sctg_filehead = os.path.join(output_path, config['OUTPUTS']['consumer_by_sctg_filehead'])
     sample_consumer_file = os.path.join(output_path, config['OUTPUTS']['sample_consumer_file'])
     io_filtered_file = os.path.join(output_path, config['OUTPUTS']['io_filtered_file'])
-    mesozone_to_faf_file = os.path.join(input_path, config['INPUTS']['mesozone_to_faf_file'])
     
 
     # inputs/outputs first appear in demand forecast 
@@ -184,34 +189,43 @@ def main():
     mode_choice_param_file = os.path.join(input_path, config['INPUTS']['mode_choice_param_file'])
     distance_travel_skim_file = os.path.join(param_path, config['PARAMETERS']['distance_travel_skim_file'])
         
-
-
     
     # input/output appear in fleet generation
-    private_fleet_file = os.path.join(input_path, config['FLEET_IO']['private_fleet_file'])
-    for_hire_fleet_file = os.path.join(input_path, config['FLEET_IO']['for_hire_fleet_file'])
-    for_lease_fleet_file = os.path.join(input_path, config['FLEET_IO']['for_lease_fleet_file'])
-    cargo_type_distribution_file = os.path.join(input_path, config['FLEET_IO']['cargo_type_distribution_file'])
-    state_fips_lookup_file = os.path.join(param_path, config['FLEET_IO']['state_fips_lookup_file'])
     
     # scenario-specific inputs
-    fleet_year = config['FLEET_IO']['fleet_year']
-    fleet_scenario_name = config['FLEET_IO']['fleet_name']
-    national_fleet_composition_file = os.path.join(input_path, 'fleet', fleet_scenario_name,
-                                                   config['FLEET_IO']['national_fleet_composition_file'])
-    vehicle_type_by_state_file = os.path.join(input_path, 'fleet', fleet_scenario_name,
-                                                   config['FLEET_IO']['vehicle_type_by_state_file'])
-    ev_availability_file = os.path.join(input_path, 'fleet', fleet_scenario_name,
-                                                   config['FLEET_IO']['ev_availability_file'])
     
-    firms_with_fleet_file = os.path.join(output_path, fleet_year, fleet_scenario_name,
-                                                   config['FLEET_IO']['firms_with_fleet_file'])
-    carriers_with_fleet_file = os.path.join(output_path, fleet_year, fleet_scenario_name,
-                                                   config['FLEET_IO']['carriers_with_fleet_file'])
-    leasing_with_fleet_file = os.path.join(output_path, fleet_year, fleet_scenario_name,
-                                                   config['FLEET_IO']['leasing_with_fleet_file'])
-    firms_with_fleet_mc_adj_files = os.path.join(output_path, fleet_year, fleet_scenario_name,
-                                                   config['FLEET_IO']['firms_with_fleet_mc_adj_files'])
+
+    
+    if run_fleet_generation:
+        fleet_year = config['FLEET_IO']['fleet_year']
+        fleet_name = config['FLEET_IO']['fleet_name']
+        regulations = config['FLEET_IO']['regulations']
+        fleet_scenario_name = fleet_name + ' & ' + regulations
+        
+        # generic inputs
+        private_fleet_file = os.path.join(param_path, 'fleet', config['FLEET_IO']['private_fleet_file'])
+        for_hire_fleet_file = os.path.join(param_path, 'fleet', config['FLEET_IO']['for_hire_fleet_file'])
+        cargo_type_distribution_file = os.path.join(param_path,'fleet',  config['FLEET_IO']['cargo_type_distribution_file'])
+        state_fips_lookup_file = os.path.join(param_path, config['FLEET_IO']['state_fips_lookup_file'])
+        
+        # scenario-dependent inputs
+        private_fuel_mix_file = os.path.join(param_path, 'fleet', config['FLEET_IO']['private_fuel_mix_file'])
+        hire_fuel_mix_file = os.path.join(param_path, 'fleet', config['FLEET_IO']['hire_fuel_mix_file'])
+        lease_fuel_mix_file = os.path.join(param_path, 'fleet', config['FLEET_IO']['lease_fuel_mix_file'])
+        private_stock_file = os.path.join(param_path, 'fleet', config['FLEET_IO']['private_stock_file'])
+        hire_stock_file = os.path.join(param_path, 'fleet', config['FLEET_IO']['hire_stock_file'])
+        lease_stock_file = os.path.join(param_path, 'fleet', config['FLEET_IO']['lease_stock_file'])
+        ev_availability_file = os.path.join(param_path, 'fleet', config['FLEET_IO']['ev_availability_file'])
+        
+        # fleet outputs
+        firms_with_fleet_file = os.path.join(output_path, fleet_year, fleet_scenario_name,
+                                                       config['FLEET_IO']['firms_with_fleet_file'])
+        carriers_with_fleet_file = os.path.join(output_path, fleet_year, fleet_scenario_name,
+                                                       config['FLEET_IO']['carriers_with_fleet_file'])
+        leasing_with_fleet_file = os.path.join(output_path, fleet_year, fleet_scenario_name,
+                                                       config['FLEET_IO']['leasing_with_fleet_file'])
+        firms_with_fleet_mc_adj_files = os.path.join(output_path, fleet_year, fleet_scenario_name,
+                                                       config['FLEET_IO']['firms_with_fleet_mc_adj_files'])
     
     if run_international_flow:
     # input/output appear in international flow
@@ -334,9 +348,9 @@ def main():
     if run_firm_generation:
         
         # subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
-        synthetic_firm_generation(cbp_file, mzemp_file, c_n6_n6io_sctg_file, 
+        synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, c_n6_n6io_sctg_file, 
                                   employment_per_firm_file, employment_per_firm_gapfill_file, 
-                                  synthetic_firms_no_location_file, output_path)
+                                  zip_to_tract_file, synthetic_firms_no_location_file, output_path)
 
     ##### Steps 2 and 3 -  synthetic producer and consumer generation        
     if run_producer_consumer_generation:
@@ -404,17 +418,36 @@ def main():
     ##### Step 11/12 - generate firm-level fleet before and after mode choice
     
     if run_fleet_generation:
-        firm_fleet_generator(fleet_year, fleet_scenario_name, synthetic_firms_with_location_file,
-                                  private_fleet_file, for_hire_fleet_file, for_lease_fleet_file,
-                                  cargo_type_distribution_file, national_fleet_composition_file,
-                                  vehicle_type_by_state_file, ev_availability_file, state_fips_lookup_file,
-                                  firms_with_fleet_file, carriers_with_fleet_file,
-                                  leasing_with_fleet_file, output_path)
-        
-        firm_fleet_generator_post_mc(fleet_year, fleet_scenario_name, synthetic_firms_with_location_file,
-                                 private_fleet_file, national_fleet_composition_file,
-                                 vehicle_type_by_state_file, ev_availability_file, state_fips_lookup_file,
-                                 firms_with_fleet_file, firms_with_fleet_mc_adj_files, output_path)
+        if need_regional_calibration:
+            print('Adding calibrated variables under fleet generation')
+            firm_fleet_generator(int(fleet_year), fleet_name, regulations,
+                                     synthetic_firms_with_location_file, private_fleet_file,
+                                     for_hire_fleet_file, cargo_type_distribution_file, state_fips_lookup_file,
+                                     private_fuel_mix_file, hire_fuel_mix_file, lease_fuel_mix_file,
+                                     private_stock_file, hire_stock_file, lease_stock_file,
+                                     firms_with_fleet_file, carriers_with_fleet_file, leasing_with_fleet_file, 
+                                     ev_availability_file, output_path, 
+                                     need_regional_calibration, regional_variable)
+
+            
+            firm_fleet_generator_post_mc(int(fleet_year), fleet_name, regulations, synthetic_firms_with_location_file,
+                                     private_fleet_file, private_fuel_mix_file, ev_availability_file, 
+                                     firms_with_fleet_file, firms_with_fleet_mc_adj_files, output_path, 
+                                     need_regional_calibration, regional_variable)
+        else: 
+            print('No calibrated variables under fleet generation')
+            firm_fleet_generator(int(fleet_year), fleet_name, regulations,
+                                     synthetic_firms_with_location_file, private_fleet_file,
+                                     for_hire_fleet_file, cargo_type_distribution_file, state_fips_lookup_file,
+                                     private_fuel_mix_file, hire_fuel_mix_file, lease_fuel_mix_file,
+                                     private_stock_file, hire_stock_file, lease_stock_file,
+                                     firms_with_fleet_file, carriers_with_fleet_file, leasing_with_fleet_file, 
+                                     ev_availability_file, output_path, need_regional_calibration)
+
+            
+            firm_fleet_generator_post_mc(int(fleet_year), fleet_name, regulations, synthetic_firms_with_location_file,
+                                     private_fleet_file, private_fuel_mix_file, ev_availability_file, 
+                                     firms_with_fleet_file, firms_with_fleet_mc_adj_files, output_path, need_regional_calibration)
            
     ###### Step 13 -- international shipment
     if run_international_flow:
