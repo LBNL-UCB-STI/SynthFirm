@@ -58,11 +58,6 @@ source_type_population_year = \
 source_type_population_year = source_type_population_year.drop(columns = 'yearID')
 hpms_vmt_year = hpms_vmt.loc[hpms_vmt['yearID'] == analysis_year]
 hpms_vmt_year = hpms_vmt_year[['HPMSVtypeID', 'HPMSBaseYearVMT']]
-# if commercial_only == 1:
-#     source_type_population_year = \
-#         source_type_population_year.loc[source_type_population_year['sourceTypeID'].isin(selected_type)]
-#     source_type_hpms = \
-#         source_type_hpms.loc[source_type_hpms['sourceTypeID'].isin(selected_type)]
         
 age_distribution_year = \
     age_distribution.loc[age_distribution['yearID'] == analysis_year]
@@ -108,6 +103,7 @@ print('base year total VMT after allocation:')
 print(fleet_mix_by_hpms['weighted_vmt_by_hpms'].sum())        
 moves_vmt_by_st = fleet_mix_by_hpms.groupby('sourceTypeName')['weighted_vmt_by_hpms'].sum()
 moves_vmt_by_st.to_csv(os.path.join(path_to_moves, 'moves_vmt_check.csv'))   
+
 # <codecell>
 if commercial_only == 1:
     fleet_mix_by_hpms = \
@@ -126,8 +122,6 @@ fleet_mix_by_hpms = fleet_mix_by_hpms[['sourceTypeID',
                                         'modelYearID',
                                         'population_by_year',
                                         'weighted_vmt_by_hpms',
-                                        # 'relativeMAR',
-                                        # 'weighted_vmt_rate',
                                         'vmt_fraction']]
 if commercial_only == 1:
     fleet_mix_by_hpms.to_csv(os.path.join(path_to_moves, 'MOVES_VMT_fraction_com_only.csv'), 

@@ -65,13 +65,13 @@ ldt_fuel_type_agg_frac = \
 com_fuel_type_agg_frac = \
 fuel_type_agg_frac.loc[(fuel_type_agg_frac['sourceTypeID'].isin(com_st)) & \
                        (fuel_type_agg_frac['modelYearID'] < year_begin)]
-# com_fuel_type_agg_frac = pd.concat([ldt_fuel_type_agg_frac, mhd_fuel_type_agg_frac])
+
 
 
 list_of_vmt_dist_file = ['vmt_fraction_moves_baseline.csv',
-                         'vmt_fraction_vius_baseline.csv',
-                         'vmt_fraction_moves_mandate.csv',
-                         'vmt_fraction_vius_mandate.csv']
+                         'vmt_fraction_vius_baseline.csv']
+                         # 'vmt_fraction_moves_mandate.csv',
+                         # 'vmt_fraction_vius_mandate.csv']
 
 list_of_avft_file = ['TDA_AVFT_HOP_highp2.csv', 'TDA_AVFT_HOP_highp6.csv', 'TDA_AVFT_HOP_highp10.csv',
                      'TDA_AVFT_Ref_highp2.csv', 'TDA_AVFT_Ref_highp6.csv', 'TDA_AVFT_Ref_highp10.csv']
@@ -84,9 +84,9 @@ scenario_lookup = {'TDA_AVFT_HOP_highp2.csv': 'TDA high oil, low elec',
                      'TDA_AVFT_Ref_highp10.csv': 'TDA low oil, high elec'}
 
 vmt_scenario_lookup = {'vmt_fraction_moves_baseline.csv': 'MOVES baseline',
-                         'vmt_fraction_vius_baseline.csv': 'VIUS baseline',
-                         'vmt_fraction_moves_mandate.csv': 'MOVES retiring old trucks',
-                         'vmt_fraction_vius_mandate.csv': 'VIUS retiring old trucks'}
+                         'vmt_fraction_vius_baseline.csv': 'VIUS baseline'}
+                         # 'vmt_fraction_moves_mandate.csv': 'MOVES retiring old trucks',
+                         # 'vmt_fraction_vius_mandate.csv': 'VIUS retiring old trucks'}
 
 # <codecell>
 fuel_mix_combined = fuel_type_baseline
@@ -242,12 +242,10 @@ print(fuel_mix_by_year_scenario.loc[:, 'vmt_fraction'].sum())
 # plot line 
 fuel_mix_by_year_to_plot = \
     fuel_mix_by_year_scenario.loc[fuel_mix_by_year_scenario['fuelTypeID'] == 9]
+
+# to_drop = ['MOVES retiring old trucks', 'VIUS retiring old trucks']
 # fuel_mix_by_year_to_plot = \
-#     fuel_mix_by_year_to_plot.loc[fuel_mix_by_year_to_plot['HPMSVtypeID'].isin([50, 60])] 
-# dropping the two mandate scenario as VMT results are weird
-to_drop = ['MOVES retiring old trucks', 'VIUS retiring old trucks']
-fuel_mix_by_year_to_plot = \
-    fuel_mix_by_year_to_plot[~fuel_mix_by_year_to_plot['scenario'].isin(to_drop)]
+#     fuel_mix_by_year_to_plot[~fuel_mix_by_year_to_plot['scenario'].isin(to_drop)]
 
 
   
@@ -298,17 +296,15 @@ vmt_distribution_baseline_fuel = \
 
 
 # dropping the two mandate scenario as VMT results are weird
-to_drop = ['MOVES retiring old trucks', 'VIUS retiring old trucks']
-vmt_distribution_baseline_fuel = \
-    vmt_distribution_baseline_fuel[~vmt_distribution_baseline_fuel['scenario'].isin(to_drop)]
+# to_drop = ['MOVES retiring old trucks', 'VIUS retiring old trucks']
+# vmt_distribution_baseline_fuel = \
+#     vmt_distribution_baseline_fuel[~vmt_distribution_baseline_fuel['scenario'].isin(to_drop)]
 
 median_age_by_count = vmt_distribution_baseline_fuel.groupby(age_group_var).apply(weighted_median_by_count)
-# median_age_by_count.columns = ['median age']
 median_age_by_count = median_age_by_count.reset_index()
 median_age_by_count.rename(columns = {0: 'median age'}, inplace = True)
 
 median_age_by_vmt = vmt_distribution_baseline_fuel.groupby(age_group_var).apply(weighted_median_by_vmt)
-# median_age_by_vmt.columns = ['median age']
 median_age_by_vmt = median_age_by_vmt.reset_index()
 median_age_by_vmt.rename(columns = {0: 'median age'}, inplace = True)
 

@@ -97,11 +97,6 @@ vius_fleet.loc[vius_fleet['GVWR_CLASS'].isin(['8']), 'regClassID'] = 47
     
 # <codecell>
 sample_size_by_age = vius_fleet.groupby(['VEH_CLASS_MOVES', 'VEH_AGE']).size()
-# sample_size_by_age_fuel = pd.pivot_table(vius_fleet_with_fuel, 
-#                                          index = ['VEH_CLASS_MOVES', 'VEH_AGE'],
-#                                          columns = 'fuelTypeName', 
-#                                          values = 'TABWEIGHT', aggfunc = 'count')
-# sample_size_by_age_fuel = sample_size_by_age_fuel.fillna(0)
 
 #calculate vehicle population
 vius_count_by_st = \
@@ -372,6 +367,7 @@ VIUS_fuel_distribution.loc[:, 'fuel_fraction'] = \
 
 print('total fuel adj. factor (should be 35):') 
 print(VIUS_fuel_distribution.loc[:, 'fuel_fraction'].sum())        
+
 # <codecell>
 vius_age_distribution.loc[:, 'AgeBin'] = pd.cut(vius_age_distribution['ageID'],
                                                bins=age_bin, right=True, labels=age_bin_label)

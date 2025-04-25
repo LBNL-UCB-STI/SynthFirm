@@ -79,10 +79,6 @@ fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] = \
     fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms']* \
         fleet_mix_by_hpms.loc[:, 'HPMSBaseYearVMT'] 
 
-# calculate VMT fraction
-# fleet_mix_by_hpms.loc[:, 'vmt_fraction_by_hpms'] =  \
-#     fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] / \
-#         fleet_mix_by_hpms.groupby(['HPMSVtypeID', 'yearID'])['weighted_vmt_by_hpms'].transform('sum')
         
 fleet_mix_by_hpms.loc[:, 'vmt_fraction'] =  \
     fleet_mix_by_hpms.loc[:, 'weighted_vmt_by_hpms'] / \
