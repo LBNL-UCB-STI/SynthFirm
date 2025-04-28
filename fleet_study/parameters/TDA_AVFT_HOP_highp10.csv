@@ -1,0 +1,601 @@
+,HPMSVtypeName,modelYearID,fuelTypeID,engTechID,stmyFraction,sourceTypeID,sourceTypeName
+0,Combination Trucks,2021,1,1,0.0,61,Combination Short-haul Truck
+1,Combination Trucks,2021,1,1,0.0,62,Combination Long-haul Truck
+2,Combination Trucks,2021,2,1,0.9924148292946675,61,Combination Short-haul Truck
+3,Combination Trucks,2021,2,1,0.9924148292946675,62,Combination Long-haul Truck
+4,Combination Trucks,2021,3,1,0.007585170705332494,61,Combination Short-haul Truck
+5,Combination Trucks,2021,3,1,0.007585170705332494,62,Combination Long-haul Truck
+6,Combination Trucks,2021,9,30,0.0,61,Combination Short-haul Truck
+7,Combination Trucks,2021,9,30,0.0,62,Combination Long-haul Truck
+8,Combination Trucks,2021,9,40,0.0,61,Combination Short-haul Truck
+9,Combination Trucks,2021,9,40,0.0,62,Combination Long-haul Truck
+10,Combination Trucks,2022,1,1,0.0,61,Combination Short-haul Truck
+11,Combination Trucks,2022,1,1,0.0,62,Combination Long-haul Truck
+12,Combination Trucks,2022,2,1,0.992525704160056,61,Combination Short-haul Truck
+13,Combination Trucks,2022,2,1,0.992525704160056,62,Combination Long-haul Truck
+14,Combination Trucks,2022,3,1,0.007474295839943955,61,Combination Short-haul Truck
+15,Combination Trucks,2022,3,1,0.007474295839943955,62,Combination Long-haul Truck
+16,Combination Trucks,2022,9,30,0.0,61,Combination Short-haul Truck
+17,Combination Trucks,2022,9,30,0.0,62,Combination Long-haul Truck
+18,Combination Trucks,2022,9,40,0.0,61,Combination Short-haul Truck
+19,Combination Trucks,2022,9,40,0.0,62,Combination Long-haul Truck
+20,Combination Trucks,2023,1,1,0.0,61,Combination Short-haul Truck
+21,Combination Trucks,2023,1,1,0.0,62,Combination Long-haul Truck
+22,Combination Trucks,2023,2,1,0.9925449398587678,61,Combination Short-haul Truck
+23,Combination Trucks,2023,2,1,0.9925449398587678,62,Combination Long-haul Truck
+24,Combination Trucks,2023,3,1,0.007455060141232256,61,Combination Short-haul Truck
+25,Combination Trucks,2023,3,1,0.007455060141232256,62,Combination Long-haul Truck
+26,Combination Trucks,2023,9,30,0.0,61,Combination Short-haul Truck
+27,Combination Trucks,2023,9,30,0.0,62,Combination Long-haul Truck
+28,Combination Trucks,2023,9,40,0.0,61,Combination Short-haul Truck
+29,Combination Trucks,2023,9,40,0.0,62,Combination Long-haul Truck
+30,Combination Trucks,2024,1,1,0.0,61,Combination Short-haul Truck
+31,Combination Trucks,2024,1,1,0.0,62,Combination Long-haul Truck
+32,Combination Trucks,2024,2,1,0.9925325986763747,61,Combination Short-haul Truck
+33,Combination Trucks,2024,2,1,0.9925325986763747,62,Combination Long-haul Truck
+34,Combination Trucks,2024,3,1,0.007467401323625366,61,Combination Short-haul Truck
+35,Combination Trucks,2024,3,1,0.007467401323625366,62,Combination Long-haul Truck
+36,Combination Trucks,2024,9,30,0.0,61,Combination Short-haul Truck
+37,Combination Trucks,2024,9,30,0.0,62,Combination Long-haul Truck
+38,Combination Trucks,2024,9,40,0.0,61,Combination Short-haul Truck
+39,Combination Trucks,2024,9,40,0.0,62,Combination Long-haul Truck
+40,Combination Trucks,2025,1,1,0.0,61,Combination Short-haul Truck
+41,Combination Trucks,2025,1,1,0.0,62,Combination Long-haul Truck
+42,Combination Trucks,2025,2,1,0.9923979377104377,61,Combination Short-haul Truck
+43,Combination Trucks,2025,2,1,0.9923979377104377,62,Combination Long-haul Truck
+44,Combination Trucks,2025,3,1,0.00760206228956229,61,Combination Short-haul Truck
+45,Combination Trucks,2025,3,1,0.00760206228956229,62,Combination Long-haul Truck
+46,Combination Trucks,2025,9,30,0.0,61,Combination Short-haul Truck
+47,Combination Trucks,2025,9,30,0.0,62,Combination Long-haul Truck
+48,Combination Trucks,2025,9,40,0.0,61,Combination Short-haul Truck
+49,Combination Trucks,2025,9,40,0.0,62,Combination Long-haul Truck
+50,Combination Trucks,2026,1,1,0.0,61,Combination Short-haul Truck
+51,Combination Trucks,2026,1,1,0.0,62,Combination Long-haul Truck
+52,Combination Trucks,2026,2,1,0.9921236857329377,61,Combination Short-haul Truck
+53,Combination Trucks,2026,2,1,0.9921236857329377,62,Combination Long-haul Truck
+54,Combination Trucks,2026,3,1,0.007876314267062253,61,Combination Short-haul Truck
+55,Combination Trucks,2026,3,1,0.007876314267062253,62,Combination Long-haul Truck
+56,Combination Trucks,2026,9,30,0.0,61,Combination Short-haul Truck
+57,Combination Trucks,2026,9,30,0.0,62,Combination Long-haul Truck
+58,Combination Trucks,2026,9,40,0.0,61,Combination Short-haul Truck
+59,Combination Trucks,2026,9,40,0.0,62,Combination Long-haul Truck
+60,Combination Trucks,2027,1,1,0.0,61,Combination Short-haul Truck
+61,Combination Trucks,2027,1,1,0.0,62,Combination Long-haul Truck
+62,Combination Trucks,2027,2,1,0.991850486509547,61,Combination Short-haul Truck
+63,Combination Trucks,2027,2,1,0.991850486509547,62,Combination Long-haul Truck
+64,Combination Trucks,2027,3,1,0.008149513490453031,61,Combination Short-haul Truck
+65,Combination Trucks,2027,3,1,0.008149513490453031,62,Combination Long-haul Truck
+66,Combination Trucks,2027,9,30,0.0,61,Combination Short-haul Truck
+67,Combination Trucks,2027,9,30,0.0,62,Combination Long-haul Truck
+68,Combination Trucks,2027,9,40,0.0,61,Combination Short-haul Truck
+69,Combination Trucks,2027,9,40,0.0,62,Combination Long-haul Truck
+70,Combination Trucks,2028,1,1,0.0,61,Combination Short-haul Truck
+71,Combination Trucks,2028,1,1,0.0,62,Combination Long-haul Truck
+72,Combination Trucks,2028,2,1,0.9914903234920186,61,Combination Short-haul Truck
+73,Combination Trucks,2028,2,1,0.9914903234920186,62,Combination Long-haul Truck
+74,Combination Trucks,2028,3,1,0.008509676507981354,61,Combination Short-haul Truck
+75,Combination Trucks,2028,3,1,0.008509676507981354,62,Combination Long-haul Truck
+76,Combination Trucks,2028,9,30,0.0,61,Combination Short-haul Truck
+77,Combination Trucks,2028,9,30,0.0,62,Combination Long-haul Truck
+78,Combination Trucks,2028,9,40,0.0,61,Combination Short-haul Truck
+79,Combination Trucks,2028,9,40,0.0,62,Combination Long-haul Truck
+80,Combination Trucks,2029,1,1,0.0,61,Combination Short-haul Truck
+81,Combination Trucks,2029,1,1,0.0,62,Combination Long-haul Truck
+82,Combination Trucks,2029,2,1,0.9910856329652311,61,Combination Short-haul Truck
+83,Combination Trucks,2029,2,1,0.9910856329652311,62,Combination Long-haul Truck
+84,Combination Trucks,2029,3,1,0.008833536403135703,61,Combination Short-haul Truck
+85,Combination Trucks,2029,3,1,0.008833536403135703,62,Combination Long-haul Truck
+86,Combination Trucks,2029,9,30,0.0,61,Combination Short-haul Truck
+87,Combination Trucks,2029,9,30,0.0,62,Combination Long-haul Truck
+88,Combination Trucks,2029,9,40,8.083063163320717e-05,61,Combination Short-haul Truck
+89,Combination Trucks,2029,9,40,8.083063163320717e-05,62,Combination Long-haul Truck
+90,Combination Trucks,2030,1,1,0.0,61,Combination Short-haul Truck
+91,Combination Trucks,2030,1,1,0.0,62,Combination Long-haul Truck
+92,Combination Trucks,2030,2,1,0.9829709444529955,61,Combination Short-haul Truck
+93,Combination Trucks,2030,2,1,0.9829709444529955,62,Combination Long-haul Truck
+94,Combination Trucks,2030,3,1,0.009149178725978318,61,Combination Short-haul Truck
+95,Combination Trucks,2030,3,1,0.009149178725978318,62,Combination Long-haul Truck
+96,Combination Trucks,2030,9,30,0.0,61,Combination Short-haul Truck
+97,Combination Trucks,2030,9,30,0.0,62,Combination Long-haul Truck
+98,Combination Trucks,2030,9,40,0.007879876821026267,61,Combination Short-haul Truck
+99,Combination Trucks,2030,9,40,0.007879876821026267,62,Combination Long-haul Truck
+100,Combination Trucks,2031,1,1,0.0,61,Combination Short-haul Truck
+101,Combination Trucks,2031,1,1,0.0,62,Combination Long-haul Truck
+102,Combination Trucks,2031,2,1,0.9801483802326192,61,Combination Short-haul Truck
+103,Combination Trucks,2031,2,1,0.9801483802326192,62,Combination Long-haul Truck
+104,Combination Trucks,2031,3,1,0.009512942094620955,61,Combination Short-haul Truck
+105,Combination Trucks,2031,3,1,0.009512942094620955,62,Combination Long-haul Truck
+106,Combination Trucks,2031,9,30,0.0,61,Combination Short-haul Truck
+107,Combination Trucks,2031,9,30,0.0,62,Combination Long-haul Truck
+108,Combination Trucks,2031,9,40,0.010338677672759825,61,Combination Short-haul Truck
+109,Combination Trucks,2031,9,40,0.010338677672759825,62,Combination Long-haul Truck
+110,Combination Trucks,2032,1,1,0.0,61,Combination Short-haul Truck
+111,Combination Trucks,2032,1,1,0.0,62,Combination Long-haul Truck
+112,Combination Trucks,2032,2,1,0.9774676289884121,61,Combination Short-haul Truck
+113,Combination Trucks,2032,2,1,0.9774676289884121,62,Combination Long-haul Truck
+114,Combination Trucks,2032,3,1,0.00989519186650245,61,Combination Short-haul Truck
+115,Combination Trucks,2032,3,1,0.00989519186650245,62,Combination Long-haul Truck
+116,Combination Trucks,2032,9,30,0.0,61,Combination Short-haul Truck
+117,Combination Trucks,2032,9,30,0.0,62,Combination Long-haul Truck
+118,Combination Trucks,2032,9,40,0.012637179145085428,61,Combination Short-haul Truck
+119,Combination Trucks,2032,9,40,0.012637179145085428,62,Combination Long-haul Truck
+120,Combination Trucks,2033,1,1,0.0,61,Combination Short-haul Truck
+121,Combination Trucks,2033,1,1,0.0,62,Combination Long-haul Truck
+122,Combination Trucks,2033,2,1,0.9890442287070633,61,Combination Short-haul Truck
+123,Combination Trucks,2033,2,1,0.9890442287070633,62,Combination Long-haul Truck
+124,Combination Trucks,2033,3,1,0.010386365445737976,61,Combination Short-haul Truck
+125,Combination Trucks,2033,3,1,0.010386365445737976,62,Combination Long-haul Truck
+126,Combination Trucks,2033,9,30,0.0,61,Combination Short-haul Truck
+127,Combination Trucks,2033,9,30,0.0,62,Combination Long-haul Truck
+128,Combination Trucks,2033,9,40,0.0005694058471986666,61,Combination Short-haul Truck
+129,Combination Trucks,2033,9,40,0.0005694058471986666,62,Combination Long-haul Truck
+130,Combination Trucks,2034,1,1,0.0,61,Combination Short-haul Truck
+131,Combination Trucks,2034,1,1,0.0,62,Combination Long-haul Truck
+132,Combination Trucks,2034,2,1,0.9832932714561766,61,Combination Short-haul Truck
+133,Combination Trucks,2034,2,1,0.9832932714561766,62,Combination Long-haul Truck
+134,Combination Trucks,2034,3,1,0.010930177924502644,61,Combination Short-haul Truck
+135,Combination Trucks,2034,3,1,0.010930177924502644,62,Combination Long-haul Truck
+136,Combination Trucks,2034,9,30,1.7770520111520465e-74,61,Combination Short-haul Truck
+137,Combination Trucks,2034,9,30,1.7770520111520465e-74,62,Combination Long-haul Truck
+138,Combination Trucks,2034,9,40,0.005776550619320764,61,Combination Short-haul Truck
+139,Combination Trucks,2034,9,40,0.005776550619320764,62,Combination Long-haul Truck
+140,Combination Trucks,2035,1,1,0.0,61,Combination Short-haul Truck
+141,Combination Trucks,2035,1,1,0.0,62,Combination Long-haul Truck
+142,Combination Trucks,2035,2,1,0.9673162182819652,61,Combination Short-haul Truck
+143,Combination Trucks,2035,2,1,0.9673162182819652,62,Combination Long-haul Truck
+144,Combination Trucks,2035,3,1,0.011569066385748412,61,Combination Short-haul Truck
+145,Combination Trucks,2035,3,1,0.011569066385748412,62,Combination Long-haul Truck
+146,Combination Trucks,2035,9,30,2.3530516928915013e-52,61,Combination Short-haul Truck
+147,Combination Trucks,2035,9,30,2.3530516928915013e-52,62,Combination Long-haul Truck
+148,Combination Trucks,2035,9,40,0.02111471533228639,61,Combination Short-haul Truck
+149,Combination Trucks,2035,9,40,0.02111471533228639,62,Combination Long-haul Truck
+150,Combination Trucks,2036,1,1,0.0,61,Combination Short-haul Truck
+151,Combination Trucks,2036,1,1,0.0,62,Combination Long-haul Truck
+152,Combination Trucks,2036,2,1,0.9306749662082497,61,Combination Short-haul Truck
+153,Combination Trucks,2036,2,1,0.9306749662082497,62,Combination Long-haul Truck
+154,Combination Trucks,2036,3,1,0.01234756194434382,61,Combination Short-haul Truck
+155,Combination Trucks,2036,3,1,0.01234756194434382,62,Combination Long-haul Truck
+156,Combination Trucks,2036,9,30,1.1287001306496646e-30,61,Combination Short-haul Truck
+157,Combination Trucks,2036,9,30,1.1287001306496646e-30,62,Combination Long-haul Truck
+158,Combination Trucks,2036,9,40,0.05697747184740643,61,Combination Short-haul Truck
+159,Combination Trucks,2036,9,40,0.05697747184740643,62,Combination Long-haul Truck
+160,Combination Trucks,2037,1,1,0.0,61,Combination Short-haul Truck
+161,Combination Trucks,2037,1,1,0.0,62,Combination Long-haul Truck
+162,Combination Trucks,2037,2,1,0.8791898558755961,61,Combination Short-haul Truck
+163,Combination Trucks,2037,2,1,0.8791898558755961,62,Combination Long-haul Truck
+164,Combination Trucks,2037,3,1,0.013272077590607449,61,Combination Short-haul Truck
+165,Combination Trucks,2037,3,1,0.013272077590607449,62,Combination Long-haul Truck
+166,Combination Trucks,2037,9,30,1.9702388127001895e-19,61,Combination Short-haul Truck
+167,Combination Trucks,2037,9,30,1.9702388127001895e-19,62,Combination Long-haul Truck
+168,Combination Trucks,2037,9,40,0.10753806653379656,61,Combination Short-haul Truck
+169,Combination Trucks,2037,9,40,0.10753806653379656,62,Combination Long-haul Truck
+170,Combination Trucks,2038,1,1,0.0,61,Combination Short-haul Truck
+171,Combination Trucks,2038,1,1,0.0,62,Combination Long-haul Truck
+172,Combination Trucks,2038,2,1,0.8383838495394084,61,Combination Short-haul Truck
+173,Combination Trucks,2038,2,1,0.8383838495394084,62,Combination Long-haul Truck
+174,Combination Trucks,2038,3,1,0.014244025351279775,61,Combination Short-haul Truck
+175,Combination Trucks,2038,3,1,0.014244025351279775,62,Combination Long-haul Truck
+176,Combination Trucks,2038,9,30,8.174655241705863e-18,61,Combination Short-haul Truck
+177,Combination Trucks,2038,9,30,8.174655241705863e-18,62,Combination Long-haul Truck
+178,Combination Trucks,2038,9,40,0.14737212510931186,61,Combination Short-haul Truck
+179,Combination Trucks,2038,9,40,0.14737212510931186,62,Combination Long-haul Truck
+180,Combination Trucks,2039,1,1,0.0,61,Combination Short-haul Truck
+181,Combination Trucks,2039,1,1,0.0,62,Combination Long-haul Truck
+182,Combination Trucks,2039,2,1,0.7504404658950371,61,Combination Short-haul Truck
+183,Combination Trucks,2039,2,1,0.7504404658950371,62,Combination Long-haul Truck
+184,Combination Trucks,2039,3,1,0.015396092453728118,61,Combination Short-haul Truck
+185,Combination Trucks,2039,3,1,0.015396092453728118,62,Combination Long-haul Truck
+186,Combination Trucks,2039,9,30,7.197113677485223e-10,61,Combination Short-haul Truck
+187,Combination Trucks,2039,9,30,7.197113677485223e-10,62,Combination Long-haul Truck
+188,Combination Trucks,2039,9,40,0.23416344093152341,61,Combination Short-haul Truck
+189,Combination Trucks,2039,9,40,0.23416344093152341,62,Combination Long-haul Truck
+190,Combination Trucks,2040,1,1,0.0,61,Combination Short-haul Truck
+191,Combination Trucks,2040,1,1,0.0,62,Combination Long-haul Truck
+192,Combination Trucks,2040,2,1,0.6555788777184854,61,Combination Short-haul Truck
+193,Combination Trucks,2040,2,1,0.6555788777184854,62,Combination Long-haul Truck
+194,Combination Trucks,2040,3,1,0.016623056795444038,61,Combination Short-haul Truck
+195,Combination Trucks,2040,3,1,0.016623056795444038,62,Combination Long-haul Truck
+196,Combination Trucks,2040,9,30,5.1250579340117777e-08,61,Combination Short-haul Truck
+197,Combination Trucks,2040,9,30,5.1250579340117777e-08,62,Combination Long-haul Truck
+198,Combination Trucks,2040,9,40,0.3277980142354911,61,Combination Short-haul Truck
+199,Combination Trucks,2040,9,40,0.3277980142354911,62,Combination Long-haul Truck
+200,Combination Trucks,2041,1,1,0.0,61,Combination Short-haul Truck
+201,Combination Trucks,2041,1,1,0.0,62,Combination Long-haul Truck
+202,Combination Trucks,2041,2,1,0.6382642537914449,61,Combination Short-haul Truck
+203,Combination Trucks,2041,2,1,0.6382642537914449,62,Combination Long-haul Truck
+204,Combination Trucks,2041,3,1,0.017838758344718632,61,Combination Short-haul Truck
+205,Combination Trucks,2041,3,1,0.017838758344718632,62,Combination Long-haul Truck
+206,Combination Trucks,2041,9,30,1.9605200638634428e-07,61,Combination Short-haul Truck
+207,Combination Trucks,2041,9,30,1.9605200638634428e-07,62,Combination Long-haul Truck
+208,Combination Trucks,2041,9,40,0.3438967918118301,61,Combination Short-haul Truck
+209,Combination Trucks,2041,9,40,0.3438967918118301,62,Combination Long-haul Truck
+210,Combination Trucks,2042,1,1,0.0,61,Combination Short-haul Truck
+211,Combination Trucks,2042,1,1,0.0,62,Combination Long-haul Truck
+212,Combination Trucks,2042,2,1,0.5866335588796722,61,Combination Short-haul Truck
+213,Combination Trucks,2042,2,1,0.5866335588796722,62,Combination Long-haul Truck
+214,Combination Trucks,2042,3,1,0.019237545842523584,61,Combination Short-haul Truck
+215,Combination Trucks,2042,3,1,0.019237545842523584,62,Combination Long-haul Truck
+216,Combination Trucks,2042,9,30,9.127207561514683e-07,61,Combination Short-haul Truck
+217,Combination Trucks,2042,9,30,9.127207561514683e-07,62,Combination Long-haul Truck
+218,Combination Trucks,2042,9,40,0.3941279825570481,61,Combination Short-haul Truck
+219,Combination Trucks,2042,9,40,0.3941279825570481,62,Combination Long-haul Truck
+220,Combination Trucks,2043,1,1,0.0,61,Combination Short-haul Truck
+221,Combination Trucks,2043,1,1,0.0,62,Combination Long-haul Truck
+222,Combination Trucks,2043,2,1,0.5437171370718542,61,Combination Short-haul Truck
+223,Combination Trucks,2043,2,1,0.5437171370718542,62,Combination Long-haul Truck
+224,Combination Trucks,2043,3,1,0.02095400340715501,61,Combination Short-haul Truck
+225,Combination Trucks,2043,3,1,0.02095400340715501,62,Combination Long-haul Truck
+226,Combination Trucks,2043,9,30,4.627471583780156e-06,61,Combination Short-haul Truck
+227,Combination Trucks,2043,9,30,4.627471583780156e-06,62,Combination Long-haul Truck
+228,Combination Trucks,2043,9,40,0.4353242320494069,61,Combination Short-haul Truck
+229,Combination Trucks,2043,9,40,0.4353242320494069,62,Combination Long-haul Truck
+230,Combination Trucks,2044,1,1,0.0,61,Combination Short-haul Truck
+231,Combination Trucks,2044,1,1,0.0,62,Combination Long-haul Truck
+232,Combination Trucks,2044,2,1,0.5061722970007887,61,Combination Short-haul Truck
+233,Combination Trucks,2044,2,1,0.5061722970007887,62,Combination Long-haul Truck
+234,Combination Trucks,2044,3,1,0.022799064247102197,61,Combination Short-haul Truck
+235,Combination Trucks,2044,3,1,0.022799064247102197,62,Combination Long-haul Truck
+236,Combination Trucks,2044,9,30,1.7044731779558456e-05,61,Combination Short-haul Truck
+237,Combination Trucks,2044,9,30,1.7044731779558456e-05,62,Combination Long-haul Truck
+238,Combination Trucks,2044,9,40,0.47101159402032955,61,Combination Short-haul Truck
+239,Combination Trucks,2044,9,40,0.47101159402032955,62,Combination Long-haul Truck
+240,Combination Trucks,2045,1,1,0.0,61,Combination Short-haul Truck
+241,Combination Trucks,2045,1,1,0.0,62,Combination Long-haul Truck
+242,Combination Trucks,2045,2,1,0.44847412384571267,61,Combination Short-haul Truck
+243,Combination Trucks,2045,2,1,0.44847412384571267,62,Combination Long-haul Truck
+244,Combination Trucks,2045,3,1,0.024796973114369028,61,Combination Short-haul Truck
+245,Combination Trucks,2045,3,1,0.024796973114369028,62,Combination Long-haul Truck
+246,Combination Trucks,2045,9,30,0.0007842395638082196,61,Combination Short-haul Truck
+247,Combination Trucks,2045,9,30,0.0007842395638082196,62,Combination Long-haul Truck
+248,Combination Trucks,2045,9,40,0.52594466347611,61,Combination Short-haul Truck
+249,Combination Trucks,2045,9,40,0.52594466347611,62,Combination Long-haul Truck
+250,Combination Trucks,2046,1,1,0.0,61,Combination Short-haul Truck
+251,Combination Trucks,2046,1,1,0.0,62,Combination Long-haul Truck
+252,Combination Trucks,2046,2,1,0.39795356310830743,61,Combination Short-haul Truck
+253,Combination Trucks,2046,2,1,0.39795356310830743,62,Combination Long-haul Truck
+254,Combination Trucks,2046,3,1,0.027172597434035342,61,Combination Short-haul Truck
+255,Combination Trucks,2046,3,1,0.027172597434035342,62,Combination Long-haul Truck
+256,Combination Trucks,2046,9,30,0.0029877614359342026,61,Combination Short-haul Truck
+257,Combination Trucks,2046,9,30,0.0029877614359342026,62,Combination Long-haul Truck
+258,Combination Trucks,2046,9,40,0.571886078021723,61,Combination Short-haul Truck
+259,Combination Trucks,2046,9,40,0.571886078021723,62,Combination Long-haul Truck
+260,Combination Trucks,2047,1,1,0.0,61,Combination Short-haul Truck
+261,Combination Trucks,2047,1,1,0.0,62,Combination Long-haul Truck
+262,Combination Trucks,2047,2,1,0.3431910965367928,61,Combination Short-haul Truck
+263,Combination Trucks,2047,2,1,0.3431910965367928,62,Combination Long-haul Truck
+264,Combination Trucks,2047,3,1,0.029736194641880792,61,Combination Short-haul Truck
+265,Combination Trucks,2047,3,1,0.029736194641880792,62,Combination Long-haul Truck
+266,Combination Trucks,2047,9,30,0.005606901268286463,61,Combination Short-haul Truck
+267,Combination Trucks,2047,9,30,0.005606901268286463,62,Combination Long-haul Truck
+268,Combination Trucks,2047,9,40,0.6214658075530399,61,Combination Short-haul Truck
+269,Combination Trucks,2047,9,40,0.6214658075530399,62,Combination Long-haul Truck
+270,Combination Trucks,2048,1,1,0.0,61,Combination Short-haul Truck
+271,Combination Trucks,2048,1,1,0.0,62,Combination Long-haul Truck
+272,Combination Trucks,2048,2,1,0.28784830823045265,61,Combination Short-haul Truck
+273,Combination Trucks,2048,2,1,0.28784830823045265,62,Combination Long-haul Truck
+274,Combination Trucks,2048,3,1,0.032678327716346815,61,Combination Short-haul Truck
+275,Combination Trucks,2048,3,1,0.032678327716346815,62,Combination Long-haul Truck
+276,Combination Trucks,2048,9,30,0.006484839121671001,61,Combination Short-haul Truck
+277,Combination Trucks,2048,9,30,0.006484839121671001,62,Combination Long-haul Truck
+278,Combination Trucks,2048,9,40,0.6729885249315295,61,Combination Short-haul Truck
+279,Combination Trucks,2048,9,40,0.6729885249315295,62,Combination Long-haul Truck
+280,Combination Trucks,2049,1,1,0.0,61,Combination Short-haul Truck
+281,Combination Trucks,2049,1,1,0.0,62,Combination Long-haul Truck
+282,Combination Trucks,2049,2,1,0.2438424042429771,61,Combination Short-haul Truck
+283,Combination Trucks,2049,2,1,0.2438424042429771,62,Combination Long-haul Truck
+284,Combination Trucks,2049,3,1,0.03574414715719063,61,Combination Short-haul Truck
+285,Combination Trucks,2049,3,1,0.03574414715719063,62,Combination Long-haul Truck
+286,Combination Trucks,2049,9,30,0.0066741450957475456,61,Combination Short-haul Truck
+287,Combination Trucks,2049,9,30,0.0066741450957475456,62,Combination Long-haul Truck
+288,Combination Trucks,2049,9,40,0.7137393035040848,61,Combination Short-haul Truck
+289,Combination Trucks,2049,9,40,0.7137393035040848,62,Combination Long-haul Truck
+290,Combination Trucks,2050,1,1,0.0,61,Combination Short-haul Truck
+291,Combination Trucks,2050,1,1,0.0,62,Combination Long-haul Truck
+292,Combination Trucks,2050,2,1,0.20039240744800138,61,Combination Short-haul Truck
+293,Combination Trucks,2050,2,1,0.20039240744800138,62,Combination Long-haul Truck
+294,Combination Trucks,2050,3,1,0.038763174638302596,61,Combination Short-haul Truck
+295,Combination Trucks,2050,3,1,0.038763174638302596,62,Combination Long-haul Truck
+296,Combination Trucks,2050,9,30,0.008460913451453122,61,Combination Short-haul Truck
+297,Combination Trucks,2050,9,30,0.008460913451453122,62,Combination Long-haul Truck
+298,Combination Trucks,2050,9,40,0.7523835044622429,61,Combination Short-haul Truck
+299,Combination Trucks,2050,9,40,0.7523835044622429,62,Combination Long-haul Truck
+300,Single Unit Trucks,2021,1,1,0.20549551124502535,52,Single Unit Short-haul Truck
+301,Single Unit Trucks,2021,1,1,0.20549551124502535,53,Single Unit Long-haul Truck
+302,Single Unit Trucks,2021,2,1,0.7827641406922178,52,Single Unit Short-haul Truck
+303,Single Unit Trucks,2021,2,1,0.7827641406922178,53,Single Unit Long-haul Truck
+304,Single Unit Trucks,2021,3,1,0.011740348062756874,52,Single Unit Short-haul Truck
+305,Single Unit Trucks,2021,3,1,0.011740348062756874,53,Single Unit Long-haul Truck
+306,Single Unit Trucks,2021,9,30,0.0,52,Single Unit Short-haul Truck
+307,Single Unit Trucks,2021,9,30,0.0,53,Single Unit Long-haul Truck
+308,Single Unit Trucks,2021,9,40,0.0,52,Single Unit Short-haul Truck
+309,Single Unit Trucks,2021,9,40,0.0,53,Single Unit Long-haul Truck
+310,Single Unit Trucks,2022,1,1,0.20747064173554822,52,Single Unit Short-haul Truck
+311,Single Unit Trucks,2022,1,1,0.20747064173554822,53,Single Unit Long-haul Truck
+312,Single Unit Trucks,2022,2,1,0.7818660888639221,52,Single Unit Short-haul Truck
+313,Single Unit Trucks,2022,2,1,0.7818660888639221,53,Single Unit Long-haul Truck
+314,Single Unit Trucks,2022,3,1,0.010663269400529652,52,Single Unit Short-haul Truck
+315,Single Unit Trucks,2022,3,1,0.010663269400529652,53,Single Unit Long-haul Truck
+316,Single Unit Trucks,2022,9,30,0.0,52,Single Unit Short-haul Truck
+317,Single Unit Trucks,2022,9,30,0.0,53,Single Unit Long-haul Truck
+318,Single Unit Trucks,2022,9,40,0.0,52,Single Unit Short-haul Truck
+319,Single Unit Trucks,2022,9,40,0.0,53,Single Unit Long-haul Truck
+320,Single Unit Trucks,2023,1,1,0.2096128476077274,52,Single Unit Short-haul Truck
+321,Single Unit Trucks,2023,1,1,0.2096128476077274,53,Single Unit Long-haul Truck
+322,Single Unit Trucks,2023,2,1,0.7806789534868532,52,Single Unit Short-haul Truck
+323,Single Unit Trucks,2023,2,1,0.7806789534868532,53,Single Unit Long-haul Truck
+324,Single Unit Trucks,2023,3,1,0.00970819890541935,52,Single Unit Short-haul Truck
+325,Single Unit Trucks,2023,3,1,0.00970819890541935,53,Single Unit Long-haul Truck
+326,Single Unit Trucks,2023,9,30,0.0,52,Single Unit Short-haul Truck
+327,Single Unit Trucks,2023,9,30,0.0,53,Single Unit Long-haul Truck
+328,Single Unit Trucks,2023,9,40,0.0,52,Single Unit Short-haul Truck
+329,Single Unit Trucks,2023,9,40,0.0,53,Single Unit Long-haul Truck
+330,Single Unit Trucks,2024,1,1,0.21185416374813892,52,Single Unit Short-haul Truck
+331,Single Unit Trucks,2024,1,1,0.21185416374813892,53,Single Unit Long-haul Truck
+332,Single Unit Trucks,2024,2,1,0.779264824220468,52,Single Unit Short-haul Truck
+333,Single Unit Trucks,2024,2,1,0.779264824220468,53,Single Unit Long-haul Truck
+334,Single Unit Trucks,2024,3,1,0.008881012031393042,52,Single Unit Short-haul Truck
+335,Single Unit Trucks,2024,3,1,0.008881012031393042,53,Single Unit Long-haul Truck
+336,Single Unit Trucks,2024,9,30,0.0,52,Single Unit Short-haul Truck
+337,Single Unit Trucks,2024,9,30,0.0,53,Single Unit Long-haul Truck
+338,Single Unit Trucks,2024,9,40,0.0,52,Single Unit Short-haul Truck
+339,Single Unit Trucks,2024,9,40,0.0,53,Single Unit Long-haul Truck
+340,Single Unit Trucks,2025,1,1,0.2140185454284802,52,Single Unit Short-haul Truck
+341,Single Unit Trucks,2025,1,1,0.2140185454284802,53,Single Unit Long-haul Truck
+342,Single Unit Trucks,2025,2,1,0.777770899446765,52,Single Unit Short-haul Truck
+343,Single Unit Trucks,2025,2,1,0.777770899446765,53,Single Unit Long-haul Truck
+344,Single Unit Trucks,2025,3,1,0.008210555124754824,52,Single Unit Short-haul Truck
+345,Single Unit Trucks,2025,3,1,0.008210555124754824,53,Single Unit Long-haul Truck
+346,Single Unit Trucks,2025,9,30,0.0,52,Single Unit Short-haul Truck
+347,Single Unit Trucks,2025,9,30,0.0,53,Single Unit Long-haul Truck
+348,Single Unit Trucks,2025,9,40,0.0,52,Single Unit Short-haul Truck
+349,Single Unit Trucks,2025,9,40,0.0,53,Single Unit Long-haul Truck
+350,Single Unit Trucks,2026,1,1,0.215934385919503,52,Single Unit Short-haul Truck
+351,Single Unit Trucks,2026,1,1,0.215934385919503,53,Single Unit Long-haul Truck
+352,Single Unit Trucks,2026,2,1,0.7764074026142099,52,Single Unit Short-haul Truck
+353,Single Unit Trucks,2026,2,1,0.7764074026142099,53,Single Unit Long-haul Truck
+354,Single Unit Trucks,2026,3,1,0.007658211466287044,52,Single Unit Short-haul Truck
+355,Single Unit Trucks,2026,3,1,0.007658211466287044,53,Single Unit Long-haul Truck
+356,Single Unit Trucks,2026,9,30,0.0,52,Single Unit Short-haul Truck
+357,Single Unit Trucks,2026,9,30,0.0,53,Single Unit Long-haul Truck
+358,Single Unit Trucks,2026,9,40,0.0,52,Single Unit Short-haul Truck
+359,Single Unit Trucks,2026,9,40,0.0,53,Single Unit Long-haul Truck
+360,Single Unit Trucks,2027,1,1,0.21849495111922054,52,Single Unit Short-haul Truck
+361,Single Unit Trucks,2027,1,1,0.21849495111922054,53,Single Unit Long-haul Truck
+362,Single Unit Trucks,2027,2,1,0.7742354980996573,52,Single Unit Short-haul Truck
+363,Single Unit Trucks,2027,2,1,0.7742354980996573,53,Single Unit Long-haul Truck
+364,Single Unit Trucks,2027,3,1,0.007259099307235143,52,Single Unit Short-haul Truck
+365,Single Unit Trucks,2027,3,1,0.007259099307235143,53,Single Unit Long-haul Truck
+366,Single Unit Trucks,2027,9,30,0.0,52,Single Unit Short-haul Truck
+367,Single Unit Trucks,2027,9,30,0.0,53,Single Unit Long-haul Truck
+368,Single Unit Trucks,2027,9,40,1.045147388695456e-05,52,Single Unit Short-haul Truck
+369,Single Unit Trucks,2027,9,40,1.045147388695456e-05,53,Single Unit Long-haul Truck
+370,Single Unit Trucks,2028,1,1,0.22113032771294996,52,Single Unit Short-haul Truck
+371,Single Unit Trucks,2028,1,1,0.22113032771294996,53,Single Unit Long-haul Truck
+372,Single Unit Trucks,2028,2,1,0.7713959091822656,52,Single Unit Short-haul Truck
+373,Single Unit Trucks,2028,2,1,0.7713959091822656,53,Single Unit Long-haul Truck
+374,Single Unit Trucks,2028,3,1,0.006947341023681689,52,Single Unit Short-haul Truck
+375,Single Unit Trucks,2028,3,1,0.006947341023681689,53,Single Unit Long-haul Truck
+376,Single Unit Trucks,2028,9,30,4.243900303084381e-16,52,Single Unit Short-haul Truck
+377,Single Unit Trucks,2028,9,30,4.243900303084381e-16,53,Single Unit Long-haul Truck
+378,Single Unit Trucks,2028,9,40,0.0005264220811022678,52,Single Unit Short-haul Truck
+379,Single Unit Trucks,2028,9,40,0.0005264220811022678,53,Single Unit Long-haul Truck
+380,Single Unit Trucks,2029,1,1,0.22391155496918794,52,Single Unit Short-haul Truck
+381,Single Unit Trucks,2029,1,1,0.22391155496918794,53,Single Unit Long-haul Truck
+382,Single Unit Trucks,2029,2,1,0.7567870961475415,52,Single Unit Short-haul Truck
+383,Single Unit Trucks,2029,2,1,0.7567870961475415,53,Single Unit Long-haul Truck
+384,Single Unit Trucks,2029,3,1,0.006680138278862375,52,Single Unit Short-haul Truck
+385,Single Unit Trucks,2029,3,1,0.006680138278862375,53,Single Unit Long-haul Truck
+386,Single Unit Trucks,2029,9,30,5.142407190057412e-09,52,Single Unit Short-haul Truck
+387,Single Unit Trucks,2029,9,30,5.142407190057412e-09,53,Single Unit Long-haul Truck
+388,Single Unit Trucks,2029,9,40,0.01262120546200104,52,Single Unit Short-haul Truck
+389,Single Unit Trucks,2029,9,40,0.01262120546200104,53,Single Unit Long-haul Truck
+390,Single Unit Trucks,2030,1,1,0.2266242211954587,52,Single Unit Short-haul Truck
+391,Single Unit Trucks,2030,1,1,0.2266242211954587,53,Single Unit Long-haul Truck
+392,Single Unit Trucks,2030,2,1,0.7205668444060535,52,Single Unit Short-haul Truck
+393,Single Unit Trucks,2030,2,1,0.7205668444060535,53,Single Unit Long-haul Truck
+394,Single Unit Trucks,2030,3,1,0.0065431224032918515,52,Single Unit Short-haul Truck
+395,Single Unit Trucks,2030,3,1,0.0065431224032918515,53,Single Unit Long-haul Truck
+396,Single Unit Trucks,2030,9,30,0.0017151660248781466,52,Single Unit Short-haul Truck
+397,Single Unit Trucks,2030,9,30,0.0017151660248781466,53,Single Unit Long-haul Truck
+398,Single Unit Trucks,2030,9,40,0.044550645970317965,52,Single Unit Short-haul Truck
+399,Single Unit Trucks,2030,9,40,0.044550645970317965,53,Single Unit Long-haul Truck
+400,Single Unit Trucks,2031,1,1,0.22932235760725628,52,Single Unit Short-haul Truck
+401,Single Unit Trucks,2031,1,1,0.22932235760725628,53,Single Unit Long-haul Truck
+402,Single Unit Trucks,2031,2,1,0.6970167807087047,52,Single Unit Short-haul Truck
+403,Single Unit Trucks,2031,2,1,0.6970167807087047,53,Single Unit Long-haul Truck
+404,Single Unit Trucks,2031,3,1,0.006458331946949181,52,Single Unit Short-haul Truck
+405,Single Unit Trucks,2031,3,1,0.006458331946949181,53,Single Unit Long-haul Truck
+406,Single Unit Trucks,2031,9,30,0.013972185358899717,52,Single Unit Short-haul Truck
+407,Single Unit Trucks,2031,9,30,0.013972185358899717,53,Single Unit Long-haul Truck
+408,Single Unit Trucks,2031,9,40,0.053230344378190214,52,Single Unit Short-haul Truck
+409,Single Unit Trucks,2031,9,40,0.053230344378190214,53,Single Unit Long-haul Truck
+410,Single Unit Trucks,2032,1,1,0.23191409697520798,52,Single Unit Short-haul Truck
+411,Single Unit Trucks,2032,1,1,0.23191409697520798,53,Single Unit Long-haul Truck
+412,Single Unit Trucks,2032,2,1,0.6382699517101129,52,Single Unit Short-haul Truck
+413,Single Unit Trucks,2032,2,1,0.6382699517101129,53,Single Unit Long-haul Truck
+414,Single Unit Trucks,2032,3,1,0.006391912492310985,52,Single Unit Short-haul Truck
+415,Single Unit Trucks,2032,3,1,0.006391912492310985,53,Single Unit Long-haul Truck
+416,Single Unit Trucks,2032,9,30,0.0489471120941997,52,Single Unit Short-haul Truck
+417,Single Unit Trucks,2032,9,30,0.0489471120941997,53,Single Unit Long-haul Truck
+418,Single Unit Trucks,2032,9,40,0.0744769267281684,52,Single Unit Short-haul Truck
+419,Single Unit Trucks,2032,9,40,0.0744769267281684,53,Single Unit Long-haul Truck
+420,Single Unit Trucks,2033,1,1,0.2348904169460875,52,Single Unit Short-haul Truck
+421,Single Unit Trucks,2033,1,1,0.2348904169460875,53,Single Unit Long-haul Truck
+422,Single Unit Trucks,2033,2,1,0.5395520802813801,52,Single Unit Short-haul Truck
+423,Single Unit Trucks,2033,2,1,0.5395520802813801,53,Single Unit Long-haul Truck
+424,Single Unit Trucks,2033,3,1,0.006359120132654046,52,Single Unit Short-haul Truck
+425,Single Unit Trucks,2033,3,1,0.006359120132654046,53,Single Unit Long-haul Truck
+426,Single Unit Trucks,2033,9,30,0.10881082435919318,52,Single Unit Short-haul Truck
+427,Single Unit Trucks,2033,9,30,0.10881082435919318,53,Single Unit Long-haul Truck
+428,Single Unit Trucks,2033,9,40,0.11038755828068504,52,Single Unit Short-haul Truck
+429,Single Unit Trucks,2033,9,40,0.11038755828068504,53,Single Unit Long-haul Truck
+430,Single Unit Trucks,2034,1,1,0.23800261767093556,52,Single Unit Short-haul Truck
+431,Single Unit Trucks,2034,1,1,0.23800261767093556,53,Single Unit Long-haul Truck
+432,Single Unit Trucks,2034,2,1,0.4115857333679569,52,Single Unit Short-haul Truck
+433,Single Unit Trucks,2034,2,1,0.4115857333679569,53,Single Unit Long-haul Truck
+434,Single Unit Trucks,2034,3,1,0.006345366888119419,52,Single Unit Short-haul Truck
+435,Single Unit Trucks,2034,3,1,0.006345366888119419,53,Single Unit Long-haul Truck
+436,Single Unit Trucks,2034,9,30,0.1742852264827483,52,Single Unit Short-haul Truck
+437,Single Unit Trucks,2034,9,30,0.1742852264827483,53,Single Unit Long-haul Truck
+438,Single Unit Trucks,2034,9,40,0.1697810555902398,52,Single Unit Short-haul Truck
+439,Single Unit Trucks,2034,9,40,0.1697810555902398,53,Single Unit Long-haul Truck
+440,Single Unit Trucks,2035,1,1,0.2411859610145732,52,Single Unit Short-haul Truck
+441,Single Unit Trucks,2035,1,1,0.2411859610145732,53,Single Unit Long-haul Truck
+442,Single Unit Trucks,2035,2,1,0.29509747788494256,52,Single Unit Short-haul Truck
+443,Single Unit Trucks,2035,2,1,0.29509747788494256,53,Single Unit Long-haul Truck
+444,Single Unit Trucks,2035,3,1,0.006360919357824855,52,Single Unit Short-haul Truck
+445,Single Unit Trucks,2035,3,1,0.006360919357824855,53,Single Unit Long-haul Truck
+446,Single Unit Trucks,2035,9,30,0.24777319442148182,52,Single Unit Short-haul Truck
+447,Single Unit Trucks,2035,9,30,0.24777319442148182,53,Single Unit Long-haul Truck
+448,Single Unit Trucks,2035,9,40,0.2095824473211775,52,Single Unit Short-haul Truck
+449,Single Unit Trucks,2035,9,40,0.2095824473211775,53,Single Unit Long-haul Truck
+450,Single Unit Trucks,2036,1,1,0.24444664161887822,52,Single Unit Short-haul Truck
+451,Single Unit Trucks,2036,1,1,0.24444664161887822,53,Single Unit Long-haul Truck
+452,Single Unit Trucks,2036,2,1,0.24275168822619933,52,Single Unit Short-haul Truck
+453,Single Unit Trucks,2036,2,1,0.24275168822619933,53,Single Unit Long-haul Truck
+454,Single Unit Trucks,2036,3,1,0.006420143695207965,52,Single Unit Short-haul Truck
+455,Single Unit Trucks,2036,3,1,0.006420143695207965,53,Single Unit Long-haul Truck
+456,Single Unit Trucks,2036,9,30,0.26013645574394695,52,Single Unit Short-haul Truck
+457,Single Unit Trucks,2036,9,30,0.26013645574394695,53,Single Unit Long-haul Truck
+458,Single Unit Trucks,2036,9,40,0.24624507071576762,52,Single Unit Short-haul Truck
+459,Single Unit Trucks,2036,9,40,0.24624507071576762,53,Single Unit Long-haul Truck
+460,Single Unit Trucks,2037,1,1,0.24779083656910003,52,Single Unit Short-haul Truck
+461,Single Unit Trucks,2037,1,1,0.24779083656910003,53,Single Unit Long-haul Truck
+462,Single Unit Trucks,2037,2,1,0.09107148342223742,52,Single Unit Short-haul Truck
+463,Single Unit Trucks,2037,2,1,0.09107148342223742,53,Single Unit Long-haul Truck
+464,Single Unit Trucks,2037,3,1,0.006564836302210303,52,Single Unit Short-haul Truck
+465,Single Unit Trucks,2037,3,1,0.006564836302210303,53,Single Unit Long-haul Truck
+466,Single Unit Trucks,2037,9,30,0.35723026009145564,52,Single Unit Short-haul Truck
+467,Single Unit Trucks,2037,9,30,0.35723026009145564,53,Single Unit Long-haul Truck
+468,Single Unit Trucks,2037,9,40,0.29734258361499655,52,Single Unit Short-haul Truck
+469,Single Unit Trucks,2037,9,40,0.29734258361499655,53,Single Unit Long-haul Truck
+470,Single Unit Trucks,2038,1,1,0.25099877792789455,52,Single Unit Short-haul Truck
+471,Single Unit Trucks,2038,1,1,0.25099877792789455,53,Single Unit Long-haul Truck
+472,Single Unit Trucks,2038,2,1,0.023796565610685785,52,Single Unit Short-haul Truck
+473,Single Unit Trucks,2038,2,1,0.023796565610685785,53,Single Unit Long-haul Truck
+474,Single Unit Trucks,2038,3,1,0.006813293822893054,52,Single Unit Short-haul Truck
+475,Single Unit Trucks,2038,3,1,0.006813293822893054,53,Single Unit Long-haul Truck
+476,Single Unit Trucks,2038,9,30,0.4127345435404967,52,Single Unit Short-haul Truck
+477,Single Unit Trucks,2038,9,30,0.4127345435404967,53,Single Unit Long-haul Truck
+478,Single Unit Trucks,2038,9,40,0.3056568190980299,52,Single Unit Short-haul Truck
+479,Single Unit Trucks,2038,9,40,0.3056568190980299,53,Single Unit Long-haul Truck
+480,Single Unit Trucks,2039,1,1,0.25414727464808845,52,Single Unit Short-haul Truck
+481,Single Unit Trucks,2039,1,1,0.25414727464808845,53,Single Unit Long-haul Truck
+482,Single Unit Trucks,2039,2,1,0.0137696896301139,52,Single Unit Short-haul Truck
+483,Single Unit Trucks,2039,2,1,0.0137696896301139,53,Single Unit Long-haul Truck
+484,Single Unit Trucks,2039,3,1,0.007100096127306819,52,Single Unit Short-haul Truck
+485,Single Unit Trucks,2039,3,1,0.007100096127306819,53,Single Unit Long-haul Truck
+486,Single Unit Trucks,2039,9,30,0.42324494703407356,52,Single Unit Short-haul Truck
+487,Single Unit Trucks,2039,9,30,0.42324494703407356,53,Single Unit Long-haul Truck
+488,Single Unit Trucks,2039,9,40,0.3017379925604173,52,Single Unit Short-haul Truck
+489,Single Unit Trucks,2039,9,40,0.3017379925604173,53,Single Unit Long-haul Truck
+490,Single Unit Trucks,2040,1,1,0.25722631461065626,52,Single Unit Short-haul Truck
+491,Single Unit Trucks,2040,1,1,0.25722631461065626,53,Single Unit Long-haul Truck
+492,Single Unit Trucks,2040,2,1,0.008988824870464174,52,Single Unit Short-haul Truck
+493,Single Unit Trucks,2040,2,1,0.008988824870464174,53,Single Unit Long-haul Truck
+494,Single Unit Trucks,2040,3,1,0.0074689545330114725,52,Single Unit Short-haul Truck
+495,Single Unit Trucks,2040,3,1,0.0074689545330114725,53,Single Unit Long-haul Truck
+496,Single Unit Trucks,2040,9,30,0.42815493905104723,52,Single Unit Short-haul Truck
+497,Single Unit Trucks,2040,9,30,0.42815493905104723,53,Single Unit Long-haul Truck
+498,Single Unit Trucks,2040,9,40,0.29816096693482075,52,Single Unit Short-haul Truck
+499,Single Unit Trucks,2040,9,40,0.29816096693482075,53,Single Unit Long-haul Truck
+500,Single Unit Trucks,2041,1,1,0.260266739131106,52,Single Unit Short-haul Truck
+501,Single Unit Trucks,2041,1,1,0.260266739131106,53,Single Unit Long-haul Truck
+502,Single Unit Trucks,2041,2,1,0.008030773637264652,52,Single Unit Short-haul Truck
+503,Single Unit Trucks,2041,2,1,0.008030773637264652,53,Single Unit Long-haul Truck
+504,Single Unit Trucks,2041,3,1,0.007843452107078559,52,Single Unit Short-haul Truck
+505,Single Unit Trucks,2041,3,1,0.007843452107078559,53,Single Unit Long-haul Truck
+506,Single Unit Trucks,2041,9,30,0.42835351648500297,52,Single Unit Short-haul Truck
+507,Single Unit Trucks,2041,9,30,0.42835351648500297,53,Single Unit Long-haul Truck
+508,Single Unit Trucks,2041,9,40,0.29550551863954777,52,Single Unit Short-haul Truck
+509,Single Unit Trucks,2041,9,40,0.29550551863954777,53,Single Unit Long-haul Truck
+510,Single Unit Trucks,2042,1,1,0.26338123399529456,52,Single Unit Short-haul Truck
+511,Single Unit Trucks,2042,1,1,0.26338123399529456,53,Single Unit Long-haul Truck
+512,Single Unit Trucks,2042,2,1,0.006746188561179843,52,Single Unit Short-haul Truck
+513,Single Unit Trucks,2042,2,1,0.006746188561179843,53,Single Unit Long-haul Truck
+514,Single Unit Trucks,2042,3,1,0.008190125957222884,52,Single Unit Short-haul Truck
+515,Single Unit Trucks,2042,3,1,0.008190125957222884,53,Single Unit Long-haul Truck
+516,Single Unit Trucks,2042,9,30,0.4276319067603094,52,Single Unit Short-haul Truck
+517,Single Unit Trucks,2042,9,30,0.4276319067603094,53,Single Unit Long-haul Truck
+518,Single Unit Trucks,2042,9,40,0.29405054472599335,52,Single Unit Short-haul Truck
+519,Single Unit Trucks,2042,9,40,0.29405054472599335,53,Single Unit Long-haul Truck
+520,Single Unit Trucks,2043,1,1,0.26656641513194257,52,Single Unit Short-haul Truck
+521,Single Unit Trucks,2043,1,1,0.26656641513194257,53,Single Unit Long-haul Truck
+522,Single Unit Trucks,2043,2,1,0.005424549764861281,52,Single Unit Short-haul Truck
+523,Single Unit Trucks,2043,2,1,0.005424549764861281,53,Single Unit Long-haul Truck
+524,Single Unit Trucks,2043,3,1,0.008569694444192812,52,Single Unit Short-haul Truck
+525,Single Unit Trucks,2043,3,1,0.008569694444192812,53,Single Unit Long-haul Truck
+526,Single Unit Trucks,2043,9,30,0.42856379005433154,52,Single Unit Short-haul Truck
+527,Single Unit Trucks,2043,9,30,0.42856379005433154,53,Single Unit Long-haul Truck
+528,Single Unit Trucks,2043,9,40,0.29087555060467174,52,Single Unit Short-haul Truck
+529,Single Unit Trucks,2043,9,40,0.29087555060467174,53,Single Unit Long-haul Truck
+530,Single Unit Trucks,2044,1,1,0.26983290726982084,52,Single Unit Short-haul Truck
+531,Single Unit Trucks,2044,1,1,0.26983290726982084,53,Single Unit Long-haul Truck
+532,Single Unit Trucks,2044,2,1,0.004534121440188714,52,Single Unit Short-haul Truck
+533,Single Unit Trucks,2044,2,1,0.004534121440188714,53,Single Unit Long-haul Truck
+534,Single Unit Trucks,2044,3,1,0.009055096897020345,52,Single Unit Short-haul Truck
+535,Single Unit Trucks,2044,3,1,0.009055096897020345,53,Single Unit Long-haul Truck
+536,Single Unit Trucks,2044,9,30,0.4285883414287822,52,Single Unit Short-haul Truck
+537,Single Unit Trucks,2044,9,30,0.4285883414287822,53,Single Unit Long-haul Truck
+538,Single Unit Trucks,2044,9,40,0.28798953296418783,52,Single Unit Short-haul Truck
+539,Single Unit Trucks,2044,9,40,0.28798953296418783,53,Single Unit Long-haul Truck
+540,Single Unit Trucks,2045,1,1,0.27313585351798053,52,Single Unit Short-haul Truck
+541,Single Unit Trucks,2045,1,1,0.27313585351798053,53,Single Unit Long-haul Truck
+542,Single Unit Trucks,2045,2,1,0.004129308496130627,52,Single Unit Short-haul Truck
+543,Single Unit Trucks,2045,2,1,0.004129308496130627,53,Single Unit Long-haul Truck
+544,Single Unit Trucks,2045,3,1,0.009511587977733021,52,Single Unit Short-haul Truck
+545,Single Unit Trucks,2045,3,1,0.009511587977733021,53,Single Unit Long-haul Truck
+546,Single Unit Trucks,2045,9,30,0.4262631677638568,52,Single Unit Short-haul Truck
+547,Single Unit Trucks,2045,9,30,0.4262631677638568,53,Single Unit Long-haul Truck
+548,Single Unit Trucks,2045,9,40,0.28696008224429914,52,Single Unit Short-haul Truck
+549,Single Unit Trucks,2045,9,40,0.28696008224429914,53,Single Unit Long-haul Truck
+550,Single Unit Trucks,2046,1,1,0.2762830864077698,52,Single Unit Short-haul Truck
+551,Single Unit Trucks,2046,1,1,0.2762830864077698,53,Single Unit Long-haul Truck
+552,Single Unit Trucks,2046,2,1,0.003907707447796643,52,Single Unit Short-haul Truck
+553,Single Unit Trucks,2046,2,1,0.003907707447796643,53,Single Unit Long-haul Truck
+554,Single Unit Trucks,2046,3,1,0.010003500195599164,52,Single Unit Short-haul Truck
+555,Single Unit Trucks,2046,3,1,0.010003500195599164,53,Single Unit Long-haul Truck
+556,Single Unit Trucks,2046,9,30,0.42438698297819744,52,Single Unit Short-haul Truck
+557,Single Unit Trucks,2046,9,30,0.42438698297819744,53,Single Unit Long-haul Truck
+558,Single Unit Trucks,2046,9,40,0.2854187229706369,52,Single Unit Short-haul Truck
+559,Single Unit Trucks,2046,9,40,0.2854187229706369,53,Single Unit Long-haul Truck
+560,Single Unit Trucks,2047,1,1,0.2787549273599924,52,Single Unit Short-haul Truck
+561,Single Unit Trucks,2047,1,1,0.2787549273599924,53,Single Unit Long-haul Truck
+562,Single Unit Trucks,2047,2,1,0.003961380432599412,52,Single Unit Short-haul Truck
+563,Single Unit Trucks,2047,2,1,0.003961380432599412,53,Single Unit Long-haul Truck
+564,Single Unit Trucks,2047,3,1,0.010536179012236888,52,Single Unit Short-haul Truck
+565,Single Unit Trucks,2047,3,1,0.010536179012236888,53,Single Unit Long-haul Truck
+566,Single Unit Trucks,2047,9,30,0.42348869026647346,52,Single Unit Short-haul Truck
+567,Single Unit Trucks,2047,9,30,0.42348869026647346,53,Single Unit Long-haul Truck
+568,Single Unit Trucks,2047,9,40,0.28325882292869775,52,Single Unit Short-haul Truck
+569,Single Unit Trucks,2047,9,40,0.28325882292869775,53,Single Unit Long-haul Truck
+570,Single Unit Trucks,2048,1,1,0.28098199191473733,52,Single Unit Short-haul Truck
+571,Single Unit Trucks,2048,1,1,0.28098199191473733,53,Single Unit Long-haul Truck
+572,Single Unit Trucks,2048,2,1,0.004047874968397955,52,Single Unit Short-haul Truck
+573,Single Unit Trucks,2048,2,1,0.004047874968397955,53,Single Unit Long-haul Truck
+574,Single Unit Trucks,2048,3,1,0.011113561190738702,52,Single Unit Short-haul Truck
+575,Single Unit Trucks,2048,3,1,0.011113561190738702,53,Single Unit Long-haul Truck
+576,Single Unit Trucks,2048,9,30,0.42165315841543877,52,Single Unit Short-haul Truck
+577,Single Unit Trucks,2048,9,30,0.42165315841543877,53,Single Unit Long-haul Truck
+578,Single Unit Trucks,2048,9,40,0.28220341351068723,52,Single Unit Short-haul Truck
+579,Single Unit Trucks,2048,9,40,0.28220341351068723,53,Single Unit Long-haul Truck
+580,Single Unit Trucks,2049,1,1,0.2829681047511986,52,Single Unit Short-haul Truck
+581,Single Unit Trucks,2049,1,1,0.2829681047511986,53,Single Unit Long-haul Truck
+582,Single Unit Trucks,2049,2,1,0.004152806263344938,52,Single Unit Short-haul Truck
+583,Single Unit Trucks,2049,2,1,0.004152806263344938,53,Single Unit Long-haul Truck
+584,Single Unit Trucks,2049,3,1,0.011836816081424348,52,Single Unit Short-haul Truck
+585,Single Unit Trucks,2049,3,1,0.011836816081424348,53,Single Unit Long-haul Truck
+586,Single Unit Trucks,2049,9,30,0.41999639085995455,52,Single Unit Short-haul Truck
+587,Single Unit Trucks,2049,9,30,0.41999639085995455,53,Single Unit Long-haul Truck
+588,Single Unit Trucks,2049,9,40,0.2810458820440776,52,Single Unit Short-haul Truck
+589,Single Unit Trucks,2049,9,40,0.2810458820440776,53,Single Unit Long-haul Truck
+590,Single Unit Trucks,2050,1,1,0.2846349097240025,52,Single Unit Short-haul Truck
+591,Single Unit Trucks,2050,1,1,0.2846349097240025,53,Single Unit Long-haul Truck
+592,Single Unit Trucks,2050,2,1,0.004265185513633199,52,Single Unit Short-haul Truck
+593,Single Unit Trucks,2050,2,1,0.004265185513633199,53,Single Unit Long-haul Truck
+594,Single Unit Trucks,2050,3,1,0.012615257192922159,52,Single Unit Short-haul Truck
+595,Single Unit Trucks,2050,3,1,0.012615257192922159,53,Single Unit Long-haul Truck
+596,Single Unit Trucks,2050,9,30,0.41913782505526487,52,Single Unit Short-haul Truck
+597,Single Unit Trucks,2050,9,30,0.41913782505526487,53,Single Unit Long-haul Truck
+598,Single Unit Trucks,2050,9,40,0.2793468225141773,52,Single Unit Short-haul Truck
+599,Single Unit Trucks,2050,9,40,0.2793468225141773,53,Single Unit Long-haul Truck

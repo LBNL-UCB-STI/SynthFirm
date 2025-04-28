@@ -211,10 +211,10 @@ emission_rate_to_plot = \
     emission_rate_by_scenario.loc[emission_rate_by_scenario['pollutant'].isin(pol_to_plot)]
 # emission_rate_to_plot = \
 # emission_rate_to_plot.loc[emission_rate_to_plot['yearID']>=2030]    
-color_order = ['MOVES default', 'TDA high oil, low elec',
-      'TDA high oil, mid elec',  'TDA high oil, high elec',
-      'TDA low oil, low elec',
-       'TDA low oil, mid elec', 'TDA low oil, high elec']
+color_order = ['MOVES default', 'TITAN high oil, low elec',
+      'TITAN high oil, mid elec',  'TITAN high oil, high elec',
+      'TITAN low oil, low elec',
+       'TITAN low oil, mid elec', 'TITAN low oil, high elec']
 
 for pol in pol_to_plot:  
     emission_rate_sel = \
@@ -249,8 +249,8 @@ for pol in pol_to_plot:
     ax = sns.catplot(emission_rate_sel, x = 'scenario', y = 'emissions',
                 hue = 'avft_scenario', col = 'HPMSVtypeName', 
                 kind="bar", palette = 'rainbow_r', hue_order = color_order,
-                height=4, aspect=1.05,
-                facet_kws={'sharey': False})
+                height=4, aspect=1.05)
+                # facet_kws={'sharey': False})
     
     pol_label = title_lookup[pol]
     ax.set_titles(rf'${pol_label}$' ' | '  '{col_name}', fontsize = 10)
@@ -292,8 +292,8 @@ for pol in pol_to_plot:
     ax = sns.catplot(emission_rate_sel, x = 'scenario', y = 'change',
                 hue = 'avft_scenario', col = 'HPMSVtypeName', 
                 kind="bar", palette = 'rainbow_r', hue_order = color_order,
-                height=4, aspect=1.05,
-                facet_kws={'sharey': False})
+                height=4, aspect=1.05)
+                # facet_kws={'sharey': False})
     
     pol_label = title_lookup[pol]
     ax.set_titles(rf'${pol_label}$' ' | '  '{col_name}', fontsize = 10)

@@ -76,12 +76,12 @@ list_of_vmt_dist_file = ['vmt_fraction_moves_baseline.csv',
 list_of_avft_file = ['TDA_AVFT_HOP_highp2.csv', 'TDA_AVFT_HOP_highp6.csv', 'TDA_AVFT_HOP_highp10.csv',
                      'TDA_AVFT_Ref_highp2.csv', 'TDA_AVFT_Ref_highp6.csv', 'TDA_AVFT_Ref_highp10.csv']
 
-scenario_lookup = {'TDA_AVFT_HOP_highp2.csv': 'TDA high oil, low elec', 
-                   'TDA_AVFT_HOP_highp6.csv': 'TDA high oil, mid elec',
-                   'TDA_AVFT_HOP_highp10.csv': 'TDA high oil, high elec',
-                     'TDA_AVFT_Ref_highp2.csv': 'TDA low oil, low elec', 
-                     'TDA_AVFT_Ref_highp6.csv': 'TDA low oil, mid elec',
-                     'TDA_AVFT_Ref_highp10.csv': 'TDA low oil, high elec'}
+scenario_lookup = {'TDA_AVFT_HOP_highp2.csv': 'TITAN high oil, low elec', 
+                   'TDA_AVFT_HOP_highp6.csv': 'TITAN high oil, mid elec',
+                   'TDA_AVFT_HOP_highp10.csv': 'TITAN high oil, high elec',
+                     'TDA_AVFT_Ref_highp2.csv': 'TITAN low oil, low elec', 
+                     'TDA_AVFT_Ref_highp6.csv': 'TITAN low oil, mid elec',
+                     'TDA_AVFT_Ref_highp10.csv': 'TITAN low oil, high elec'}
 
 vmt_scenario_lookup = {'vmt_fraction_moves_baseline.csv': 'MOVES baseline',
                          'vmt_fraction_vius_baseline.csv': 'VIUS baseline'}
@@ -147,10 +147,10 @@ fuel_mix_combined.to_csv(os.path.join(path_to_moves, 'turnover', 'avft_by_scenar
 print(fuel_mix_combined.avft_scenario.unique())
 
 # <codecell>
-color_order = ['MOVES default', 'TDA high oil, low elec',
-      'TDA high oil, mid elec',  'TDA high oil, high elec',
-      'TDA low oil, low elec',
-       'TDA low oil, mid elec', 'TDA low oil, high elec']
+color_order = ['MOVES default', 'TITAN high oil, low elec',
+      'TITAN high oil, mid elec',  'TITAN high oil, high elec',
+      'TITAN low oil, low elec',
+       'TITAN low oil, mid elec', 'TITAN low oil, high elec']
 # plot avft
 fuel_mix_combined_to_plot = fuel_mix_combined.loc[fuel_mix_combined['fuelTypeID'] == 9]
 fuel_mix_combined_to_plot = \
@@ -249,10 +249,10 @@ fuel_mix_by_year_to_plot = \
 
 
   
-color_order = ['MOVES default', 'TDA high oil, low elec',
-      'TDA high oil, mid elec',  'TDA high oil, high elec',
-      'TDA low oil, low elec',
-       'TDA low oil, mid elec', 'TDA low oil, high elec']
+color_order = ['MOVES default', 'TITAN high oil, low elec',
+      'TITAN high oil, mid elec',  'TITAN high oil, high elec',
+      'TITAN low oil, low elec',
+       'TITAN low oil, mid elec', 'TITAN low oil, high elec']
 ax = sns.relplot(fuel_mix_by_year_to_plot, x = 'yearID', y = 'vmt_fraction',
             hue = 'avft_scenario', style = 'avft_scenario', col = 'HPMSVtypeName', row = 'scenario',
             kind="line", palette = 'rainbow_r', hue_order = color_order,
