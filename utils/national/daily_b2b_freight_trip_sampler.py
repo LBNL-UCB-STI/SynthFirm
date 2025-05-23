@@ -85,6 +85,7 @@ for k in range(4):
             quarter_sample = season_factor_selected.sample(n = sample_size,
                                weights = season_factor_selected['weight_fraction'],
                                replace = True)
+            quarter_sample.drop(columns = ['SCTG_Group', 'SCTG_Name'], inplace = True)
             truck_shipments = pd.concat([truck_shipments.reset_index(drop=True), 
                                   quarter_sample.reset_index(drop=True)], axis=1)
             truck_shipments = truck_shipments.drop(columns = 'weight_fraction')
