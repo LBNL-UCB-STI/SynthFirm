@@ -21,7 +21,7 @@ data_dir = 'C:/SynthFirm'
 os.chdir(data_dir)
 scenario_name = 'national'
 out_scenario_name = 'national'
-file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
+# file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 parameter_dir = 'SynthFirm_parameters'
 
 input_dir = 'inputs_' + scenario_name

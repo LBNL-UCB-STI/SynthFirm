@@ -56,10 +56,16 @@ nlabels = truck_allocation_factor['range_bin'].tolist()
 truck_mapping = {'HDT tractor': 'HDT',	
                  'HDT vocational': 'HDT',	
                  'MDT vocational': 'MDT'}
+
+truck_cap_level = {'HDT tractor': 3,	
+                 'HDT vocational': 2,	
+                 'MDT vocational': 1}
                 
 selected_date = '2017-01-17'
 
 # <codecell>
+from sklearn.utils import shuffle
+shipment_input = shuffle(shipment_input)
 
 def split_dataframe(df, chunk_size = 10 ** 6): 
     chunks = list()
@@ -81,7 +87,8 @@ for chunk in chunks_of_shipments:
     chunk.loc[:, 'distance_bin'] = pd.cut(chunk.loc[:, 'length'], 
                                           bins = nbreaks, labels = nlabels,
                                           right = True)
-    
+    print('Average shipping distance:')
+    print(chunk['length'].mean())
     # assign vehicle type based on distance bin
     shipment_out = None
     
@@ -91,9 +98,18 @@ for chunk in chunks_of_shipments:
         probabilities = \
             truck_allocation_factor.loc[truck_allocation_factor['range_bin'] == label, veh_types].to_numpy()[0]
         # print(probabilities)
-        shipment_selected.loc[:, 'veh_class'] = \
-        pd.Series(np.random.choice(veh_types, size = sample_size, 
-                                    p = probabilities) )
+        samples = np.random.choice(veh_types, size = sample_size, 
+                                    p = probabilities) 
+        truck_sample = pd.DataFrame({'veh_class': samples})
+        truck_sample.loc[:, 'cap_ranking'] = \
+            truck_sample.loc[:, 'veh_class'].map(truck_cap_level)
+        truck_sample = truck_sample.sort_values(by = ['cap_ranking'], ascending = True)
+        shipment_selected = shipment_selected.sort_values(by = ['TruckLoad'], ascending = True)
+        
+        truck_sample = truck_sample[['veh_class']]
+        
+        shipment_selected = pd.concat([shipment_selected.reset_index(drop=True), 
+                                      truck_sample.reset_index(drop=True)], axis=1)
         shipment_out = pd.concat([shipment_out, shipment_selected])
     
     # assign payload capacity
@@ -106,7 +122,7 @@ for chunk in chunks_of_shipments:
     shipment_out.loc[:, 'payload']
     shipment_out.loc[:, 'n_shipment'] = np.ceil(shipment_out.loc[:, 'n_shipment'])
     
-    print(shipment_out.n_shipment.sum())
+    # print(shipment_out.n_shipment.sum())
     col_names = shipment_out.columns
     shipment_out = pd.DataFrame(np.repeat(shipment_out.values, shipment_out.n_shipment, axis=0))
     shipment_out.columns = col_names
@@ -123,13 +139,18 @@ for chunk in chunks_of_shipments:
     # break
 print('Total shipment after split by payload...')
 print(len(cleaned_output))
+
+print('Shipment by class after split by payload...')
+print(cleaned_output.groupby('veh_class').size())
 # 13.6 million
 # <codecell>
 
 # consolidate small shipments with same O-D
-shipment_to_pair = cleaned_output.loc[cleaned_output['vc_ratio'] < 0.5]
+
+threshold_val = 0.8
+shipment_to_pair = cleaned_output.loc[cleaned_output['vc_ratio'] < threshold_val]
 # 4.0 million
-shipment_no_pair = cleaned_output.loc[cleaned_output['vc_ratio'] >= 0.5]
+shipment_no_pair = cleaned_output.loc[cleaned_output['vc_ratio'] >= threshold_val]
 # 9.6 million
 
 # <codecell>
@@ -161,6 +182,7 @@ shipment_to_pair = shipment_to_pair.drop_duplicates(subset = ['cluster_id', 'bun
 
 shipment_to_pair = shipment_to_pair.drop(columns = ['cluster_id', 'bundle_id'])
 
+print('Number of shipment being consolidated:')
 print(len(shipment_to_pair))
 # 1.34 million after pairing
 # <codecell>
@@ -170,6 +192,7 @@ from shapely.geometry import LineString
 
 shipment_out = pd.concat([shipment_no_pair, shipment_to_pair])
 shipment_out.drop(columns = ['index', 'Unnamed: 0'], inplace = True)
+print('Number of shipment after consolidation:')
 print(len(shipment_out))
 shipment_out['geometry'] = shipment_out['geometry'].apply(shapely.wkt.loads)
 shipment_out = gpd.GeoDataFrame(shipment_out, geometry='geometry', crs='epsg:4326')
