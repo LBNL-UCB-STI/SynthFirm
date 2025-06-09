@@ -26,7 +26,7 @@ mode_lookup = {1: 'Truck', 2: 'Rail', 3: 'Other', 4: 'Air',
                5: 'Parcel', 6: 'Other', 7: 'Other', 8: 'Other'}
 
 #define scenario input
-analysis_year = 2050
+analysis_year = 2017
 shipment_load_attr = 'tons_' + str(analysis_year)
 shipment_tonmile_attr = 'tmiles_' + str(analysis_year)
 shipment_value_attr = 'value_' + str(analysis_year)
@@ -41,7 +41,7 @@ shipment_value_attr = 'value_' + str(analysis_year)
 
 # load FAF5 data
 
-faf_data = read_csv('validation/FAF5.3.csv', sep = ',')
+faf_data = read_csv('validation/FAF5.6.1.csv', sep = ',')
 faf_data = faf_data.loc[faf_data['trade_type'] == 1]
 print(faf_data.columns)
 
