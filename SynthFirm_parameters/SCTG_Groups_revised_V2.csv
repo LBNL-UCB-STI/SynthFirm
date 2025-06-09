@@ -1,0 +1,44 @@
+SCTG_Code,SCTG_Group,SCTG_Name,Description
+1,3,interm_food,Animals and Fish (live)
+2,1,bulk,Cereal Grains (includes seed)
+3,3,interm_food,"Agricultural Products (excludes Animal Feed, Cereal Grains, and Forage Products)"
+4,3,interm_food,"Animal Feed, Eggs, Honey, and Other Products of Animal Origin"
+5,3,interm_food,"Meat, Poultry, Fish, Seafood, and Their Preparations"
+6,3,interm_food,"Milled Grain Products and Preparations, and Bakery Products"
+7,3,interm_food,"Other Prepared Foodstuffs, and Fats and Oils"
+8,3,interm_food,Alcoholic Beverages and Denatured Alcohol
+9,4,mfr_goods,Tobacco Products
+10,1,bulk,Monumental or Building Stone
+11,1,bulk,Natural Sands
+12,1,bulk,Gravel and Crushed Stone (excludes Dolomite and Slate)
+13,1,bulk,Other Non-Metallic Minerals not elsewhere classified
+14,1,bulk,Metallic Ores and Concentrates
+15,1,bulk,Coal
+16,2,fuel_fert,Crude Petroleum
+17,2,fuel_fert,"Gasoline, Aviation Turbine Fuel, and Ethanol (includes Kerosene, and Fuel Alcohols)"
+18,2,fuel_fert,"Fuel Oils (includes Diesel, Bunker C, and Biodiesel)"
+19,2,fuel_fert,"Other Coal and Petroleum Products, not elsewhere classified"
+20,2,fuel_fert,Basic Chemicals
+21,4,mfr_goods,Pharmaceutical Products
+22,2,fuel_fert,Fertilizers
+23,2,fuel_fert,Other Chemical Products and Preparations
+24,4,mfr_goods,Plastics and Rubber
+25,1,bulk,Logs and Other Wood in the Rough
+26,1,bulk,Wood Products
+27,4,mfr_goods,"Pulp, Newsprint, Paper, and Paperboard"
+28,4,mfr_goods,Paper or Paperboard Articles
+29,4,mfr_goods,Printed Products
+30,4,mfr_goods,"Textiles, Leather, and Articles of Textiles or Leather"
+31,4,mfr_goods,Non-Metallic Mineral Products
+32,4,mfr_goods,Base Metal in Primary or Semi-Finished Forms and in Finished Basic Shapes
+33,4,mfr_goods,Articles of Base Metal
+34,4,mfr_goods,Machinery
+35,4,mfr_goods,"Electronic and Other Electrical Equipment and Components, and Office Equipment"
+36,4,mfr_goods,Motorized and Other Vehicles (includes parts)
+37,4,mfr_goods,"Transportation Equipment, not elsewhere classified"
+38,4,mfr_goods,Precision Instruments and Apparatus
+39,4,mfr_goods,"Furniture, Mattresses and Mattress Supports, Lamps, Lighting Fittings, and Illuminated Signs"
+40,4,mfr_goods,Miscellaneous Manufactured Products
+41,5,other,"Waste and Scrap (excludes of agriculture or food, see 041xx)"
+43,5,other,Mixed Freight
+99,5,other,Missing Code

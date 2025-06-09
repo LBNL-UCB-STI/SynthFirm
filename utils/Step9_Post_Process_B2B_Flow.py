@@ -56,7 +56,7 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
             modeled_OD_by_sctg = read_csv(os.path.join(b2b_dir, file), sep = ',')
     #         print(modeled_OD_by_sctg.columns)
             list_of_var = ['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID',
-               'SellerZone', 'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group', 
+               'SellerZone', 'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group', 'UnitCost',
                'shipment_id', 'orig_FAFID', 'dest_FAFID', 
                'mode_choice', 'probability', 'Distance', 'Travel_time']
     #         print(modeled_OD_by_sctg.head(5))

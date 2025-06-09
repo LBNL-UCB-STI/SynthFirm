@@ -216,13 +216,13 @@ def process_chunk(args):
                                    right_on = ['orig_FAFID', 'dest_FAFID', 'Alternative'], how = 'left')
     modeled_OD_by_sctg = modeled_OD_by_sctg[['BuyerID', 'BuyerZone', 
                                               'BuyerNAICS', 'SellerID', 'SellerZone',
-                                              'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 
+                                              'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 'UnitCost',
                                               'shipment_id', 'orig_FAFID', 'dest_FAFID', 'mode_choice', 
                                               'probability', 'Distance', 'Travel_time']]
     int_var = ['BuyerID', 'BuyerZone', 'SellerID', 'SellerZone', 'Commodity_SCTG', 'SCTG_Group', 'NAICS_code', 'shipment_id',
     'orig_FAFID', 'dest_FAFID']
     modeled_OD_by_sctg.loc[:, int_var] = modeled_OD_by_sctg.loc[:, int_var].astype(np.int64)
-    float_var = ['TruckLoad', 'probability', 'Distance', 'Travel_time']
+    float_var = ['TruckLoad', 'UnitCost', 'probability', 'Distance', 'Travel_time']
     modeled_OD_by_sctg.loc[:, float_var] = modeled_OD_by_sctg.loc[:, float_var].astype(float)
     # i += 1
     # combined_modeled_OD_by_sctg = pd.concat([combined_modeled_OD_by_sctg, modeled_OD_by_sctg])
@@ -265,6 +265,8 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
     njob = 0
     ###### processing OD flow and generate mode choice ##########
     for k in range(5):
+        if k < 3:
+            continue
         sctg = 'sctg' + str(k + 1)
         # if sctg != 'sctg1':
         #     continue

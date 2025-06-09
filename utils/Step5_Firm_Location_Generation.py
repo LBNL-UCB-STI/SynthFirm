@@ -73,11 +73,11 @@ def firm_location_generation(synthetic_firms_no_location_file,
         # print(zone)
         # if zone >= 20000 or zone <=3000:
         #     continue
-        if counter % 100 == 0:
+        if counter % 1000 == 0:
             print('processed ' + str(counter) + ' zones')
         region = mesozone_to_faf.loc[mesozone_to_faf['MESOZONE']== zone, 'FAFNAME'].values[0]
         region = str(region)
-        print(zone, region)
+        # print(zone, region)
         counter += 1
         firm_selected = firms.loc[firms['MESOZONE'] == zone]
         sample_size = len(firm_selected)

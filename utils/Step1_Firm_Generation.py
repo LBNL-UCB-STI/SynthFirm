@@ -209,7 +209,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     firms.loc[firms['industry'].isin(["44", "45", "4A"]), 'industry'] = "4445"
     firms.loc[firms['industry'].isin(["48", "49"]), 'industry'] = "4849"
     firms.loc[firms['industry'].isin(["S0"]), 'industry'] = "92"
-    # print(firms['industry'].unique())
+    print(firms['industry'].unique())
     
     emp_sim = \
         firms.groupby(['industry', 'CBPZONE'])[['emp_per_est']].sum()
@@ -245,6 +245,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     # <codecell>
     
     # separate firms inside/outside study reion
+    firms['ZIPCODE'] = firms['ZIPCODE'].astype(np.int64)
     emp_ranking_in_boundary = mzemp.dropna(subset = ['COUNTY'])
     emp_ranking_in_boundary = \
         emp_ranking_in_boundary.rename(columns = {"COUNTY": 'CBPZONE'})
@@ -284,13 +285,14 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     
     # create tract ID from CBG id
     emp_ranking_in_boundary.loc[:, 'MESOZONE'] = \
-        emp_ranking_in_boundary.loc[:, 'MESOZONE'].astype(int).astype(str).str.zfill(12)
+        emp_ranking_in_boundary.loc[:, 'MESOZONE'].astype(np.int64).astype(str).str.zfill(12)
     emp_ranking_in_boundary.loc[:, 'geoid'] = \
         emp_ranking_in_boundary.loc[:, 'MESOZONE'].str[0:11]
     
     # <codecell>
+    zip_to_tract_crosswalk['zip'] = zip_to_tract_crosswalk['zip'].astype(np.int64)
     zip_to_tract_crosswalk.loc[:, 'geoid'] = \
-        zip_to_tract_crosswalk.loc[:, 'geoid'].astype(int).astype(str).str.zfill(11)
+        zip_to_tract_crosswalk.loc[:, 'geoid'].astype(np.int64).astype(str).str.zfill(11)
         
     emp_ranking_in_boundary = pd.melt(emp_ranking_in_boundary, 
                                       id_vars = ['CBPZONE', 'MESOZONE', 'geoid'],
@@ -348,22 +350,23 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         firms_in_boundary_nozip = \
             pd.concat([firms_in_boundary_nozip, firms_in_boundary_nozip_add])
         if firms_to_assign is not None:
+            if len(firms_to_assign) > 0:
         # print(len(firms_to_assign.BusID.unique()))
         
         # Sometimes, LODES report 0 employment in a county, while firm data as non-zero
         # may attributed to imputation for non-payroll workers
         # fill minimum ranking for all zones as no information is available for the ranking
         
-            firms_to_assign = \
-                firms_to_assign.groupby(essential_attr).sample(1,
-                                                                weights = firms_to_assign['emp_lehd'],
-                                                                replace = False, random_state = 1)
-            firms_to_assign = \
-                firms_to_assign.drop(columns = ['index', 'industry', 'emp_lehd'])
-            firms_to_assign.loc[:, 'MESOZONE'].fillna(method = 'ffill', inplace = True)
-            firms_to_assign.loc[:, 'MESOZONE'].fillna(method = 'bfill', inplace = True)
-            
-            firms_out_withzip = pd.concat([firms_out_withzip, firms_to_assign])
+                firms_to_assign = \
+                    firms_to_assign.groupby(essential_attr).sample(1,
+                                                                    weights = firms_to_assign['emp_lehd'],
+                                                                    replace = False, random_state = 1)
+                firms_to_assign = \
+                    firms_to_assign.drop(columns = ['index', 'industry', 'emp_lehd'])
+                firms_to_assign.loc[:, 'MESOZONE'].fillna(method = 'ffill', inplace = True)
+                firms_to_assign.loc[:, 'MESOZONE'].fillna(method = 'bfill', inplace = True)
+                
+                firms_out_withzip = pd.concat([firms_out_withzip, firms_to_assign])
         
         # break
     print('firms in region with valid zip')
