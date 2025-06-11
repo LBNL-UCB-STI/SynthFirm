@@ -3,7 +3,7 @@
 <p> <b>Supplementary code and analysis for paper 'Improving Commercial Truck Fleet Composition in Emission Modeling using 2021 US VIUS Data' </b> </p>
 <p> <b>Contact</b>: Xiaodan Xu, Ph.D.  (XiaodanXu@lbl.gov) </p>
 <p> <b>Updates (June 11, 2025)</b>: code uploaded, cleaned and data uploaded </p>
-<p> Dataset can be downloaded: 10.5281/zenodo.15643435 </p>
+<p> Dataset can be downloaded here: https://doi.org/10.5281/zenodo.15643436 </p>
 
 ## Part 1 -- VIUS data cleaning and vehicle type assignment ##
 * Corresponding to Section 2.1 of the paper
