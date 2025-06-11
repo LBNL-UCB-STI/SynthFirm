@@ -18,15 +18,16 @@ warnings.filterwarnings("ignore")
 plt.style.use('ggplot')
 sns.set(font_scale=1.2)  # larger font
 
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
+path_to_data = '/Users/xiaodanxu/Library/CloudStorage/GoogleDrive-arielinseu@gmail.com/My Drive/BEAM-CORE/SynthFirm/Release/VIUS_Fleet_and_Emission' 
+# please change this to the local directory where the data folder is located
+os.chdir(path_to_data)
 
 
 # load input
 
-# list_of_matrix_file = ['penn_2018_7_75_50.csv']
-path_to_moves = 'RawData/MOVES'
-path_to_vius = 'RawData/US_VIUS_2021'
-plot_dir = 'RawData/MOVES/plot_forecast/'
+path_to_moves = 'Parameter'
+path_to_vius = 'Input'
+path_to_plot = 'Plot'
 
 hpms_definition = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
                                 sheet_name = 'HPMS_definition')
@@ -140,6 +141,6 @@ ax = sns.lineplot(data=com_vmt_rate, x="yearID", y="Cumulative VMT growth rate",
              hue = "sourceTypeName", style = "sourceTypeName")
 plt.legend(fontsize = 12)
 plt.ylim([1, 2])
-plt.savefig(os.path.join(plot_dir, 'com_growth_factor_vius_baseline.png'), dpi = 300,
+plt.savefig(os.path.join(path_to_plot, 'plot_forecast', 'com_growth_factor_vius_baseline.png'), dpi = 300,
             bbox_inches = 'tight')
 plt.show()

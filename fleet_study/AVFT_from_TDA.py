@@ -45,8 +45,8 @@ carrier_type_lookup = {'FOR HIRE': 'FOR HIRE',
 file_name = 'PrivateData/registration/TDA_results/BEAMFreightSensitivity_Ref.xlsx'
 list_of_scenarios = ['Ref_highp2', 'Ref_highp4', 'Ref_highp6',
                     'Ref_highp8', 'Ref_highp10']
-output_dir = 'RawData/MOVES/turnover/'
-path_to_moves = 'RawData/MOVES'
+output_dir = 'Parameter/turnover/'
+path_to_moves = 'Parameter'
 source_type_hpms = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
                                 sheet_name = 'source_type_HPMS')
 hpms_definition = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
@@ -61,7 +61,7 @@ fuel_type_definition = pd.read_excel(os.path.join(path_to_moves, 'moves_definiti
 com_veh_ids = [32, 52, 53, 61, 62]
 com_source_type_hpms = \
     source_type_hpms.loc[source_type_hpms['sourceTypeID'].isin(com_veh_ids)]
-plot_dir = 'RawData/MOVES/plot_forecast/'
+plot_dir = 'Plot/plot_forecast/'
 begin_year = 2021
 # <codecell>
 

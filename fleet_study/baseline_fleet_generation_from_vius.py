@@ -16,9 +16,14 @@ import os
 import warnings
 warnings.filterwarnings("ignore")
 
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
-path_to_vius = 'RawData/US_VIUS_2021'
-path_to_moves = 'RawData/MOVES'
+path_to_data = '/Users/xiaodanxu/Library/CloudStorage/GoogleDrive-arielinseu@gmail.com/My Drive/BEAM-CORE/SynthFirm/Release/VIUS_Fleet_and_Emission' 
+# please change this to the local directory where the data folder is located
+os.chdir(path_to_data)
+
+path_to_vius = 'Input'
+path_to_moves = 'Parameter'
+path_to_plot = 'Plot'
+
 analysis_year = 2021
 
 # conversions
@@ -130,7 +135,7 @@ plt.xticks(rotation = 30, ha= 'right')
 plt.xlabel('Age bin')
 plt.ylabel('Annual mileage per truck')
 plt.legend(fontsize = 8, loc = 1)
-plt.savefig('RawData/MOVES/plot/VIUS_VMT_per_truck_by_stmy.png',
+plt.savefig(os.path.join(path_to_plot, 'VIUS_VMT_per_truck_by_stmy.png'),
             dpi = 300, bbox_inches = 'tight')
 plt.show()
 
@@ -222,7 +227,7 @@ plt.xticks(rotation = 30, ha= 'right')
 plt.xlabel('Age bin')
 plt.ylabel('Annual mileage per truck')
 plt.legend(fontsize = 8, loc = 1)
-plt.savefig('RawData/MOVES/plot/VIUS_VMT_per_truck_by_stmy_imputed.png',
+plt.savefig(os.path.join(path_to_plot, 'VIUS_VMT_per_truck_by_stmy_imputed.png'),
             dpi = 300, bbox_inches = 'tight')
 plt.show()
 
@@ -253,7 +258,7 @@ sns.lineplot(vius_age_distribution,
 plt.xlabel('Age ID')
 plt.ylabel('Fraction of vehicle population')
 # plt.legend(fontsize = 8, loc = 1)
-plt.savefig('RawData/MOVES/plot/VIUS_age_distribution.png',
+plt.savefig(os.path.join(path_to_plot, 'VIUS_age_distribution.png'),
              dpi = 300, bbox_inches = 'tight')   
 plt.show()
 
@@ -265,7 +270,7 @@ sns.lineplot(vius_age_distribution,
 plt.xlabel('Age ID')
 plt.ylabel('Fraction of vehicle VMT')
 # plt.legend(fontsize = 8, loc = 1)
-plt.savefig('RawData/MOVES/plot/VIUS_vmt_by_age_distribution.png',
+plt.savefig(os.path.join(path_to_plot, 'VIUS_vmt_by_age_distribution.png'),
              dpi = 300, bbox_inches = 'tight')   
 plt.show()
 
@@ -326,7 +331,7 @@ sns.lineplot(vius_RMAR,
 plt.xlabel('Age ID')
 plt.ylabel('Relative mileage accumulation factor')
 # plt.legend(fontsize = 8, loc = 1)
-plt.savefig('RawData/MOVES/plot/VIUS_RMAR.png',
+plt.savefig(os.path.join(path_to_plot, 'VIUS_RMAR.png'),
              dpi = 300, bbox_inches = 'tight')   
 plt.show()    
 
@@ -409,7 +414,7 @@ vius_age_distribution_with_fuel.loc[:, 'WGT_VMT'] = \
     vius_age_distribution_with_fuel.loc[:, 'WGT_VMT'] * \
         vius_age_distribution_with_fuel.loc[:, 'fuel_fraction']
         
-print('total age X fuel fraction and vmt age fraction (both should be 0):')
+print('total age X fuel fraction and vmt age fraction (both should be 1):')
 print(vius_age_distribution_with_fuel.loc[:, 'ageFraction'].sum())
 print(vius_age_distribution_with_fuel.loc[:, 'VMT_Fraction'].sum())
 

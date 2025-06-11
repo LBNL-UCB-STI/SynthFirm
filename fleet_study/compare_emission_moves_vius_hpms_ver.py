@@ -17,7 +17,14 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
+path_to_data = '/Users/xiaodanxu/Library/CloudStorage/GoogleDrive-arielinseu@gmail.com/My Drive/BEAM-CORE/SynthFirm/Release/VIUS_Fleet_and_Emission' 
+# please change this to the local directory where the data folder is located
+os.chdir(path_to_data)
+
+
+# load input
+
+
 
 # define constant
 pollutant_lookup = {91: 'Energy use', 98: 'CO_2e',
@@ -53,14 +60,15 @@ age_bin = [-1, 3, 5, 7, 9, 14, 19, 31]
 age_bin_label = ['age<=3', '3<age<=5','5<age<=7', 
                  '7<age<=9', '9<age<=14', '14<age<=19', 'age>=20']
 
-path_to_vius = 'RawData/US_VIUS_2021'
-path_to_moves = 'RawData/MOVES'
+path_to_moves = 'Parameter'
+path_to_vius = 'Input'
+path_to_plot = 'Plot'
 analysis_year = 2021
 
 
 # 1. Emission rate
 
-moveser_dir = os.path.join(path_to_moves, 'Seattle_MOVES4_emission_rate_per_mile_2021.csv')
+moveser_dir = os.path.join(path_to_vius, 'Seattle_MOVES4_emission_rate_per_mile_2021.csv')
 moveser_baseline = read_csv(moveser_dir)
 
 pollutants = list(pollutant_lookup.keys())
@@ -224,7 +232,7 @@ sns.barplot(speed_distribution_by_st, x = 'avgSpeedBinDesc', y = 'op_vmt_fractio
 plt.xticks(rotation = 60, ha = 'right')
 plt.xlabel('Speed bin')
 plt.ylabel('Fraction of VMT')
-plt.savefig(os.path.join(path_to_moves, 'plot', 'speed_distribution_by_source_type.png'),
+plt.savefig(os.path.join(path_to_plot, 'speed_distribution_by_source_type.png'),
             dpi = 300, bbox_inches = 'tight')
 plt.show()
 
@@ -339,7 +347,7 @@ for pol in list_of_pollutant:
     unit = unit_lookup[pol]
     
     plot_clustered_stacked([df1, df2], figsize, ["MOVES", "VIUS"], pp, 'Rate', unit)
-    plt.savefig(os.path.join(path_to_moves, 'plot', 'HPMS', 'emission_rate_by_hpms_age_' + pol + '.png'),
+    plt.savefig(os.path.join(path_to_plot, 'HPMS', 'emission_rate_by_hpms_age_' + pol + '.png'),
                 dpi = 300, bbox_inches = 'tight')
     plt.show()
 
@@ -380,7 +388,7 @@ for pol in list_of_pollutant:
     unit = unit_lookup[pol]
     
     plot_clustered_stacked([df1, df2], figsize, ["MOVES", "VIUS"], pp, 'Rate', unit)
-    plt.savefig(os.path.join(path_to_moves, 'plot', 'HPMS', 'emission_rate_by_hpms_fuel_' + pol + '.png'),
+    plt.savefig(os.path.join(path_to_plot, 'HPMS', 'emission_rate_by_hpms_fuel_' + pol + '.png'),
                 dpi = 300, bbox_inches = 'tight')
     plt.show()
     # break
@@ -430,7 +438,7 @@ for veh in order_of_col:
         plot_clustered_stacked([df1, df2], figsize, ["MOVES", "VIUS"], pp, 'Rate', unit)
         plt.xlabel('Average bin speed (mph)')
         # plt.xticks(rotation = 0)
-        plt.savefig(os.path.join(path_to_moves, 'plot', 'HPMS', 'emission_rate_by_speed_' + veh + '_' + pol + '.png'),
+        plt.savefig(os.path.join(path_to_plot, 'HPMS', 'emission_rate_by_speed_' + veh + '_' + pol + '.png'),
                     dpi = 300, bbox_inches = 'tight')
         plt.show()
     #     break
@@ -472,7 +480,7 @@ for pol in list_of_pollutant:
     unit = unit_lookup[pol]
     
     plot_clustered_stacked([df1, df2], figsize, ["MOVES", "VIUS"], pp, 'Rate', unit)
-    plt.savefig(os.path.join(path_to_moves, 'plot', 'HPMS', 'emission_rate_by_hpms_haul_' + pol + '.png'),
+    plt.savefig(os.path.join(path_to_plot, 'HPMS', 'emission_rate_by_hpms_haul_' + pol + '.png'),
                 dpi = 300, bbox_inches = 'tight')
     plt.show()
 
@@ -573,7 +581,7 @@ for pol in list_of_pollutant:
     unit = unit_lookup[pol]
     
     plot_clustered_stacked([df1, df2], figsize, ["MOVES", "VIUS"], pp, 'Rate', unit)
-    plt.savefig(os.path.join(path_to_moves, 'plot', 'SourceType', 'emission_rate_by_st_age_' + pol + '.png'),
+    plt.savefig(os.path.join(path_to_plot, 'SourceType', 'emission_rate_by_st_age_' + pol + '.png'),
                 dpi = 300, bbox_inches = 'tight')
     plt.show()
 
@@ -614,7 +622,7 @@ for pol in list_of_pollutant:
     unit = unit_lookup[pol]
     
     plot_clustered_stacked([df1, df2], figsize, ["MOVES", "VIUS"], pp, 'Rate', unit)
-    plt.savefig(os.path.join(path_to_moves, 'plot', 'SourceType', 'emission_rate_by_st_fuel_' + pol + '.png'),
+    plt.savefig(os.path.join(path_to_plot, 'SourceType', 'emission_rate_by_st_fuel_' + pol + '.png'),
                 dpi = 300, bbox_inches = 'tight')
     plt.show()
 # <codecell>
@@ -659,7 +667,7 @@ for veh in order_of_col:
         plot_clustered_stacked([df1, df2], figsize, ["MOVES", "VIUS"], pp, 'Rate', unit)
         plt.xlabel('Average bin speed (mph)')
         # plt.xticks(rotation = 0)
-        plt.savefig(os.path.join(path_to_moves, 'plot', 'SourceType', 'emission_rate_by_speed_' + veh + '_' + pol + '.png'),
+        plt.savefig(os.path.join(path_to_plot, 'SourceType', 'emission_rate_by_speed_' + veh + '_' + pol + '.png'),
                     dpi = 300, bbox_inches = 'tight')
         plt.show()
 

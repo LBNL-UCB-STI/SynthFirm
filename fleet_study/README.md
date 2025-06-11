@@ -39,7 +39,7 @@
 
 ### 3.2 -- fuel mix generation ###
 * Corresponding to Section 2.3.2 of the paper
-* The raw TITAN results cannot be shared due to data restrictions. The AVFT (alternative vehicle fuel type) generation code can be accessed [AVFT_from_TDA](AVFT_from_TDA.py), and the results are available under [parameters](parameters/) (Note: TDA is the previous project name acronym for TITAN project)
+* The raw TITAN results cannot be shared due to data restrictions. The AVFT (alternative vehicle fuel type) generation code can be accessed [AVFT_from_TDA](AVFT_from_TDA.py), and the results are available under the 'Parameter/turnover' folder under shared data (Note: TDA is the previous project name acronym for TITAN project)
 * The scenario description can be found under file [opcost_sensitivity_analysis](parameters/opcost_sensitivity_analysis.csv)
 * The AVFT results are combined with VMT distributions from 3.1 above using script [compile_fleet_distribution_forecast](compile_fleet_distribution_forecast.py)
 
@@ -51,8 +51,8 @@
 
 ## Part 5 -- Emission comparison ###
 * Corresponding to Section 4 of the paper
-* The base year emission results are compared under [compare_emission_moves_vius_hpms_ver](compare_emission_moves_vius_hpms_ver.py)
-* The future year emission results are compared under [compare_emission_forecast](compare_emission_forecast.py)
+* The base year emission results are calculated and compared under [compare_emission_moves_vius_hpms_ver](compare_emission_moves_vius_hpms_ver.py)
+* The future year emission results are calculated and compared under [compare_emission_forecast](compare_emission_forecast.py)
 
 
 

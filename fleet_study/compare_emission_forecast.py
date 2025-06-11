@@ -15,7 +15,12 @@ import os
 
 import warnings
 warnings.filterwarnings("ignore")
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
+
+# set project path
+path_to_data = '/Users/xiaodanxu/Library/CloudStorage/GoogleDrive-arielinseu@gmail.com/My Drive/BEAM-CORE/SynthFirm/Release/VIUS_Fleet_and_Emission' 
+# please change this to the local directory where the data folder is located
+os.chdir(path_to_data)
+
 plt.style.use('seaborn-v0_8-whitegrid')
 sns.set(font_scale=1.4)  # larger font  
 sns.set_style("whitegrid")
@@ -50,8 +55,9 @@ age_bin_label = ['age<=3', '3<age<=5','5<age<=7',
                  '7<age<=9', '9<age<=14', '14<age<=19', 'age>=20']
 
 
-path_to_vius = 'RawData/US_VIUS_2021'
-path_to_moves = 'RawData/MOVES'
+path_to_moves = 'Parameter'
+path_to_vius = 'Input'
+path_to_plot = 'Plot'
 
 # load VMT distribution
 vmt_distribution = read_csv(os.path.join(path_to_moves, 'turnover', 
@@ -118,7 +124,7 @@ pollutants = list(pollutant_lookup.keys())
 for year in analysis_years:
     print(year)
     er_file = 'Seattle_MOVES4_emission_rate_per_mile_' + str(year) + '.csv'
-    moveser_dir = os.path.join(path_to_moves, er_file)
+    moveser_dir = os.path.join(path_to_vius, er_file)
     moveser = read_csv(moveser_dir)
 
 
@@ -233,8 +239,8 @@ for pol in pol_to_plot:
     ax.set_ylabels('Emission rate (' + unit + ')')
     # plt.ylim(0)
     
-    plt.savefig(os.path.join(path_to_moves, 'plot_forecast', \
-                             'HPMS/emission_rate_by_scenario_' + pol + '.png'), 
+    plt.savefig(os.path.join(path_to_plot, 'plot_forecast', \
+                             'emission_rate_by_scenario_' + pol + '.png'), 
                 bbox_inches='tight', dpi = 300)
     plt.show()
 # <codecell>
@@ -259,8 +265,8 @@ for pol in pol_to_plot:
     ax.set_ylabels('Emission rate (' + unit + ')')
     # plt.ylim(0)
     
-    plt.savefig(os.path.join(path_to_moves, 'plot_forecast', \
-                             'HPMS/emission_rate_2050_' + pol + '.png'), 
+    plt.savefig(os.path.join(path_to_plot, 'plot_forecast', \
+                             'emission_rate_2050_' + pol + '.png'), 
                 bbox_inches='tight', dpi = 300)
     plt.show()
     
@@ -304,8 +310,8 @@ for pol in pol_to_plot:
 
     formatter = FuncFormatter(to_percent)
     plt.gca().yaxis.set_major_formatter(formatter)
-    plt.savefig(os.path.join(path_to_moves, 'plot_forecast', \
-                              'HPMS/emission_change_2050_' + pol + '.png'), 
+    plt.savefig(os.path.join(path_to_plot, 'plot_forecast', \
+                              'emission_change_2050_' + pol + '.png'), 
                 bbox_inches='tight', dpi = 300)
     plt.show()
     

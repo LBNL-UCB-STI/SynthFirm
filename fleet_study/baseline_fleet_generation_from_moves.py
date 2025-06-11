@@ -18,13 +18,16 @@ warnings.filterwarnings("ignore")
 plt.style.use('ggplot')
 sns.set(font_scale=1.2)  # larger font
 
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
+path_to_data = '/Users/xiaodanxu/Library/CloudStorage/GoogleDrive-arielinseu@gmail.com/My Drive/BEAM-CORE/SynthFirm/Release/VIUS_Fleet_and_Emission' 
+# please change this to the local directory where the data folder is located
+os.chdir(path_to_data)
 
 
 # load input
 
 # list_of_matrix_file = ['penn_2018_7_75_50.csv']
-path_to_moves = 'RawData/MOVES'
+path_to_moves = 'Parameter'
+path_to_plot = 'Plot'
 
 hpms_definition = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
                                 sheet_name = 'HPMS_definition')
@@ -137,7 +140,8 @@ plt.xlabel('Vehicle Age')
 plt.ylabel('VMT fraction')
 plt.legend(fontsize = 12)
 plt.title('MOVES VMT fraction by vehicle type and age')
-plt.savefig(os.path.join(path_to_moves, 'plot/MOVES_commercial_vehicle_age_dist.png'), 
+
+plt.savefig(os.path.join(path_to_plot, 'MOVES_commercial_vehicle_age_dist.png'), 
             bbox_inches = 'tight', dpi = 300)
 plt.show()
         

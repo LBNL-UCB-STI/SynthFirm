@@ -20,9 +20,13 @@ plt.style.use('seaborn-v0_8-whitegrid')
 sns.set(font_scale=1.4)  # larger font  
 sns.set_style("whitegrid")
 
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
+path_to_data = '/Users/xiaodanxu/Library/CloudStorage/GoogleDrive-arielinseu@gmail.com/My Drive/BEAM-CORE/SynthFirm/Release/VIUS_Fleet_and_Emission' 
+# please change this to the local directory where the data folder is located
+os.chdir(path_to_data)
 
-path_to_moves = 'RawData/MOVES'
+path_to_moves = 'Parameter'
+path_to_vius = 'Input'
+path_to_plot = 'Plot'
 
 fuel_type_distribution = pd.read_excel(os.path.join(path_to_moves, 'moves_definition.xlsx'), 
                                 sheet_name = 'fuel_type_distribution')
@@ -267,7 +271,7 @@ def to_percent(y, position):
 formatter = FuncFormatter(to_percent)
 plt.gca().yaxis.set_major_formatter(formatter)
 
-plt.savefig(os.path.join(path_to_moves, 'plot_forecast', \
+plt.savefig(os.path.join(path_to_plot, 'plot_forecast', \
                          'electrification_fraction_by_scenario.png'), dpi = 300)
 plt.show()
 
@@ -313,7 +317,7 @@ ax = sns.relplot(median_age_by_count, x = 'yearID', y = 'median age',
             hue = 'scenario', col = 'HPMSVtypeName', style = 'scenario',
             kind="line", linewidth=2)
 ax.set_titles('{col_name}', fontsize = 10)
-plt.savefig(os.path.join(path_to_moves, 'plot_forecast', \
+plt.savefig(os.path.join(path_to_plot, 'plot_forecast', \
                          'median_age_count_by_scenario.png'), dpi = 300)
 plt.show()
 
@@ -321,6 +325,6 @@ ax = sns.relplot(median_age_by_vmt, x = 'yearID', y = 'median age',
             hue = 'scenario', col = 'HPMSVtypeName', style = 'scenario', 
             kind="line", linewidth=2)
 ax.set_titles('{col_name}', fontsize = 10)
-plt.savefig(os.path.join(path_to_moves, 'plot_forecast', \
+plt.savefig(os.path.join(path_to_plot, 'plot_forecast', \
                          'median_age_VMT_by_scenario.png'), dpi = 300)
 plt.show()
