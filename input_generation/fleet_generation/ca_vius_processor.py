@@ -54,6 +54,9 @@ cavius_data.loc[(cavius_data['GVW'].isin(hdt_class)) & \
     
 print(cavius_data.groupby(['veh_class'])['Weight'].sum())
 
+# exclude MDT tractor
+cavius_data = cavius_data.loc[cavius_data['veh_class'] != 'MDT tractor']
+
 veh_count = cavius_data.groupby(['veh_class'])['Weight'].sum()
 veh_count.plot(kind = 'bar')
 plt.xticks(rotation = 60, ha = 'right')
@@ -76,7 +79,7 @@ plt.show()
 # <codecell>
 
 # generate probability of truck type by range bin
-veh_classes = ['MDT vocational','MDT tractor',  'HDT vocational', 'HDT tractor']
+veh_classes = ['MDT vocational', 'HDT vocational', 'HDT tractor'] # 'MDT tractor', 
 veh_by_ro = pd.pivot_table(cavius_data, index = 'range_bin', 
                            columns = 'veh_class', values = 'Weight', aggfunc = 'sum')
 veh_by_ro.loc[:, 'veh_count'] = veh_by_ro.sum(axis = 1)
