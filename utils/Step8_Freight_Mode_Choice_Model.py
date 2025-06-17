@@ -265,8 +265,6 @@ def mode_choice_model(mode_choice_param_file, mesozone_to_faf_file,
     njob = 0
     ###### processing OD flow and generate mode choice ##########
     for k in range(5):
-        if k < 3:
-            continue
         sctg = 'sctg' + str(k + 1)
         # if sctg != 'sctg1':
         #     continue

@@ -11,6 +11,7 @@ import os
 # import constants_sf as c
 import numpy as np
 from pandas import read_csv
+from sklearn.utils import shuffle
 
 # data_dir = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 # os.chdir(data_dir)
@@ -52,18 +53,21 @@ def shipment_size_generation(mesozone_to_faf_file, max_load_per_shipment_file,
     mesozone_lookup['MESOZONE'] = mesozone_lookup['MESOZONE'].astype(np.int64)
     domestic_zones = mesozone_lookup['MESOZONE'].unique()
     output_dir = output_path
-    chunk_size = 10 ** 5
+    chunk_size = 20000
     lb_to_ton = 0.0005
     # assign shipment size for each SCTG group
     total_load = 0
     for k in range(5):
         sctg = 'sctg' + str(k + 1)
+        if k == 4:
+            chunk_size = 2000
         print('generate shipment size for SCTG group ' + sctg)
         # capacity_per_shipment = c.capacity_lookup[sctg]
         # max_ton_per_shipment = c.max_ton_lookup[sctg]
         filelist = [file for file in os.listdir(output_dir) if (file.startswith(sctg) & (file.endswith('.zip')))]
         combined_csv = pd.concat([read_csv(os.path.join(output_dir, f), low_memory=False) for f in filelist ])
         combined_csv = combined_csv.dropna()
+        combined_csv = shuffle(combined_csv).reset_index(drop=True) # shuffle the df, so that individual batch is not too large
         combined_csv['SellerZone'] = combined_csv['SellerZone'].astype(np.int64)
         combined_csv['BuyerZone'] = combined_csv['BuyerZone'].astype(np.int64)
         # print(combined_csv.SellerZone.head(5))
