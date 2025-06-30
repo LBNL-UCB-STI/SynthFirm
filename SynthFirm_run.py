@@ -36,7 +36,7 @@ def main():
     SynthFirm Business-to-business (B2B) flow generation"
     """
     parser = argparse.ArgumentParser(description=des)
-    parser.add_argument("--config", type = str, help = "config file name", default= 'configs/national_2023.conf')
+    parser.add_argument("--config", type = str, help = "config file name", default= 'configs/Seattle_2050_psrc.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -383,7 +383,7 @@ def main():
                                       synthetic_firms_with_location_file,
                                       mesozone_to_faf_file,
                                       zonal_output_file,
-                                      spatial_boundary_file, output_path)
+                                      spatial_boundary_file, output_path, number_of_processes)
         
     
     

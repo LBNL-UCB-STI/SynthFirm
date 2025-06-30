@@ -18,27 +18,41 @@ import numpy as np
 
 warnings.filterwarnings("ignore")
 
+# define synthfirm parameters
 data_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
-analysis_year = '2018'
+analysis_year = '2050'
 region_name = 'Seattle'
 os.chdir(data_path)
 
-input_dir = 'RawData/PSRC/'
+### PSRC inputs ###
+# path to PSRC data
+input_dir = 'RawData/PSRC/' # need to update this to where the PSRC data is located
 output_dir = 'Inputs_' + region_name
-# load parcel data
-baseline_parcel_path = os.path.join(input_dir, 'landuse', analysis_year,'v3.0_RTP/parcels_urbansim.txt')
+
+# PSRC parcel data
+parcel_file = 'rtp_2050_updated_income/parcels_urbansim.txt'
+
+# soundcast DB
+db_file = 'soundcast_inputs.db'
+from_file = 'parcel_2018_geography' # this is hard coded for now, may need to replace in the future
+
+### SynthFirm inputs ###
+# employment by zone #
+synthfirm_empranking_file = 'data_mesozone_emprankings.csv'
+baseline_parcel_path = os.path.join(input_dir, 'landuse', analysis_year, parcel_file)
 psrc_parcels = pd.read_csv(baseline_parcel_path, sep = ' ')
 
-soundcast_input_db = os.path.join(input_dir, 'db', 'soundcast_inputs.db')
+# <codecell>
+## start data loading
+soundcast_input_db = os.path.join(input_dir, 'db', db_file)
 db_con = sqlite3.connect(soundcast_input_db)
 
-emp_ranking_file = os.path.join(output_dir, 'data_mesozone_emprankings.csv')
+emp_ranking_file = os.path.join(output_dir, synthfirm_empranking_file)
 emp_ranking = read_csv(emp_ranking_file)
 
 db_cur = db_con.cursor()
 
-# <codecell>
-from_file = 'parcel_' + analysis_year + '_geography'
+
 parcel_geography = pd.read_sql_query("SELECT * FROM " + from_file, db_con)
 
 parcel_geography = \
@@ -46,6 +60,9 @@ parcel_geography[['ParcelID','CityName', 'Census2010Block',
        'Census2010BlockGroup', 'Census2010Tract', 'FAZID', 'taz_p', 
                   'District', 'district_name', 'CountyName', 'TAZ', 
                   'BaseYear', 'GEOID10', 'place_name']]
+
+
+# <codecell>
 
 # merge geography and create parcel employment data
 
@@ -239,6 +256,6 @@ emp_ranking_adjusted = pd.pivot_table(emp_ranking_adjusted,
 emp_ranking_adjusted = emp_ranking_adjusted.reset_index()
 emp_ranking_output = pd.concat([emp_ranking_adjusted, emp_ranking_no_adj])
 
-output_file = os.path.join(output_dir,'data_mesozone_emprankings_calibrated.csv')
+output_file = os.path.join(output_dir,'data_mesozone_emprankings_2050.csv')
 emp_ranking_output.to_csv(output_file, index = False)
 

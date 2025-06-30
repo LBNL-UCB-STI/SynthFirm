@@ -16,14 +16,16 @@ from pandas import read_csv
 import numpy as np
 from pygris import block_groups
 import contextily as cx
+import matplotlib
 
 warnings.filterwarnings("ignore")
 
 data_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 os.chdir(data_path)
 
-analysis_year = '2018'
+analysis_year = '2050'
 region_name = 'Seattle'
+out_scenario_name = 'Seattle_2050'
 psrc_crs = 'EPSG:2285'
 
 '''
@@ -31,7 +33,8 @@ This post-processor assign parcel ID to individual firms within psrc region
 
 '''
 input_dir = 'Inputs_' + region_name
-output_dir = 'outputs_' + region_name
+output_dir = 'outputs_' + out_scenario_name
+plot_dir = 'plots_' + out_scenario_name
 # load parcel data
 psrc_parcel_path = os.path.join(input_dir, 'parcel_data_' + analysis_year + '.csv')
 psrc_parcels = pd.read_csv(psrc_parcel_path, sep = ',')
@@ -50,8 +53,8 @@ synthetic_firm_to_calibrate.loc[:, 'MESOZONE'] = \
     synthetic_firm_to_calibrate.loc[:, 'MESOZONE'].astype(int).astype(str).str.zfill(12)
 # <codecell>
 # create spatial map of parcel
-import matplotlib
-plot_dir = 'plots_' + region_name
+
+
 psrc_parcels_gdf = gps.GeoDataFrame(
     psrc_parcels, 
     geometry=gps.points_from_xy(psrc_parcels.xcoord_p, 
@@ -115,7 +118,7 @@ print(psrc_emp_long['industry'].unique())
 synthetic_firm_in_region.loc[:, 'n2'] = \
     synthetic_firm_in_region.loc[:, 'Industry_NAICS6_Make'].astype(str).str[0:2]
 
-print(synthetic_firm_in_region.loc[:, 'n2'].unique())
+# print(synthetic_firm_in_region.loc[:, 'n2'].unique())
 industry_mapping = {
     'Other': ['11', '21', '23'],
     'Industrial': ['31', '32', '33', '22', '42', '48', '49'],
@@ -137,14 +140,14 @@ print(synthetic_firm_in_region.loc[:, 'industry'].unique())
 # assign parcel id to firms in region
 
 psrc_emp_long.rename(columns = {'Census2010BlockGroup': 'MESOZONE'}, inplace = True)
-print('firms before assign parcel ID:')
+print('Firms before assign parcel ID:')
 print(len(synthetic_firm_in_region))
 
 
 synthetic_firm_with_parcel = pd.merge(synthetic_firm_in_region, psrc_emp_long,
                                       on = ['MESOZONE', 'industry'], how = 'left')
 
-print('firms when assign parcel ID:')
+print('Firms selected in parcel ID assignments:')
 print(len(synthetic_firm_with_parcel.BusID.unique()))
 
 # <codecell>
@@ -164,15 +167,15 @@ synthetic_firm_with_parcel = \
     synthetic_firm_with_parcel.groupby(essential_attr).sample(1,
                                      weights = synthetic_firm_with_parcel['PSRC_emp'],
                                      replace = True, random_state = 1)
-print('firms after assign parcel ID:')
-print(len(synthetic_firm_with_parcel))
+# print('Firms after assigning parcel ID:')
+# print(len(synthetic_firm_with_parcel))
 
 # <codecell>
 
 # impute firms with missing parcel
 if len(synthetic_firm_to_impute) > 0:
     sample_size = len(synthetic_firm_to_impute)
-    print('parcel IDs are imputed for ' + str(sample_size) + ' firms')
+    print('Parcel IDs are imputed for ' + str(sample_size) + ' firms')
     psrc_emp_by_cbg = psrc_parcels.groupby(['Census2010BlockGroup', 'ParcelID'])[['emptot_p']].sum()
     psrc_emp_by_cbg = psrc_emp_by_cbg.reset_index()
     psrc_emp_by_cbg.columns = ['MESOZONE', 'ParcelID', 'PSRC_emp']
@@ -194,12 +197,24 @@ if len(synthetic_firm_to_impute) > 0:
         synthetic_firm_to_impute.groupby(essential_attr).sample(1,
                                          weights = synthetic_firm_to_impute['PSRC_emp'],
                                          replace = True, random_state = 1)
-    print('firms after assign parcel ID:')
-    print(len(synthetic_firm_to_impute))
+
     synthetic_firm_with_parcel = pd.concat([synthetic_firm_with_parcel, 
                                             synthetic_firm_to_impute])
 
+    print('Firms after assigning parcel ID:')
+    print(len(synthetic_firm_with_parcel))
 
+# <codecell>
+
+# impute the last batch of missing if presented
+if len(synthetic_firm_remaining) > 0:
+    sample_size = len(synthetic_firm_remaining)
+    print('WARNING!!: There are unassigned firms after parcel ID generation and the sample size is ' + str(sample_size))
+#     print('Parcel IDs are imputed for ' + str(sample_size) + ' firms')
+#     synthetic_firm_remaining.drop(columns = ['ParcelID', 'PSRC_emp'], inplace = True)
+    
+#     synthetic_firm_remaining = pd.merge(synthetic_firm_remaining, psrc_emp_by_cbg,
+#                                           on = ['MESOZONE'], how = 'left')
 # <codecell>
 
 # assign lat/lon to parcels

@@ -289,6 +289,8 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
     production_to_check_sctg2 = production.loc[production['Commodity_SCTG'].isin([16,17,18,19,20,22,23])]
     production_to_check_sctg2 = production_to_check_sctg2.loc[production_to_check_sctg2['Zone']< 20000]
     # print(production_to_check_sctg2.OutputCapacitylb.sum()/2000/1000)
+    print('Total number of firms after demand forecast:')
+    print(len(firms))
     firms.to_csv(synthetic_firms_no_location_file, index = False)
     production.to_csv(producer_file, index = False)
     consumption.to_csv(consumer_file, index = False)
