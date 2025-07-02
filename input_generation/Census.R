@@ -25,9 +25,11 @@ setwd(path2file)
 
 # define inputs
 
-output_state = c('CA')
-selected_year = 2017
-region_name = 'BayArea'
+#output_state = c('CA')
+output_state = 'US'
+output_state_name = 'US'
+selected_year = 2019
+region_name = 'national'
 
 if (output_state =='US'){
   selected_state = unique(fips_codes$state)[1:56]
@@ -143,7 +145,8 @@ sf::st_write(state_bg_df_filtered, bg_name, append=FALSE)
 
 # 215,509 CBG nationwide, after excluding block group id 0
 state_wac_filtered <- state_wac %>% filter(GEOID %in% list_of_geoid)
-output_name = paste0('inputs_', region_name, '/', output_state, '_naics.csv')
+
+output_name = paste0('inputs_', region_name, '/', output_state_name, '_naics.csv')
 data.table::fwrite(state_wac_filtered, output_name)
 
 
