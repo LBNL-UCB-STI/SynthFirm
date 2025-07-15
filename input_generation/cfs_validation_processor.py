@@ -119,12 +119,28 @@ df['DEST_NAME'] = df['DEST_CFS_AREA'].map(mapping)
 # <codecell>
 df = df[['WGT_FACTOR','ORIG_CFS_AREA','ORIG_FAFID', 'ORIG_NAME','DEST_CFS_AREA',
          'DEST_FAFID', 'DEST_NAME', 'SHIPMT_DIST_GC', 'SHIPMT_DIST_ROUTED',
-         'commodity', 'SCTG_Group', 'naics_name','wght_ton_th', 'wgted_wght_ton_th',
+         'SCTG', 'commodity', 'SCTG_Group', 'naics_name','wght_ton_th', 'wgted_wght_ton_th',
          'mode_agg5']]
 
 df.loc[:, 'tonmile'] = \
 1000 * df.loc[:, 'wgted_wght_ton_th'] * df.loc[:, 'SHIPMT_DIST_ROUTED']
 
+# <codecell>
+import seaborn as sns
+df_sample = df.sample(100000)
+df_sample['SHIPMT_WGHT_TON'] = df_sample['wght_ton_th'] * 1000
+
+sctg_names = df_sample.commodity.unique()
+for group in sctg_names:
+    df_sample_to_plot = df_sample.loc[df_sample['commodity'] == group]
+    sns.boxplot(df_sample_to_plot, x = 'SCTG', y = 'SHIPMT_WGHT_TON',
+                showfliers = False)
+    plt.title(group)
+    plt.ylabel('Shipment size (tons)')
+    plt.savefig('RawData/CFS/shipment_size_distribution_' + group + '.png', dpi = 300)
+    plt.show()
+    
+# <codecell>
 # this part replace the CFS processes in validation code
 agg_var = ['ORIG_FAFID', 'ORIG_NAME', 'DEST_FAFID', 'DEST_NAME', 'commodity', 'SCTG_Group', 'mode_agg5']
 cfs_distribution_by_zone = \
