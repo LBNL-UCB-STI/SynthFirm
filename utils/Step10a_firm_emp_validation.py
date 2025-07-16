@@ -16,7 +16,7 @@ import visualkit as vk
 import warnings
 warnings.filterwarnings('ignore')
 
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
+os.chdir('C:/SynthFirm')
 
 ########################################################
 #### step 1 - configure environment and load inputs ####
@@ -24,17 +24,19 @@ os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 # define scatter plot
 
-
+# <codecell>
 # define scenario
-scenario_name = 'Seattle'
-out_scenario_name = 'Seattle'
+scenario_name = 'national'
+out_scenario_name = 'national'
 param_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
 output_dir = 'outputs_' + out_scenario_name
 plot_dir = 'plots_' + out_scenario_name
-region_code = [411, 531, 532, 539]
+region_code = None
+focus_region = None
+# region_code = [411, 531, 532, 539]
 # region_code = [62, 64, 65, 69]
-focus_region = 531
+# focus_region = 531
 lehd_file = 'US_naics.csv'
 map_file = scenario_name + '_freight.geojson'
 add_base_map_selection = True
@@ -52,15 +54,16 @@ mesozone_id_lookup = read_csv(os.path.join(input_dir, 'zonal_id_lookup_final.csv
 lehd_validation = read_csv(os.path.join(param_dir, lehd_file))
 synthfirm_output = read_csv(os.path.join(output_dir, 'processed_b2b_flow_summary_mesozone.csv'))
 
+# <codecell>
+region_map.dropna(subset = ['geometry'], inplace = True)
 # calculate land area
 region_map.loc[:, "area"] = \
 region_map['geometry'].to_crs({'proj':'cea'}).map(lambda p: p.area / 10**6) 
 
-# <codecell>
 # load shifted county geometry
 analysis_year = 2017
 us_counties = gpd.read_file(os.path.join(param_dir, 'US_countries.geojson'))
-us_counties.plot()
+# us_counties.plot()
 # <codecell>
 
 ##################################################################
@@ -76,7 +79,6 @@ print('Total national firms and employments:')
 print(firm_by_zone[['firm_count', 'employment_count']].sum())
 firm_by_zone = pd.merge(firm_by_zone, mesozone_id_lookup, 
                         on = 'MESOZONE', how = 'left')
-
 
 # <codecell>
 if region_code is not None:
@@ -126,9 +128,9 @@ lehd_firm_by_county = lehd_firm_by_county.reset_index()
 firm_comparison_by_county = pd.merge(lehd_firm_by_county, 
                                      firm_in_study_area_by_county,
                                      on = 'CBPZONE',
-                                     how = 'inner')
+                                     how = 'outer')
 firm_comparison_by_county.columns = ['County', 'LEHD employment', 'SynthFirm employment']
-
+firm_comparison_by_county.fillna(0, inplace = True)
 plot_file_1 = os.path.join(plot_dir, 'emp_by_county_validation.png')
 vk.plot_emp_comparison_scatter(firm_comparison_by_county,  'LEHD employment', 
                     'SynthFirm employment', 'County', plot_file_1)
@@ -141,14 +143,23 @@ lehd_firm_by_cbg = lehd_validation.groupby('GEOID')[['total']].sum()
 lehd_firm_by_cbg = lehd_firm_by_cbg.reset_index()
 
 firm_in_study_area_by_cbg.drop(columns = 'MESOZONE', inplace = True)
+
+lehd_firm_by_cbg.loc[:, 'GEOID'] = \
+lehd_firm_by_cbg.loc[:, 'GEOID'].astype(np.int64).astype(str).str.zfill(12)
+
+firm_in_study_area_by_cbg.loc[:, 'GEOID'] = \
+firm_in_study_area_by_cbg.loc[:, 'GEOID'].astype(np.int64).astype(str).str.zfill(12)
+
 firm_comparison_by_cbg = pd.merge(lehd_firm_by_cbg, 
                                      firm_in_study_area_by_cbg,
                                      on = 'GEOID',
-                                     how = 'inner')
+                                     how = 'outer')
 firm_comparison_by_cbg.columns = ['GEOID', 'LEHD employment', 'SynthFirm employment']
+firm_comparison_by_cbg.fillna(0, inplace = True)
+
 plot_file_2 = os.path.join(plot_dir, 'emp_by_cbg_validation.png')
 vk.plot_emp_comparison_scatter(firm_comparison_by_cbg,  'LEHD employment', 
-                    'SynthFirm employment', 'CBG', plot_file_2)
+                    'SynthFirm employment', 'CBG', plot_file_2, alpha = 0.1)
 
 # <codecell>
 
@@ -196,9 +207,10 @@ firm_in_study_area_by_industry = \
 
 firm_comparison_by_industry = pd.merge(lehd_firm_by_industry,
                                        firm_in_study_area_by_industry,
-                                       on = 'industry', how = 'inner')
+                                       on = 'industry', how = 'outer')
 
 firm_comparison_by_industry.columns = ['Industry', 'LEHD employment', 'SynthFirm employment']
+firm_comparison_by_industry.fillna(0, inplace = True)
 
 plot_file_3 = os.path.join(plot_dir, 'emp_by_industry_validation.png')
 vk.plot_emp_comparison_bar(firm_comparison_by_industry,  'LEHD employment', 
@@ -229,16 +241,22 @@ region_map_with_firm.loc[:, 'firm_count'] / region_map_with_firm.loc[:, 'area']
 region_map_with_firm.loc[:, 'emp_per_area'] = \
 region_map_with_firm.loc[:, 'employment_count'] / region_map_with_firm.loc[:, 'area']
 
+# <codecell>
+from pygris.utils import shift_geometry
+
+if region_code is None: # shift geometry for national run
+    region_map_with_firm = shift_geometry(region_map_with_firm)
+
 map_file_1 = os.path.join(plot_dir, 'region_firm_count.png')
 vk.plot_region_map(region_map_with_firm, 'firm_per_area', 
                 'Firm Density (firms/$km^{2}$)', # title
-                    map_file_1, add_basemap = True, 
+                    map_file_1, add_basemap = False, 
                     vmin=0, vmax=50)
 
 map_file_2 = os.path.join(plot_dir, 'region_emp_count.png')
 vk.plot_region_map(region_map_with_firm, 'emp_per_area', 
                 'Employment Density (employees/$km^{2}$)', # title
-                map_file_2, add_basemap = True, 
+                map_file_2, add_basemap = False, 
                     vmin=0, vmax=1000)
 
 
@@ -270,13 +288,13 @@ county_map_with_firm.loc[:, 'employment_count'] / county_map_with_firm.loc[:, 'a
 map_file_1c = os.path.join(plot_dir, 'region_firm_count_ct.png')
 vk.plot_county_map(county_map_with_firm, 'firm_per_area', 
                 'Firm Density (firms/$km^{2}$)', # title
-                    map_file_1c, logscale = False, 
-                    vmin=0, vmax=50)
+                    map_file_1c, logscale = True, 
+                    vmin=0, vmax=100)
 
 map_file_2c = os.path.join(plot_dir, 'region_emp_count_ct.png')
 vk.plot_county_map(county_map_with_firm, 'emp_per_area', 
                 'Employment Density (employees/$km^{2}$)', # title
-                map_file_2c, logscale = False, 
+                map_file_2c, logscale = True, 
                     vmin=0, vmax=1000)
 
 # <codecell>
@@ -316,6 +334,8 @@ joint_commodity_flow.fillna(0, inplace = True)
 region_map_with_cf = \
 region_map.merge(joint_commodity_flow, on='MESOZONE', how='inner')
 
+if region_code is None: # shift geometry for national run
+    region_map_with_cf = shift_geometry(region_map_with_cf)
 # plot normalized production
 region_map_with_cf.loc[:, 'production_per_area'] = \
 region_map_with_cf.loc[:, 'production'] * 0.907185/ \
@@ -324,7 +344,7 @@ region_map_with_cf.loc[:, 'area']
 map_file_3 = os.path.join(plot_dir, 'region_production_allmodes.png')
 vk.plot_region_map(region_map_with_cf, 'production_per_area', 
                 'Commodity Production (1000 tons/$km^{2}$)', # title
-                    map_file_3, add_basemap = True, 
+                    map_file_3, add_basemap = False, 
                     vmin=0, vmax=100)
 # plot normalized production
 region_map_with_cf.loc[:, 'consumption_per_area'] = \
@@ -334,7 +354,7 @@ region_map_with_cf.loc[:, 'area']
 map_file_4 = os.path.join(plot_dir, 'region_attraction_allmodes.png')
 vk.plot_region_map(region_map_with_cf, 'consumption_per_area', 
                 'Commodity Attraction (1000 tons/$km^{2}$)', # title
-                map_file_4, add_basemap = True, 
+                map_file_4, add_basemap = False, 
                     vmin=0, vmax=100)
 
 # <codecell>

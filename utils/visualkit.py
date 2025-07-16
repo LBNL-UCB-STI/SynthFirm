@@ -20,7 +20,7 @@ sns.set(font_scale=1.4)
 sns.set_style("white")
 
 def plot_emp_comparison_scatter(df, x_col, y_col, agg_level,
-                        plot_filepath):
+                        plot_filepath, alpha = 0.3):
     # Calculate metrics
     rmse_emp = root_mean_squared_error(df[x_col], df[y_col])
     r2_emp = r2_score(df[x_col], df[y_col])
@@ -34,7 +34,7 @@ def plot_emp_comparison_scatter(df, x_col, y_col, agg_level,
     print(rmse_emp, r2_emp)
         
     # Determine axis limits with a 5% margin
-    max_val = max(df[x_col].quantile(0.99), df[y_col].quantile(0.99))
+    max_val = max(df[x_col].quantile(0.999), df[y_col].quantile(0.999))
     axis_max = max_val * 1.05
     
     # Plot
@@ -42,7 +42,7 @@ def plot_emp_comparison_scatter(df, x_col, y_col, agg_level,
         data=df, x=x_col, y=y_col, 
         height=4.5, aspect=1.2, 
         line_kws={'color': 'grey'}, 
-        scatter_kws={'alpha':0.3}
+        scatter_kws={'alpha':alpha}
     )
     plt.xlim([0, axis_max])
     plt.ylim([0, axis_max])
