@@ -14,6 +14,7 @@ import geopandas as gpd
 import contextily as cx
 import numpy as np
 import matplotlib
+import pandas as pd
 
 plt.style.use('seaborn-v0_8-white')
 sns.set(font_scale=1.4)
@@ -132,6 +133,7 @@ def plot_region_map(region_gdf, column, title,
         cx.add_basemap(ax, crs=region_gdf.crs.to_string() if region_gdf.crs else 'EPSG:4326', 
                    source=cx.providers.CartoDB.Positron)
     ax.grid(False)
+    ax.axis('off')
     plt.title(title)
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
@@ -189,6 +191,280 @@ def plot_county_map(region_gdf, column, title,
             edgecolor='none')
 
     ax.grid(False)
+    ax.axis('off')
     plt.title(title)
     plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.show()
+
+# kde plot for shipment distance
+def plot_distance_kde(faf_data,  cfs_data, modeled_data, 
+                      mode, filename):
+    plt.figure(figsize=(6, 4.5))
+    ax = sns.kdeplot(
+        data=faf_data, x='Distance', 
+        weights='Load', cut=0, color='blue'
+    )
+    sns.kdeplot(
+        data=cfs_data, x='Distance', 
+        weights='Load', cut=0, color='orange', ax=ax
+    )
+    sns.kdeplot(
+        data=modeled_data, x='Distance', 
+        weights='Load', cut=0, color='green', ax=ax
+    )
+    ax.set(facecolor="white")
+    for spine in ['bottom', 'top', 'right', 'left']:
+        ax.spines[spine].set_color('0.5')
+    plt.xlim([0, 6000])
+    plt.legend(['FAF distance', 'CFS2017 distance', 'Modeled distance'])
+    plt.title('Mode = ' + mode)
+    plt.xlabel('Distance (km)')
+    plt.ylabel('Density')
+    plt.savefig(filename, bbox_inches='tight', dpi=200)
+    plt.show()  
+
+# bar plot absolute shipment attributes by market segments
+
+def plot_shipment_by_sector_bar(
+    faf_outflow, cfs_outflow, modeled_outflow, agg_level, attr_name, attr_unit, filename):
+    # Aggregate by SCTG/commodity
+    FAF_shipment_by_sctg = \
+        faf_outflow.groupby(agg_level)[[attr_name]].sum()
+    
+    CFS_shipment_by_sctg = \
+        cfs_outflow.groupby(agg_level)[[attr_name]].sum()
+    
+    modeled_shipment_by_sctg = \
+        modeled_outflow.groupby(agg_level)[[attr_name]].sum()
+    
+    # Merge all
+    shipment_generation_by_sctg = pd.merge(
+        FAF_shipment_by_sctg, CFS_shipment_by_sctg,
+        left_index=True, right_index=True, how='left'
+    )
+    shipment_generation_by_sctg = pd.merge(
+        shipment_generation_by_sctg, modeled_shipment_by_sctg,
+        left_index=True, right_index=True, how='left'
+    )
+    
+    output_cols = [
+        'FAF ' + attr_name, 
+        'CFS shipment' + attr_name, 
+        'Modeled shipment' + attr_name
+    ]
+    shipment_generation_by_sctg.columns = output_cols
+
+    # Unit conversion
+    # for col in output_cols:
+    #     shipment_generation_by_sctg.loc[:, col] *= us_ton_to_ton
+
+    # Plot
+    ax = shipment_generation_by_sctg.plot(
+        y = output_cols,
+        figsize=(6, 4.5), kind='bar',
+        title=f'Shipment {attr_name} by {agg_level}'
+    )
+    ax.set(facecolor="white")
+    for spine in ['bottom', 'top', 'right', 'left']:
+        ax.spines[spine].set_color('0.5')
+    plt.xticks(rotation = 60, ha = 'right')
+    plt.xlabel('')
+    plt.ylabel(f'Shipment {attr_name} ({attr_unit})')
+    plt.legend(fontsize=12)
+    plt.savefig(filename, bbox_inches='tight', dpi=300)
+    plt.show()
+    
+# bar plot mode split against CFS
+def plot_shipment_by_5mode_bar(
+    cfs_outflow,
+    modeled_outflow, agg_level, attr_name, attr_unit,
+    filename
+):
+    """
+    Compare and plot outbound shipment fractions by aggregated 5-mode categories.
+
+    Parameters:
+        cfs_outflow: pd.DataFrame, CFS outbound data
+     
+        modeled_outflow: pd.DataFrame, modeled outbound data
+        agg_level: str, variable name for 5-mode definition
+        attr_name: str, modeled shipment attributes
+        attr_unit: str, unit
+        filename: str, directory + file to save the plot
+
+    """
+
+    # Aggregate CFS
+    cfs_outflow_by_5mode = \
+        cfs_outflow.groupby([agg_level])[[attr_name]].sum().reset_index()
+    
+    cfs_outflow_by_5mode['fraction'] = \
+        cfs_outflow_by_5mode[attr_name] / cfs_outflow_by_5mode[attr_name].sum()
+    
+    # Aggregate modeled
+    agg_modeled_outflow_by_5mode = \
+        modeled_outflow.groupby([agg_level])[[attr_name]].sum().reset_index()
+    
+    agg_modeled_outflow_by_5mode['fraction'] = \
+        agg_modeled_outflow_by_5mode[attr_name] / agg_modeled_outflow_by_5mode[attr_name].sum()  
+
+    # Merge
+    compare_outflow_by_5mode = pd.merge(
+        agg_modeled_outflow_by_5mode, cfs_outflow_by_5mode,
+        on=agg_level, how='left'
+    )
+    # Rename columns for clarity
+    compare_outflow_by_5mode.columns = [
+        agg_level,
+        'Modeled ' + attr_name, 'Modeled fraction',
+        'CFS ' + attr_name, 'CFS fraction'
+    ]
+
+    # Plot
+    ax = compare_outflow_by_5mode.plot(
+        x=agg_level,
+        y=['CFS fraction', 'Modeled fraction'],
+        figsize=(6, 4.5), kind='bar',
+        title=f'Outbound {attr_name} by {agg_level}'
+    )
+    vals = ax.get_yticks()
+    ax.set_yticklabels(['{:,.2%}'.format(x) for x in vals])
+    ax.set(facecolor="white")
+    for spine in ['bottom', 'top', 'right', 'left']:
+        ax.spines[spine].set_color('0.5')
+    plt.xticks(rotation = 60, ha = 'right')
+    plt.xlabel('')
+    plt.ylabel(f'Shipment by {attr_name} ({attr_unit})')
+    plt.legend(fontsize = 12)
+    plt.savefig(filename, bbox_inches='tight', dpi=300)
+    plt.show()
+
+# categorical plot for shipment by zone    
+def plot_shipment_comparison_by_zone(
+    faf_outflow, 
+    cfs_outflow, 
+    modeled_outflow, 
+    agg_level, agg_level_name, attr_name, attr_unit,
+    filename
+):
+    """
+    Compares and plots shipment load by origin zone from FAF, CFS, and modeled data.
+    Saves plot and output CSV.
+    """
+    # FAF aggregation
+    agg_faf_outflow_by_zone = \
+        faf_outflow.groupby([agg_level])[[attr_name]].sum().reset_index()
+    # CFS aggregation
+    cfs_outflow_by_zone = \
+        cfs_outflow.groupby([agg_level])[[attr_name]].sum()
+    # Modeled aggregation
+    agg_modeled_outflow_by_zone = \
+        modeled_outflow.groupby([agg_level, agg_level_name])[[attr_name]].sum().reset_index()
+
+    # Merge FAF and modeled
+    compare_outflow_by_zone = pd.merge(
+        agg_faf_outflow_by_zone, cfs_outflow_by_zone,
+        on = agg_level,  how='left'
+    )
+    metric_1 = attr_name + '_x'
+    metric_2 = attr_name + '_y'
+    compare_outflow_by_zone.rename(columns = {metric_1: 'FAF ' + attr_name,
+                                              metric_2: 'CFS ' + attr_name},
+                                   inplace = True)
+    # Merge CFS
+    compare_outflow_by_zone = pd.merge(
+        compare_outflow_by_zone, agg_modeled_outflow_by_zone,
+        on = agg_level, how='left'
+    )
+
+    compare_outflow_by_zone.rename(columns = {attr_name: 'Modeled ' + attr_name},
+                                   inplace = True)
+
+    # Melt for plotting
+    output_metric = f'{attr_name} ({attr_unit})'
+    compare_outflow_by_zone = pd.melt(
+        compare_outflow_by_zone,
+        id_vars=[agg_level, agg_level_name],
+        value_vars=['FAF ' + attr_name, 'Modeled ' + attr_name, 'CFS ' + attr_name],
+        var_name='Source', value_name=output_metric, ignore_index=False
+    )
+    compare_outflow_by_zone = compare_outflow_by_zone.reset_index()
+    # Plot
+    
+    ax = sns.catplot(
+        data=compare_outflow_by_zone, kind="bar",
+        x="Source", hue="Source", y = output_metric, col = agg_level_name, col_wrap=2,
+        alpha=.8, height=4, aspect=1.4
+    )
+    ax.set_titles("{col_name}")
+    for axn in ax.axes.flat:
+        for label in axn.get_xticklabels():
+            label.set_rotation(30)
+    plt.savefig(filename, bbox_inches='tight', dpi=300)
+    plt.show()
+    
+    
+def plot_top_OD_bar(
+    faf_outflow,    
+    cfs_outflow, 
+    modeled_outflow, 
+    nzones, agg_level, agg_level_name, attr_name, attr_unit,
+    filename
+
+):
+    """
+    Compare and plot outbound shipment fractions by destination zone
+    for FAF, CFS, and modeled data (top N zones).
+    """
+    # FAF aggregation
+    faf_flow_by_zone = \
+        faf_outflow.groupby([agg_level])[[attr_name]].sum().reset_index()
+
+    # CFS aggregation
+    cfs_flow_by_zone = \
+    cfs_outflow.groupby([agg_level])[[attr_name]].sum()
+    
+    # Modeled aggregation
+    print(modeled_outflow.columns)
+    modeled_flow_by_zone = \
+        modeled_outflow.groupby([agg_level, agg_level_name])[[attr_name]].sum().reset_index()
+    
+    # Merge FAF and modeled
+    compare_flow_by_zone = pd.merge(
+        faf_flow_by_zone, cfs_flow_by_zone,
+        on = agg_level, how='left'
+    )
+    # Merge CFS
+    compare_flow_by_zone = pd.merge(
+        compare_flow_by_zone, modeled_flow_by_zone,
+        on = agg_level, how='left'
+    )
+    # Rename columns
+    metric_1 = attr_name + '_x'
+    metric_2 = attr_name + '_y'
+    compare_flow_by_zone.rename(columns={
+        metric_1: 'FAF ' + attr_name,
+        metric_2: 'CFS ' + attr_name,
+        attr_name: 'Modeled ' + attr_name
+    }, inplace = True)
+    # Normalize to fractions
+    compare_flow_by_zone['FAF ' + attr_name] /= compare_flow_by_zone['FAF ' + attr_name].sum()
+    compare_flow_by_zone['Modeled ' + attr_name] /= compare_flow_by_zone['Modeled ' + attr_name].sum()
+    compare_flow_by_zone['CFS ' + attr_name] /= compare_flow_by_zone['CFS ' + attr_name].sum()
+    # Drop missing
+    compare_flow_by_zone.dropna(inplace=True)
+    # Sort and select top zones
+    compare_flow_by_zone = compare_flow_by_zone.sort_values('FAF ' + attr_name, ascending=False)
+    compare_flow_by_zone = compare_flow_by_zone.head(nzones)
+    # Plot
+    ax = compare_flow_by_zone.plot.barh(
+        x= agg_level_name,
+        y=['FAF ' + attr_name, 'CFS ' + attr_name, 'Modeled ' + attr_name],
+        figsize=(7, 10), rot=0
+    )
+    vals = ax.get_xticks()
+    ax.set_xticklabels(['{:,.1%}'.format(x) for x in vals])
+    plt.xlabel(f'Fraction of shipment by {attr_name} ({attr_unit})')
+    plt.ylabel('')
+    plt.savefig(filename, bbox_inches='tight', dpi=200)
     plt.show()
