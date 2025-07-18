@@ -305,13 +305,19 @@ vk.plot_county_map(county_map_with_firm, 'emp_per_area',
 
 # plot production and consumption results by CBG zone
 # production density
-
+truck_only = True
+truck_modes = ['For-hire Truck', 'Private Truck']
 if focus_region is not None:
     production_in_region = synthfirm_output.loc[synthfirm_output['orig_FAFID'].isin([focus_region])]
     attraction_in_region = synthfirm_output.loc[synthfirm_output['dest_FAFID'].isin([focus_region])]
 else:
     production_in_region = synthfirm_output.copy()
     attraction_in_region = synthfirm_output.copy()
+if truck_only:
+    production_in_region = \
+        production_in_region.loc[production_in_region['mode_choice'].isin(truck_modes)]
+    attraction_in_region = \
+        attraction_in_region.loc[attraction_in_region['mode_choice'].isin(truck_modes)]
     
 production_in_region = production_in_region.groupby(['SellerZone'])[['ShipmentLoad']].sum()
 production_in_region = production_in_region.reset_index()
@@ -340,19 +346,26 @@ if region_code is None: # shift geometry for national run
 region_map_with_cf.loc[:, 'production_per_area'] = \
 region_map_with_cf.loc[:, 'production'] * 0.907185/ \
 region_map_with_cf.loc[:, 'area']
-# <codecell>
 
-map_file_3 = os.path.join(plot_dir, 'region_production_allmodes.png')
+region_map_with_cf.loc[:, 'consumption_per_area'] = \
+region_map_with_cf.loc[:, 'consumption'] * 0.907185/ \
+region_map_with_cf.loc[:, 'area']
+# <codecell>
+if truck_only:
+    map_file_3 = os.path.join(plot_dir, 'region_production_truck.png')
+else:
+    map_file_3 = os.path.join(plot_dir, 'region_production_allmodes.png')
 vk.plot_region_map(region_map_with_cf, 'production_per_area', 
                 'Commodity Production (1000 tons/$km^{2}$)', # title
                     map_file_3, add_basemap = True, 
                     vmin=0, vmax=100)
 # plot normalized production
-region_map_with_cf.loc[:, 'consumption_per_area'] = \
-region_map_with_cf.loc[:, 'consumption'] * 0.907185/ \
-region_map_with_cf.loc[:, 'area']
 
-map_file_4 = os.path.join(plot_dir, 'region_attraction_allmodes.png')
+if truck_only:
+    map_file_4 = os.path.join(plot_dir, 'region_attraction_truck.png')
+else:
+    map_file_4 = os.path.join(plot_dir, 'region_attraction_allmodes.png')
+    
 vk.plot_region_map(region_map_with_cf, 'consumption_per_area', 
                 'Commodity Attraction (1000 tons/$km^{2}$)', # title
                 map_file_4, add_basemap = True, 
