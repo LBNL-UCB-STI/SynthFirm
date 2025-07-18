@@ -16,7 +16,7 @@ import visualkit as vk
 import warnings
 warnings.filterwarnings('ignore')
 
-os.chdir('C:/SynthFirm')
+os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 ########################################################
 #### step 1 - configure environment and load inputs ####
@@ -26,17 +26,17 @@ os.chdir('C:/SynthFirm')
 
 # <codecell>
 # define scenario
-scenario_name = 'national'
-out_scenario_name = 'national'
+scenario_name = 'Seattle'
+out_scenario_name = 'Seattle'
 param_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
 output_dir = 'outputs_' + out_scenario_name
 plot_dir = 'plots_' + out_scenario_name
 region_code = None # using None for national --> need to be replaced with run type
 focus_region = None # using None for national --> need to be replaced with run type
-# region_code = [411, 531, 532, 539]
+region_code = [411, 531, 532, 539]
 # region_code = [62, 64, 65, 69]
-# focus_region = 531
+focus_region = 531
 lehd_file = 'US_naics.csv'
 map_file = scenario_name + '_freight.geojson'
 add_base_map_selection = True
@@ -250,13 +250,13 @@ if region_code is None: # shift geometry for national run
 map_file_1 = os.path.join(plot_dir, 'region_firm_count.png')
 vk.plot_region_map(region_map_with_firm, 'firm_per_area', 
                 'Firm Density (firms/$km^{2}$)', # title
-                    map_file_1, add_basemap = False, 
+                    map_file_1, add_basemap = True, 
                     vmin=0, vmax=50)
 
 map_file_2 = os.path.join(plot_dir, 'region_emp_count.png')
 vk.plot_region_map(region_map_with_firm, 'emp_per_area', 
                 'Employment Density (employees/$km^{2}$)', # title
-                map_file_2, add_basemap = False, 
+                map_file_2, add_basemap = True, 
                     vmin=0, vmax=1000)
 
 
@@ -340,11 +340,12 @@ if region_code is None: # shift geometry for national run
 region_map_with_cf.loc[:, 'production_per_area'] = \
 region_map_with_cf.loc[:, 'production'] * 0.907185/ \
 region_map_with_cf.loc[:, 'area']
+# <codecell>
 
 map_file_3 = os.path.join(plot_dir, 'region_production_allmodes.png')
 vk.plot_region_map(region_map_with_cf, 'production_per_area', 
                 'Commodity Production (1000 tons/$km^{2}$)', # title
-                    map_file_3, add_basemap = False, 
+                    map_file_3, add_basemap = True, 
                     vmin=0, vmax=100)
 # plot normalized production
 region_map_with_cf.loc[:, 'consumption_per_area'] = \
@@ -354,7 +355,7 @@ region_map_with_cf.loc[:, 'area']
 map_file_4 = os.path.join(plot_dir, 'region_attraction_allmodes.png')
 vk.plot_region_map(region_map_with_cf, 'consumption_per_area', 
                 'Commodity Attraction (1000 tons/$km^{2}$)', # title
-                map_file_4, add_basemap = False, 
+                map_file_4, add_basemap = True, 
                     vmin=0, vmax=100)
 
 # <codecell>
