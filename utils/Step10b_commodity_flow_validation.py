@@ -18,10 +18,10 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # <codecell>
-os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
+os.chdir('C:\SynthFirm')
 
-scenario_name = 'Seattle'
-out_scenario_name = 'Seattle'
+scenario_name = 'national'
+out_scenario_name = 'national'
 param_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
 output_dir = 'outputs_' + out_scenario_name
@@ -45,14 +45,15 @@ miles_to_km = 1.60934
 shipment_load_attr = 'tons_' + str(analysis_year)
 shipment_tonmile_attr = 'tmiles_' + str(analysis_year)
 
-region_code = [411, 531, 532, 539]
-focus_region = 531
+# region_code = [411, 531, 532, 539]
+# focus_region = 531
+
+region_code = None
+focus_region = None
 
 FAF_mode_mapping = {'Truck':['For-hire Truck', 'Private Truck'], 
                     'Rail':['Rail/IMX'], 
                     'Air': ['Air'], 'Parcel':['Parcel']}
-
-
 
 # <codecell>
 
@@ -136,9 +137,12 @@ modeled_inflow = modeled_data.loc[modeled_data['inbound'] == 1]
 # <codecell>
 
 # calculate summary statistics for the entire modeled region
-in_region = (faf_data_domestic['Origin'].isin(region_code) | \
-             faf_data_domestic['Destination'].isin(region_code))
-faf_region = faf_data_domestic.loc[in_region]
+if region_code is not None:
+    in_region = (faf_data_domestic['Origin'].isin(region_code) | \
+                 faf_data_domestic['Destination'].isin(region_code))
+    faf_region = faf_data_domestic.loc[in_region]
+else:
+    faf_region = faf_data_domestic.copy()
 
 faf_regional_total = faf_region.loc[:, 'Load'].sum() * us_ton_to_ton
 print('Total regional load from FAF (in 1000 metric ton):')
