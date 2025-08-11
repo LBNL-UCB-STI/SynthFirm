@@ -220,3 +220,62 @@ port_in_region.to_file(os.path.join(path_to_write, 'Port/port_location_in_region
 
 port_in_region_df.to_csv(os.path.join(path_to_write, 'Port/port_location_in_region.csv'),
                    index = False)
+
+# <codecell>
+# select USATO port and flow in study region, and generete attributes
+
+international_end_lookup = \
+international_zonal_crosswalk[['Country', 'CFS_CODE', 'CFS_NAME']]
+
+international_end_lookup = \
+international_end_lookup.drop_duplicates(subset= 'Country')
+
+
+# parsing import
+regional_import_flow['Customs Value (Gen) ($US)'] = \
+regional_import_flow['Customs Value (Gen) ($US)'].astype(float)
+
+regional_import_flow.loc[:, 'HS Code'] = \
+regional_import_flow.loc[:, 'Commodity'].str.split(' ').str[0]
+
+regional_import_flow.loc[:, 'HS Code'] = \
+regional_import_flow.loc[:, 'HS Code'].astype(int)
+
+regional_import_flow = pd.merge(regional_import_flow,
+                               international_end_lookup,
+                               on = 'Country', how = 'left')
+
+# parsing export
+regional_export_flow['Total Exports Value ($US)'] = \
+regional_export_flow['Total Exports Value ($US)'].astype(float)
+
+regional_export_flow.loc[:, 'HS Code'] = \
+regional_export_flow.loc[:, 'Commodity'].str.split(' ').str[0]
+
+regional_export_flow.loc[:, 'HS Code'] = \
+regional_export_flow.loc[:, 'HS Code'].astype(int)
+
+regional_export_flow = pd.merge(regional_export_flow,
+                               international_end_lookup,
+                               on = 'Country', how = 'left')
+
+usato_import_in_region = pd.merge(port_in_region_df,
+                                  regional_import_flow,
+                                  left_on = 'CBP Port Location',
+                                  right_on = 'Port',
+                                  how = 'left')
+
+print('total import in region:')
+print(usato_import_in_region['Customs Value (Gen) ($US)'].sum()/10**6)
+
+usato_export_in_region = pd.merge(port_in_region_df,
+                                  regional_export_flow,
+                                  left_on = 'CBP Port Location',
+                                  right_on = 'Port',
+                                  how = 'left')
+
+print('total export in region:')
+print(usato_export_in_region['Total Exports Value ($US)'].sum()/10**6)
+
+usato_import_in_region.to_csv(os.path.join(path_to_write, 'port', 'port_level_import.csv'), index = False)
+usato_export_in_region.to_csv(os.path.join(path_to_write, 'port', 'port_level_export.csv'), index = False)
