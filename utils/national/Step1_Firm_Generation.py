@@ -39,8 +39,10 @@ employment_per_firm_file = os.path.join(parameter_dir, 'employment_by_firm_size_
 employment_per_firm_gapfill_file = os.path.join(parameter_dir, 'employment_by_firm_size_gapfill.csv')
 zip_to_tract_file = os.path.join(parameter_dir, 'ZIP_TRACT_LOOKUP_2016.csv')
 synthetic_firms_no_location_file = os.path.join(output_path, 'synthetic_firms.csv')
+
 susb_file = os.path.join(parameter_dir, 'SUSB_msa_3digitnaics_2016.csv')
 county_to_msa_file = os.path.join(parameter_dir, 'county_msa_crosswalk.csv')
+firm_enterprise_file = os.path.join(output_path, 'synthetic_enterprise.csv')
 
 # def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, 
 #                               c_n6_n6io_sctg_file, employment_per_firm_file,
@@ -496,7 +498,7 @@ imputed_enterprise_pair.loc[:, 'INSUSB'] = 0
 final_enterprise_pair = pd.concat([final_enterprise_pair, \
                                    imputed_enterprise_pair])
 final_enterprise_pair.rename(columns = {'n3': 'NAICS'}, inplace = True)
-firm_enterprise_file = os.path.join(output_path, 'synthetic_enterprise.csv')
+
 final_enterprise_pair.to_csv(firm_enterprise_file, index = False)
 
 firms = pd.concat([firms_with_ent, firms_miss_ent])
