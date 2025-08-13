@@ -133,15 +133,15 @@ ent_by_msa_comparison = pd.merge(susb_ent_by_msa, modeled_ent_by_msa,
 plot_path = 'plots_' + out_scenario_name 
 plot_filepath = os.path.join(plot_path, 'susb_firm_count_by_msa_validation.png')    
 plot_emp_comparison_scatter(ent_by_msa_comparison, 
-                            'FIRM_SUSB', 'FIRM_Model', 'NAICS',
+                            'FIRM_SUSB', 'FIRM_Model', 'MSA',
                             plot_filepath, alpha = 1)
 
 plot_filepath = os.path.join(plot_path, 'susb_bus_count_by_msa_validation.png')    
 plot_emp_comparison_scatter(ent_by_msa_comparison, 
-                            'ESTB_SUSB', 'ESTB_Model', 'NAICS',
+                            'ESTB_SUSB', 'ESTB_Model', 'MSA',
                             plot_filepath, alpha = 1)
 
 plot_filepath = os.path.join(plot_path, 'susb_emp_count_by_msa_validation.png')    
 plot_emp_comparison_scatter(ent_by_msa_comparison, 
-                            'EMPL_SUSB', 'EMPL_Model', 'NAICS',
+                            'EMPL_SUSB', 'EMPL_Model', 'MSA',
                             plot_filepath, alpha = 1)
