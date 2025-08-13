@@ -36,7 +36,8 @@ def main():
     SynthFirm Business-to-business (B2B) flow generation"
     """
     parser = argparse.ArgumentParser(description=des)
-    parser.add_argument("--config", type = str, help = "config file name", default= 'configs/national_base.conf')
+    parser.add_argument("--config", type = str, help = "config file name", 
+                        default= 'configs/Seattle_2050_psrc.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -67,11 +68,18 @@ def main():
     
     # Get the defined synthFirm regions
     regional_analysis = config.getboolean('ENVIRONMENT', 'regional_analysis') 
+    forecast_analysis = config.getboolean('ENVIRONMENT', 'forecast_analysis') 
+    
     if regional_analysis:
         region_code_str = config['ENVIRONMENT']['region_code']
         region_code = [int(num) for num in region_code_str.split(',')]
     else:
         region_code = None
+    
+    if forecast_analysis:
+        forecast_year = config['ENVIRONMENT']['forecast_year']
+    else:
+        forecast_year = None
     # print(region_code_str)
     
 
@@ -88,8 +96,6 @@ def main():
     run_demand_forecast = config.getboolean('ENVIRONMENT', 'enable_demand_forecast')
     # check if this is a forecast run
     if run_demand_forecast:
-        forecast_year = config['ENVIRONMENT']['forecast_year']
-        #print(print(type(forecast_year)))
         print('including demand forecast in the pipeline and forecast year is ' + forecast_year + '...')
         
     enable_firm_loc_generation = config.getboolean('ENVIRONMENT', 'enable_firm_loc_generation')
@@ -157,7 +163,7 @@ def main():
     
 
     # inputs/outputs first appear in demand forecast 
-    if run_demand_forecast:
+    if forecast_analysis:
         prod_forecast_name = config['PARAMETERS']['prod_forecast_filehead'] + forecast_year + '.csv'
         prod_forecast_file = os.path.join(param_path, prod_forecast_name)
         cons_forecast_name = config['PARAMETERS']['cons_forecast_filehead'] + forecast_year + '.csv'
@@ -235,6 +241,11 @@ def main():
             location_from = [int(num) for num in location_from_str.split(',')]
             location_to_str = config['INPUTS']['location_to']
             location_to = [int(num) for num in location_to_str.split(',')]
+        if forecast_analysis:
+            import_forecast_factor = os.path.join(param_path,\
+                                                  config['PARAMETERS']['import_forecast_filehead'] + forecast_year + '.csv')
+            export_forecast_factor = os.path.join(param_path,\
+                                                  config['PARAMETERS']['export_forecast_filehead'] + forecast_year + '.csv')
         regional_import_file = os.path.join(input_path, 'port', config['INPUTS']['regional_import_file'])
         regional_export_file = os.path.join(input_path, 'port', config['INPUTS']['regional_export_file'])
         port_level_import_file = os.path.join(input_path, 'port', config['INPUTS']['port_level_import_file'])
@@ -294,17 +305,6 @@ def main():
     weight_bin_label = [int(num) for num in weight_bin_label_str.split(',')]
     mode_choice_spec['weight_bin_label'] = weight_bin_label  
     
-    # rail_unit_cost_per_tonmile = 0.039
-    # rail_min_cost = 200
-    # air_unit_cost_per_lb = 1.08
-    # air_min_cost = 55
-    # truck_unit_cost_per_tonmile_sm = 2.83
-    # truck_unit_cost_per_tonmile_md = 0.5
-    # truck_unit_cost_per_tonmile_lg = 0.18
-    # truck_min_cost = 10
-    # parcel_cost_coeff_a = 3.58
-    # parcel_cost_coeff_b = 0.015
-    # parcel_cost_max = 1000
     rail_unit_cost_per_tonmile = float(config['MC_CONSTANTS']['rail_unit_cost_per_tonmile'])
     mode_choice_spec['rail_unit_cost'] = rail_unit_cost_per_tonmile
     
@@ -450,22 +450,46 @@ def main():
                                      firms_with_fleet_file, firms_with_fleet_mc_adj_files, output_path, need_regional_calibration)
            
     ###### Step 13 -- international shipment
+    
     if run_international_flow:
         
         # international commodity flow
         if need_domestic_adjustment:
             print('Use international flow generation with destination adjustment...')
-            
-            international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
-                                                sctg_group_file, int_shipment_size_file,
-                                                regional_import_file, regional_export_file, 
-                                                port_level_import_file, port_level_export_file,
-                                                need_domestic_adjustment, import_od, export_od, 
-                                                output_path, 
-                                                location_from, location_to)
-        else: 
+            if forecast_analysis:
+                international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
+                                                    sctg_group_file, int_shipment_size_file,
+                                                    regional_import_file, regional_export_file, 
+                                                    port_level_import_file, port_level_export_file,
+                                                    need_domestic_adjustment, import_od, export_od, 
+                                                    output_path, forecast_year, 
+                                                    import_forecast_factor,
+                                                    export_forecast_factor,
+                                                    location_from, location_to)
+                # full list of inputs
+            else:
+                international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
+                                                    sctg_group_file, int_shipment_size_file,
+                                                    regional_import_file, regional_export_file, 
+                                                    port_level_import_file, port_level_export_file,
+                                                    need_domestic_adjustment, import_od, export_od, 
+                                                    output_path, 
+                                                    location_from = location_from, 
+                                                    location_to =location_to)
+                # skipping forecast
+        else:
             print('Use international flow generation without destination adjustment...')
-            international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
+            if forecast_analysis:
+                international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
+                                                    sctg_group_file, int_shipment_size_file,
+                                                    regional_import_file, regional_export_file, 
+                                                    port_level_import_file, port_level_export_file,
+                                                    need_domestic_adjustment, import_od, export_od, 
+                                                    output_path, forecast_year, 
+                                                    import_forecast_factor,
+                                                    export_forecast_factor)
+            else:
+                international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                                 sctg_group_file, int_shipment_size_file,
                                                 regional_import_file, regional_export_file, 
                                                 port_level_import_file, port_level_export_file,

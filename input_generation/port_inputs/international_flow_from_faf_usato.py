@@ -67,6 +67,26 @@ print(faf_val_by_trade_type)
 faf_data = faf_data.loc[faf_data['trade_type'] != 1]
 
 # <codecell>
+# process USATO data
+# load USATO data
+port_file = 'RawData/Port/port_code_cbp.csv'
+list_of_ports = read_csv(port_file)
+
+port_loc_file = 'SynthFirm_parameters/port_location_CA_WA_OR.geojson'
+port_locations = gpd.read_file(port_loc_file)
+
+import_flow_file = 'RawData/Port/Flow/SF and Seattle Port-level Imports (2017)_with OR.csv'
+regional_import_flow = read_csv(import_flow_file)
+
+export_flow_file = 'RawData/Port/Flow/SF and Seattle Port-level Exports (2017)_with OR.csv'
+regional_export_flow = read_csv(export_flow_file)
+
+study_region_definition = region_name + '_freight.geojson'
+study_region = gpd.read_file(os.path.join(path_to_write, study_region_definition))
+
+
+
+# <codecell>
 # generate import/export flows from FAF
 
 faf_crosswalk = \
@@ -153,24 +173,7 @@ regional_export.to_csv(os.path.join(path_to_write, 'port',
                                     'FAF_regional_export_'+ str(analysis_year)+'.csv'),
                       index = False)
 
-# <codecell>
 
-# process USATO data
-# load USATO data
-port_file = 'RawData/Port/port_code_cbp.csv'
-list_of_ports = read_csv(port_file)
-
-port_loc_file = 'SynthFirm_parameters/port_location_CA_WA_OR.geojson'
-port_locations = gpd.read_file(port_loc_file)
-
-import_flow_file = 'RawData/Port/Flow/SF and Seattle Port-level Imports (2017)_with OR.csv'
-regional_import_flow = read_csv(import_flow_file)
-
-export_flow_file = 'RawData/Port/Flow/SF and Seattle Port-level Exports (2017)_with OR.csv'
-regional_export_flow = read_csv(export_flow_file)
-
-study_region_definition = region_name + '_freight.geojson'
-study_region = gpd.read_file(os.path.join(path_to_write, study_region_definition))
 
 # <codecell>
 

@@ -52,6 +52,9 @@ sctg_group_lookup = read_csv('SynthFirm_parameters/SCTG_Groups_revised_V2.csv', 
 sctg_group_lookup.head(5)
 
 cfs_faf_lookup = read_csv('SynthFirm_parameters/CFS_FAF_LOOKUP.csv')
+
+crosswalk_file = 'SynthFirm_parameters/international_trade_zone_lookup.csv'
+international_zonal_crosswalk = read_csv(crosswalk_file)
 # sctg_group_lookup.head(5)
 
 faf_data.loc[:, 'mode_def'] = faf_data.loc[:, 'dms_mode'].map(mode_lookup)
@@ -125,10 +128,20 @@ unit_cost_forecast.to_csv('SynthFirm_parameters/data_unitcost_by_zone_faf' + str
 #### part 2 - International demand forecast (percent change) ####
 #################################################################
 
+# append CFS code
+international_zonal_crosswalk_short = \
+    international_zonal_crosswalk[['FAFID', 'CFS_CODE']]
+faf_data_import = pd.merge(faf_data_import, international_zonal_crosswalk_short,
+                           left_on = 'fr_orig', right_on = 'FAFID', how = 'left')
+
+faf_data_export = pd.merge(faf_data_export, international_zonal_crosswalk_short,
+                           left_on = 'fr_dest', right_on = 'FAFID', how = 'left')
+
+# <codecell>
 # generate import growth rate (% forecast - base)
 attr_var = [shipment_load_attr, shipment_value_attr, \
              shipment_load_base, shipment_value_base]
-group_var = ['fr_orig', 'dms_orig'] # foreign country, entry port
+group_var = ['CFS_CODE', 'dms_orig'] # foreign country, entry port
 
 import_projection_factor = \
     faf_data_import.groupby(group_var)[attr_var].sum().reset_index()
@@ -158,7 +171,7 @@ import_projection_factor = import_projection_factor[output_attr]
 
 # generate export growth rate (% forecast - base)
 
-group_var = ['dms_dest', 'fr_dest'] # foreign country, entry port
+group_var = ['dms_dest', 'CFS_CODE'] # foreign country, entry port
 
 export_projection_factor = \
     faf_data_export.groupby(group_var)[attr_var].sum().reset_index()

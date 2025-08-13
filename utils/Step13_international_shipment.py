@@ -52,8 +52,11 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                     regional_import_file, regional_export_file, 
                                     port_level_import_file, port_level_export_file,
                                     need_domestic_adjustment, import_od, export_od,
-                                    output_path, 
+                                    output_path, forecast_year = None, import_forecast_file = None,
+                                    export_forecast_file = None,
                                     location_from = None, location_to = None):
+
+        
     print("Start international shipment generation...")
     # mesozone_faf_lookup = read_csv(zonal_id_file)
     c_n6_n6io_sctg = read_csv(c_n6_n6io_sctg_file)
@@ -66,6 +69,39 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     port_level_import = read_csv(port_level_import_file)
     port_level_export = read_csv(port_level_export_file)
     
+    if forecast_year is not None:
+        load_attr = 'tons_' + forecast_year
+        value_attr = 'value_' + forecast_year
+        # revise variable name so it is compatible with code developed under baseline year
+        regional_import.rename(columns = {load_attr: 'tons_2017',
+                                          value_attr: 'value_2017'}, inplace = True)
+        regional_export.rename(columns = {load_attr: 'tons_2017',
+                                          value_attr: 'value_2017'}, inplace = True)
+        # load adjustment factors
+        import_forecast_factor = read_csv(import_forecast_file)
+        import_forecast_factor.rename(columns = {'dms_orig': 'FAFID'}, inplace = True)
+        import_forecast_factor.loc[:, 'value_factor'] = \
+            import_forecast_factor.loc[:, 'value_factor']/ \
+            import_forecast_factor.loc[:, 'load_factor'] # backcasting load and then project value
+        
+        export_forecast_factor = read_csv(export_forecast_file)
+        export_forecast_factor.rename(columns = {'dms_dest': 'FAFID'}, inplace = True)
+        export_forecast_factor.loc[:, 'value_factor'] = \
+            export_forecast_factor.loc[:, 'value_factor']/ \
+            export_forecast_factor.loc[:, 'load_factor'] # backcasting load and then project value
+
+        # adj USATO data by load first (the values will be adjusted till the end)
+        port_level_import = pd.merge(port_level_import, import_forecast_factor,
+                                     on = ['FAFID', 'CFS_CODE'], how = 'left')
+        port_level_import.loc[:, 'load_factor'].fillna(1, inplace = True)
+        port_level_import.loc[:, 'Customs Value (Gen) ($US)'] = \
+            port_level_import.loc[:, 'Customs Value (Gen) ($US)'] * port_level_import.loc[:, 'load_factor']
+        port_level_export = pd.merge(port_level_export, export_forecast_factor,
+                                     on = ['FAFID', 'CFS_CODE'], how = 'left')
+        port_level_export.loc[:, 'load_factor'].fillna(1, inplace = True)
+        port_level_export.loc[:, 'Total Exports Value ($US)'] = \
+            port_level_export.loc[:, 'Total Exports Value ($US)'] * port_level_export.loc[:, 'load_factor']
+       
     # pre-select data
     sctg_lookup_short = sctg_lookup[['SCTG_Code', 'SCTG_Group']]
     int_shipment_size_short = \
@@ -137,13 +173,16 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     #     regional_export_scaling[['CFS_CODE', 'CFS_NAME', 'export_frac']]
 
             
-    def assign_weight_to_flow(regional_flow, scaling_factor, int_shipment_size, scale_attr, trim_tail = False):
+    def assign_weight_to_flow(regional_flow, scaling_factor, int_shipment_size, \
+                              scale_attr, trim_tail = False):
         regional_flow = \
                 regional_flow.rename(columns = {'sctg2': 'SCTG_Code'})
         regional_flow_scaled = pd.merge(regional_flow, scaling_factor,
                                           on = ['CFS_CODE', 'CFS_NAME'], how = 'left') 
-        regional_flow_scaled.loc[:, 'tons_2017'] *= regional_flow_scaled.loc[:, scale_attr]   
-        regional_flow_scaled.loc[:, 'value_2017'] *= regional_flow_scaled.loc[:, scale_attr]   
+        regional_flow_scaled.loc[:, 'tons_2017'] *= \
+            regional_flow_scaled.loc[:, scale_attr]   
+        regional_flow_scaled.loc[:, 'value_2017'] *= \
+            regional_flow_scaled.loc[:, scale_attr]   
         regional_flow_scaled = pd.merge(regional_flow_scaled,
                                            int_shipment_size,
                                            on = ['SCTG_Code', 'CFS_CODE'], how = 'left')
@@ -457,8 +496,36 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                         export_output_other_port,
                                         export_by_port_te])
     
-    
-    
+    # value forecast
+    if forecast_year is not None:
+        import_forecast_factor.rename(columns = {'FAFID':'FAF'}, inplace = True)
+        export_forecast_factor.rename(columns = {'FAFID':'FAF'}, inplace = True)
+        # adj output data by value  
+        import_by_port_by_dest = pd.merge(import_by_port_by_dest, import_forecast_factor,
+                                     on = ['FAF', 'CFS_CODE'], how = 'left')
+        import_by_port_by_dest.loc[:, 'value_factor'].fillna(1, inplace = True)
+        import_by_port_by_dest.loc[:, 'value_2017'] = \
+            import_by_port_by_dest.loc[:, 'value_2017'] * \
+                import_by_port_by_dest.loc[:, 'value_factor']
+        import_by_port_by_dest.loc[:, 'value_density'] = \
+            import_by_port_by_dest.loc[:, 'value_density'] * \
+                import_by_port_by_dest.loc[:, 'value_factor']
+        import_by_port_by_dest.drop(columns = ['load_factor', 'value_factor'],
+                                    inplace = True)
+        
+        export_by_port_by_orig = pd.merge(export_by_port_by_orig, export_forecast_factor,
+                                     on = ['FAF', 'CFS_CODE'], how = 'left')
+        export_by_port_by_orig.loc[:, 'value_factor'].fillna(1, inplace = True)
+        export_by_port_by_orig.loc[:, 'value_2017'] = \
+            export_by_port_by_orig.loc[:, 'value_2017'] * \
+                export_by_port_by_orig.loc[:, 'value_factor']
+        export_by_port_by_orig.loc[:, 'value_density'] = \
+            export_by_port_by_orig.loc[:, 'value_density'] * \
+                export_by_port_by_orig.loc[:, 'value_factor']
+        export_by_port_by_orig.drop(columns = ['load_factor', 'value_factor'],
+                                    inplace = True)
+
+
     # <codecell>
     
     
@@ -585,5 +652,11 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     print('Total import shipments after scaling:')
     print(import_by_port_by_dest.loc[:, "ship_count"].sum())
     
+    print('Total import value after scaling:')
+    print(import_by_port_by_dest.loc[:, "value_2017"].sum())
+    
     print('Total export shipments after scaling:')
     print(export_by_port_by_orig.loc[:, "ship_count"].sum())
+    
+    print('Total export value after scaling:')
+    print(export_by_port_by_orig.loc[:, "value_2017"].sum())
