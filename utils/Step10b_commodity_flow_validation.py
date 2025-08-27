@@ -18,17 +18,17 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # <codecell>
-os.chdir('C:\SynthFirm')
+os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
-scenario_name = 'national'
-out_scenario_name = 'national'
+scenario_name = 'Seattle'
+out_scenario_name = 'Seattle_2050'
 param_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
 output_dir = 'outputs_' + out_scenario_name
 plot_dir = 'plots_' + out_scenario_name
 validation_dir = 'Validation'
 
-analysis_year = 2017
+analysis_year = 2050
 
 # mapping FAF mode to SynthFirm mode
 faf_mode_lookup = {1: 'Truck', 2: 'Rail', 3: 'Other', 4: 'Air', 
@@ -45,11 +45,11 @@ miles_to_km = 1.60934
 shipment_load_attr = 'tons_' + str(analysis_year)
 shipment_tonmile_attr = 'tmiles_' + str(analysis_year)
 
-# region_code = [411, 531, 532, 539]
-# focus_region = 531
+region_code = [411, 531, 532, 539]
+focus_region = 531
 
-region_code = None
-focus_region = None
+# region_code = None
+# focus_region = None
 
 FAF_mode_mapping = {'Truck':['For-hire Truck', 'Private Truck'], 
                     'Rail':['Rail/IMX'], 
