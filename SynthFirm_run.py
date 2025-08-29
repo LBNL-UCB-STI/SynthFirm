@@ -37,7 +37,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description=des)
     parser.add_argument("--config", type = str, help = "config file name", 
-                        default= 'configs/Seattle_2050_psrc.conf')
+                        default= 'configs/national_2019.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
