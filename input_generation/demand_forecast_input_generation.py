@@ -42,9 +42,7 @@ shipment_value_base = 'value_' + str(base_year)
 # load FAF5 data
 
 faf_data = read_csv('validation/FAF5.6.1.csv', sep = ',')
-faf_data_import = faf_data.loc[faf_data['trade_type'] == 2]
-faf_data_export = faf_data.loc[faf_data['trade_type'] == 3]
-faf_data = faf_data.loc[faf_data['trade_type'] == 1]
+
 
 print(faf_data.columns)
 
@@ -55,13 +53,17 @@ cfs_faf_lookup = read_csv('SynthFirm_parameters/CFS_FAF_LOOKUP.csv')
 
 crosswalk_file = 'SynthFirm_parameters/international_trade_zone_lookup.csv'
 international_zonal_crosswalk = read_csv(crosswalk_file)
-# sctg_group_lookup.head(5)
+
 
 faf_data.loc[:, 'mode_def'] = faf_data.loc[:, 'dms_mode'].map(mode_lookup)
 faf_data = faf_data.loc[faf_data['mode_def'] != 'Other']
 faf_data = pd.merge(faf_data, sctg_group_lookup, left_on = 'sctg2', 
                     right_on = 'SCTG_Code', how = 'left')
-# faf_data.head(5)
+
+faf_data_import = faf_data.loc[faf_data['trade_type'] == 2]
+faf_data_export = faf_data.loc[faf_data['trade_type'] == 3]
+faf_data = faf_data.loc[faf_data['trade_type'] == 1]
+
 
 # <codecell>
 ############################################################
@@ -138,10 +140,22 @@ faf_data_export = pd.merge(faf_data_export, international_zonal_crosswalk_short,
                            left_on = 'fr_dest', right_on = 'FAFID', how = 'left')
 
 # <codecell>
+
+# combine SCTG code outside fuel (SCTG=16) and transportation equipment (SCTG=37)
+sctg_sel = [16, 37]
+import_index = faf_data_import['SCTG_Code'].isin(sctg_sel)
+export_index = faf_data_export['SCTG_Code'].isin(sctg_sel)
+
+faf_data_import.loc[~import_index, 'SCTG_Code'] = 0
+faf_data_export.loc[~export_index, 'SCTG_Code'] = 0
+print(faf_data_import.SCTG_Code.unique())
+print(faf_data_export.SCTG_Code.unique())
+
+# <codecell>
 # generate import growth rate (% forecast - base)
 attr_var = [shipment_load_attr, shipment_value_attr, \
              shipment_load_base, shipment_value_base]
-group_var = ['CFS_CODE', 'dms_orig'] # foreign country, entry port
+group_var = ['dms_orig', 'SCTG_Code'] # entry port
 
 import_projection_factor = \
     faf_data_import.groupby(group_var)[attr_var].sum().reset_index()
@@ -171,7 +185,7 @@ import_projection_factor = import_projection_factor[output_attr]
 
 # generate export growth rate (% forecast - base)
 
-group_var = ['dms_dest', 'CFS_CODE'] # foreign country, entry port
+group_var = ['dms_dest', 'SCTG_Code'] # entry port
 
 export_projection_factor = \
     faf_data_export.groupby(group_var)[attr_var].sum().reset_index()

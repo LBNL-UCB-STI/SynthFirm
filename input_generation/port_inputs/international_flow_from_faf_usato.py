@@ -16,6 +16,7 @@ import shapely.wkt
 import geopandas as gpd
 import contextily as cx
 import warnings
+from shapely.geometry import Point
 
 warnings.filterwarnings("ignore")
 
@@ -33,23 +34,23 @@ mode_lookup = {1: 'Truck', 2: 'Rail', 3: 'Other', 4: 'Air',
                5: 'Parcel', 6: 'Other', 7: 'Other', 8: 'Other'}
 
 #define scenario input
-analysis_year = 2050 # for FAF inputs
+analysis_year = 2017 # for FAF inputs
 us_ton_to_ton = 0.907185
 miles_to_km = 1.60934
 shipment_load_attr = 'tons_' + str(analysis_year)
 shipment_tonmile_attr = 'tmiles_' + str(analysis_year)
 shipment_value_attr = 'value_' + str(analysis_year)
-region_name = 'Seattle'
-out_scenario_name = 'Seattle'
-region_code = [531, 532, 539, 411] # seattle
-# region_code = [62, 64, 65, 69] #Bay Area
+region_name = 'BayArea'
+out_scenario_name = 'BayArea'
+# region_code = [531, 532, 539, 411] # seattle
+region_code = [62, 64, 65, 69] #Bay Area
 
 path_to_write = 'inputs_' + region_name # update this based on analysis region 
 path_to_plot = 'plots_' + out_scenario_name # update this based on analysis region
 faf_data = read_csv('Validation/' + 'FAF5.6.1.csv', sep = ',')
 faf_zone_file = 'Validation/FAF5Zones.geojson'
 faf_zone = gpd.read_file(faf_zone_file)
-faf_zone.plot()
+# faf_zone.plot()
 
 crosswalk_file = 'SynthFirm_parameters/international_trade_zone_lookup.csv'
 international_zonal_crosswalk = read_csv(crosswalk_file)
@@ -72,7 +73,7 @@ faf_data = faf_data.loc[faf_data['trade_type'] != 1]
 port_file = 'RawData/Port/port_code_cbp.csv'
 list_of_ports = read_csv(port_file)
 
-port_loc_file = 'SynthFirm_parameters/port_location_CA_WA_OR.geojson'
+port_loc_file = 'SynthFirm_parameters/port_location_CA_WA_OR_MA.geojson'
 port_locations = gpd.read_file(port_loc_file)
 
 import_flow_file = 'RawData/Port/Flow/SF and Seattle Port-level Imports (2017)_with OR.csv'
@@ -179,14 +180,14 @@ regional_export.to_csv(os.path.join(path_to_write, 'port',
 
 # processing port shapefile/boundary
 
-list_of_ports.loc[:, 'PORTID'] = \
+list_of_ports.loc[:, 'NAME'] = \
 list_of_ports.loc[:, 'CBP Port Location'].str.split('(').str[0]
-list_of_ports.loc[:, 'PORTID'] = \
-list_of_ports.loc[:, 'PORTID'].str[:-1]
+list_of_ports.loc[:, 'NAME'] = \
+list_of_ports.loc[:, 'NAME'].str[:-1]
 
 port_locations_with_id = pd.merge(port_locations,
                                   list_of_ports,
-                                  on = 'PORTID',
+                                  on = 'NAME',
                                   how = 'left')
 print(len(port_locations_with_id))
 
@@ -196,7 +197,7 @@ port_locations_centroid = \
 gpd.GeoDataFrame(geometry = gpd.GeoSeries(port_locations_centroid))
 port_locations_centroid = pd.concat([port_locations_centroid, 
                                port_locations_with_id_df], axis = 1)
-port_locations_centroid.head(5)
+
 faf_zone = faf_zone.to_crs('EPSG:4326')
 
 # assign port to faf zone
@@ -205,9 +206,17 @@ port_locations_centroid.sjoin_nearest(faf_zone, how="left")
 
 port_in_faf['FAF'] = port_in_faf['FAF'].astype(int)
 port_in_faf.drop(columns = ['index_right'], inplace = True)
+
+# select port in region
 port_in_region = \
 port_in_faf.loc[port_in_faf['FAF'].isin(region_code)]
 study_region = study_region.to_crs('EPSG:4326')
+
+# If selected Bay Area, adjusting location for SF port
+if region_name == 'BayArea':
+    sf_port_coord = Point(-122.385773, 37.745646)
+    port_in_region.loc[port_in_region['NAME'] == 'San Francisco, CA',
+    "geometry"] = sf_port_coord
 
 port_in_region = \
 port_in_region.sjoin_nearest(study_region, how="left")
@@ -217,6 +226,8 @@ port_in_region[['lat', 'lon']] = \
                         result_type='expand')
     
 port_in_region_df = port_in_region.drop(columns = 'geometry')
+
+
 
 port_in_region.to_file(os.path.join(path_to_write, 'Port/port_location_in_region.geojson'),
                    driver="GeoJSON")
