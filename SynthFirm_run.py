@@ -1,17 +1,12 @@
 #!/usr/bin/env python
 # Xiaodan Xu 08-22-2023
 import argparse
-# from pandas import read_csv
-# import pandas as pd
-# import numpy as np
 import os
-# import gc
 import warnings
 import configparser
-# from sklearn.utils import shuffle
-# import rpy2
-# import rpy2.robjects as robjects
-# import subprocess
+import sys
+import datetime
+
 
 # import SynthFirm modules
 from utils.Step1_Firm_Generation import synthetic_firm_generation
@@ -31,13 +26,34 @@ from utils.Step15_international_B2B_flow_generator import domestic_receiver_assi
 
 warnings.filterwarnings("ignore")
 
+# define the class for logging statement
+class Logger:
+    def __init__(self, logfile):
+        self.terminal = sys.stdout
+        self.log = open(logfile, "a", encoding="utf-8")
+
+    def write(self, message):
+        if message.strip():  # avoid empty lines
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            formatted_message = f"[{timestamp}] {message}"
+            self.terminal.write(formatted_message)
+            self.log.write(formatted_message)
+        else:
+            self.terminal.write(message)
+            self.log.write(message)
+
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+            
+
 def main():
     des = """
     SynthFirm Business-to-business (B2B) flow generation"
     """
     parser = argparse.ArgumentParser(description=des)
     parser.add_argument("--config", type = str, help = "config file name", 
-                        default= 'configs/national_2019.conf')
+                        default= 'configs/Seattle_2050_psrc.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -45,8 +61,6 @@ def main():
     # if options.verbose:
     #     print("MeowMeowMeow~~~~")
         
-    
-    # print(des)
 
     # load config
     conf_file = options.config
@@ -66,20 +80,30 @@ def main():
     output_path = os.path.join(file_path, output_dir)
     param_path = os.path.join(file_path, parameter_dir)
     
+    # preparing run log
+    log_filename = datetime.datetime.now().strftime("run_%Y%m%d_%H%M%S.log")
+    logfile = os.path.join(output_path, log_filename)
+    sys.stdout = Logger(logfile)
+    
     # Get the defined synthFirm regions
     regional_analysis = config.getboolean('ENVIRONMENT', 'regional_analysis') 
     forecast_analysis = config.getboolean('ENVIRONMENT', 'forecast_analysis') 
     
     if regional_analysis:
+        
         region_code_str = config['ENVIRONMENT']['region_code']
         region_code = [int(num) for num in region_code_str.split(',')]
+        print(f'Run regional model with selected FAF zones = {region_code}')
     else:
         region_code = None
+        print('Run national-scale model')
     
     if forecast_analysis:
         forecast_year = config['ENVIRONMENT']['forecast_year']
+        print(f'Run demand forecast with year = {forecast_year}')
     else:
         forecast_year = None
+        print('Run base year 2017 results')
     # print(region_code_str)
     
 
@@ -162,7 +186,7 @@ def main():
     io_filtered_file = os.path.join(output_path, config['OUTPUTS']['io_filtered_file'])
     
 
-    # inputs/outputs first appear in demand forecast 
+    # inputs/outputs first appear in demand forecast (optional)
     if forecast_analysis:
         prod_forecast_name = config['PARAMETERS']['prod_forecast_filehead'] + forecast_year + '.csv'
         prod_forecast_file = os.path.join(param_path, prod_forecast_name)
@@ -196,11 +220,10 @@ def main():
     distance_travel_skim_file = os.path.join(param_path, config['PARAMETERS']['distance_travel_skim_file'])
         
     
-    # input/output appear in fleet generation
+    # input/output appear in fleet generation (optional)
     
     # scenario-specific inputs
     
-
     
     if run_fleet_generation:
         fleet_year = config['FLEET_IO']['fleet_year']
@@ -511,6 +534,8 @@ def main():
     print('SynthFirm run for ' + scenario_name + ' finished!')
     print('All outputs are under ' + output_path)
     print('-------------------------------------------------')
+    
+    # logfile.close()
     return
 if __name__ == '__main__':
 	main()

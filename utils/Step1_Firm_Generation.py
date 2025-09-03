@@ -56,7 +56,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     else:
-      print("output directory exists")
+      print("Output directory exists!")
         
         
         # <codecell>
@@ -65,7 +65,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         #### step 2 - Enumerate list of firms and workers ######
         ########################################################
         
-    print("Enumerating Firms")
+    print("Enumerating Firms...")
     criteria = (cbp.loc[:, 'employment'] < cbp.loc[:, 'establishment'])
     cbp.loc[criteria, 'employment'] = cbp.loc[criteria, 'establishment']
     
@@ -146,14 +146,14 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     # validate employment
     total_employment_est = firms.loc[:, 'emp_per_est'].sum()
     
-    print('total number of input firm is ')
+    print('Total number of input firm is:')
     print(cbp_long.loc[:, 'est'].sum())
-    print('total number of output firm is ')
+    print('Total number of output firm is:')
     print(len(firms))
     
-    print('total number of input employment is ')
+    print('Total number of input employment is:')
     print(cbp.loc[:, 'employment'].sum())
-    print('total number of output employment is ')
+    print('Total number of modeled employment before LEHD scaling:')
     print(total_employment_est)
     
     # <codecell>
@@ -201,7 +201,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         lehd_emp_for_scaling.loc[:, 'industry'].str.split('rank').str[1]
         
     
-    print('total LEHD employment:')
+    print('Total LEHD employment:')
     print(lehd_emp_for_scaling.emp_lehd.sum())
     # develop firm emp scaling factor
     firms.loc[:, 'industry'] = firms.loc[:, 'n2']
@@ -209,7 +209,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     firms.loc[firms['industry'].isin(["44", "45", "4A"]), 'industry'] = "4445"
     firms.loc[firms['industry'].isin(["48", "49"]), 'industry'] = "4849"
     firms.loc[firms['industry'].isin(["S0"]), 'industry'] = "92"
-    print(firms['industry'].unique())
+    # print(firms['industry'].unique())
     
     emp_sim = \
         firms.groupby(['industry', 'CBPZONE'])[['emp_per_est']].sum()
@@ -239,7 +239,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     # validate employment
     total_employment_est = firms.loc[:, 'emp_per_est'].sum()
     
-    print('total number of output employment is ')
+    print('Total number of of modeled employment before LEHD scaling:')
     print(total_employment_est)
     
     # <codecell>
@@ -261,10 +261,10 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         firms.loc[firms['CBPZONE'].isin(cbpzone_in_region), essential_attr]
     
     
-    print('number of firms outside study area:')
+    print('Number of firms outside study area:')
     print(len(firms_out_boundary))
     
-    print('number of firms within study area:')
+    print('Number of firms within study area:')
     print(len(firms_in_boundary))
     
     # <codecell>
@@ -307,7 +307,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     emp_ranking_in_boundary.loc[:, 'industry'] = \
         emp_ranking_in_boundary.loc[:, 'industry'].str.split('rank').str[1]
         
-    print('total LEHD employment within study area:')
+    print('Total LEHD employment within study area:')
     print(emp_ranking_in_boundary.emp_lehd.sum())
     
     # <codecell>
@@ -317,7 +317,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     industries = emp_ranking_in_boundary.loc[:, 'industry'].unique()
     zip_to_tract_crosswalk.rename(columns = {'zip': 'ZIPCODE'}, inplace = True)
     zip_to_tract_crosswalk.drop(columns = ['bus_ratio', 'fraction'], inplace = True)
-    print(len(firms_in_boundary_withzip))
+    # print(len(firms_in_boundary_withzip))
     
     # <codecell>
     firms_out_withzip = None
@@ -345,8 +345,8 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         bus_ids = firms_to_assign.BusID.unique()
         firms_in_boundary_nozip_add = \
             firms_in_boundary_nozip_add[~firms_in_boundary_nozip_add['BusID'].isin(bus_ids)]
-        print('firms without valid CBG in Zip code:')
-        print(len(firms_in_boundary_nozip_add))
+        # print('firms without valid CBG in Zip code:')
+        # print(len(firms_in_boundary_nozip_add))
         firms_in_boundary_nozip = \
             pd.concat([firms_in_boundary_nozip, firms_in_boundary_nozip_add])
         if firms_to_assign is not None:
@@ -369,10 +369,10 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
                 firms_out_withzip = pd.concat([firms_out_withzip, firms_to_assign])
         
         # break
-    print('firms in region with valid zip')
+    print('Firms in region with valid zip:')
     print(len(firms_out_withzip))
     
-    print('firms in region without valid zip')
+    print('Firms in region without valid zip:')
     print(len(firms_in_boundary_nozip))
     
     # <codecell>
@@ -391,7 +391,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     for ind in industries:
     
         firms_to_assign = firms_in_boundary_nozip.loc[firms_in_boundary_nozip['industry'] == ind]
-        print('numbers of firms to assign from industry = ' + str(ind))
+        print('Numbers of firms without ZIP CODE to assign from industry = ' + str(ind))
         print(len(firms_to_assign.BusID.unique()))
         chunks = split_dataframe(firms_to_assign, 10000)
         post_firms_to_assign = None
@@ -424,7 +424,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         firms_out_nozip = pd.concat([firms_out_nozip, post_firms_to_assign])
         
         # break
-    print(len(firms_out_nozip))
+    # print(len(firms_out_nozip))
     
     
     # <codecell> 
@@ -461,4 +461,20 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     
     firms = firms[output_attr]
     firms = firms.rename(columns = {'emp_per_est': 'Emp'})
+
+    # apply the right data format before exporting    
+    firms = firms.astype({
+    'CBPZONE': np.int64,
+    'FAFZONE': np.int64,
+    'esizecat': np.int64, 
+    'Industry_NAICS6_Make': 'string',
+    'Commodity_SCTG': np.int64,
+    'Emp': 'float',
+    'BusID': np.int64, 
+    'MESOZONE': np.int64, 
+    'ZIPCODE': np.int64
+    })
+    
     firms.to_csv(synthetic_firms_no_location_file, index = False)
+    print('Synthetic firms without location attributes generated!')
+    print('Current output located at ' + synthetic_firms_no_location_file)

@@ -205,16 +205,40 @@ if len(synthetic_firm_to_impute) > 0:
     print(len(synthetic_firm_with_parcel))
 
 # <codecell>
-
-# impute the last batch of missing if presented
+essential_attr_2 = ['CBPZONE', 'FAFZONE','esizecat', 'Industry_NAICS6_Make',
+                'Commodity_SCTG', 'Emp', 'BusID', 'industry']
+# impute the last batch of missing if presented, using only county and industry
+# regenerate mesozone selection
 if len(synthetic_firm_remaining) > 0:
     sample_size = len(synthetic_firm_remaining)
     print('WARNING!!: There are unassigned firms after parcel ID generation and the sample size is ' + str(sample_size))
-#     print('Parcel IDs are imputed for ' + str(sample_size) + ' firms')
-#     synthetic_firm_remaining.drop(columns = ['ParcelID', 'PSRC_emp'], inplace = True)
     
-#     synthetic_firm_remaining = pd.merge(synthetic_firm_remaining, psrc_emp_by_cbg,
-#                                           on = ['MESOZONE'], how = 'left')
+    psrc_emp_long.loc[:, 'CBPZONE'] =\
+        psrc_emp_long.loc[:, 'MESOZONE'].str[0:5].astype(int)
+    synthetic_firm_remaining.drop(columns = ['MESOZONE', 'ParcelID', 'PSRC_emp'], inplace = True)
+    
+    synthetic_firm_remaining = pd.merge(synthetic_firm_remaining, 
+                                        psrc_emp_long,
+                                        on = ['CBPZONE', 'industry'], 
+                                        how = 'left')
+    print('Parcel IDs are imputed for ' + str(sample_size) + ' firms')
+    
+    # remaining CBG do not have parcels with valid employment --> mostly due to crosswalk issue between zip and cbg
+    synthetic_firm_nomatch = \
+    synthetic_firm_remaining.loc[synthetic_firm_remaining['PSRC_emp'].isna()]
+    
+    # # assign parcel ID to CBGs with non-zero parcels
+    synthetic_firm_remaining = \
+        synthetic_firm_remaining.dropna(subset = ['PSRC_emp'])
+    
+    synthetic_firm_remaining = \
+        synthetic_firm_remaining.groupby(essential_attr_2).sample(1,
+                                         weights = synthetic_firm_remaining['PSRC_emp'],
+                                         replace = True, random_state = 1)
+
+    synthetic_firm_with_parcel = pd.concat([synthetic_firm_with_parcel, 
+                                            synthetic_firm_remaining])
+
 # <codecell>
 
 # assign lat/lon to parcels
@@ -223,10 +247,10 @@ psrc_parcels_gdf_short = psrc_parcels_gdf[['ParcelID', 'TAZ', 'geometry']]
 psrc_parcels_gdf_short = psrc_parcels_gdf_short.to_crs(wgs84_crs)
 synthetic_firm_with_parcel = psrc_parcels_gdf_short.merge(synthetic_firm_with_parcel, 
                                       on = 'ParcelID', how = 'inner')
-# <codecell>
 # plt.figure()
 ax = synthetic_firm_with_parcel.plot(column = 'Emp',
-                               cmap='viridis',figsize = (6,5), markersize = 0.1, alpha = 0.3)
+                               cmap='viridis',figsize = (6,5), 
+                               markersize = 0.1, alpha = 0.3)
 
 cx.add_basemap(ax, source = cx.providers.CartoDB.Positron, crs = wgs84_crs)
 plt.title('Firm location and employment')
@@ -234,6 +258,27 @@ plt.axis('off')
 plt.savefig(os.path.join(plot_dir, 'parcel_level_synthetic_firms.png'), dpi = 300, 
             bbox_inches = 'tight')
 
+# <codecell>
+# plot parcel level emp after calibration
+synthetic_emp_by_parcel = \
+synthetic_firm_with_parcel.groupby(['ParcelID'])[['Emp']].sum().reset_index()
+parcel_with_synthetic_emp = psrc_parcels_gdf_short.merge(synthetic_emp_by_parcel, 
+                                      on = 'ParcelID', how = 'inner')
+# plt.figure()
+ax = parcel_with_synthetic_emp.plot(column = 'Emp',
+                               cmap='viridis',
+                               alpha = 0.3, 
+                               markersize = 0.005 * parcel_with_synthetic_emp['Emp'],
+                               vmin = 0, vmax =1000,
+                               legend=True,
+                               norm=matplotlib.colors.LogNorm(vmin=1, 
+                                                              vmax = parcel_with_synthetic_emp['Emp'].max()),
+                               legend_kwds = {'shrink': 0.8}, antialiased=False)
+cx.add_basemap(ax, source = cx.providers.CartoDB.Positron, crs = wgs84_crs)
+plt.axis('off')
+plt.savefig(os.path.join(plot_dir, 'parcel_level_emp_modeled.png'), dpi = 300, 
+            bbox_inches = 'tight')
+plt.show()
 # <codecell>
 # add random noise to coordinates
 noise_meters = 100
@@ -247,7 +292,7 @@ synthetic_firm_with_parcel['lon'] = synthetic_firm_with_parcel.geometry.x
 
 synthetic_firm_with_parcel_df = \
     pd.DataFrame(synthetic_firm_with_parcel.drop(columns = 'geometry'))
-# <codecell>
+    
 # Add the noise to the coordinates
 sample_size = len(synthetic_firm_with_parcel_df)
 synthetic_firm_with_parcel_df['lat'] = \
@@ -323,6 +368,20 @@ synthetic_firm_in_region = synthetic_firm_with_parcel_df[output_attr]
 synthetic_firm_output = pd.concat([synthetic_firm_in_region,
                                    synthetic_firm_out_region])
 synthetic_firm_output.fillna(-1, inplace = True)
+synthetic_firm_output = synthetic_firm_output.astype({
+'CBPZONE': np.int64,
+'FAFZONE': np.int64,
+'esizecat': np.int64, 
+'Industry_NAICS6_Make': 'string',
+'Commodity_SCTG': np.int64,
+'Emp': 'float',
+'BusID': np.int64, 
+'MESOZONE': np.int64, 
+'lat': 'float', 
+'lon': 'float',
+'ParcelID': np.int64, 
+'TAZ': np.int64
+})
 calibrated_firm_file = os.path.join(output_dir, 'synthetic_firms_with_location.csv')
 synthetic_firm_output.to_csv(calibrated_firm_file, index = False)
 
