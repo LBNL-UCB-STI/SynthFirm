@@ -169,7 +169,7 @@ def process_chunk(args):
     modeled_OD_by_sctg, i, allparams = args
     mesozone_lookup, distance_travel_time_skim,list_of_alternative,file_name, mode_choice_spec_glb,mode_choice_param,output_dir, sctg=allparams
 
-    print('process chunk id ' + str(i))
+    print('Process chunk id ' + str(i))
     # print('total shipment in this batch ' + str(len(modeled_OD_by_sctg)))
     # select domestic shipment
 
@@ -194,7 +194,7 @@ def process_chunk(args):
          choice_model_variable_generator(modeled_OD_by_sctg_long, mode_choice_spec_glb, distance_travel_time_skim)  
 
      ##### compute utilities and probabilities #####
-    print('start mode choice generation')
+    print('Start mode choice generation')
     mode_choice_results = \
         mode_choice_utility_generator(modeled_OD_by_sctg_long, mode_choice_param, list_of_alternative)        
 
@@ -208,7 +208,7 @@ def process_chunk(args):
      
     mode_choice_results = mode_choice_results.loc[:, ['shipment_id', 'mode_choice','probability']]
      
-    print('start writing output')
+    print('Start writing output')
  
     modeled_OD_by_sctg = pd.merge(modeled_OD_by_sctg, mode_choice_results, on = 'shipment_id', how = 'left')
     modeled_OD_by_sctg = pd.merge(modeled_OD_by_sctg, distance_travel_time_skim, left_on = ['orig_FAFID', 'dest_FAFID', 'mode_choice'], 

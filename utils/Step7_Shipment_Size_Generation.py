@@ -46,9 +46,9 @@ def model_od_processor(data, mesozone_lookup, region_code):   # assign OD FAF zo
 ###### processing b2b flow ##########
 def shipment_size_generation(mesozone_to_faf_file, max_load_per_shipment_file, 
                              region_code, output_path):
-    print('Split B2B flow by shipment size capacity')
+    print('Split B2B flow by shipment size capacity...')
     mesozone_lookup = read_csv(mesozone_to_faf_file, sep = ',')
-    print(region_code)
+    # print(region_code)
     max_load_lookup = read_csv(max_load_per_shipment_file, sep = ',')
     mesozone_lookup['MESOZONE'] = mesozone_lookup['MESOZONE'].astype(np.int64)
     domestic_zones = mesozone_lookup['MESOZONE'].unique()
@@ -101,6 +101,20 @@ def shipment_size_generation(mesozone_to_faf_file, max_load_per_shipment_file,
             chunk_dup = chunk_dup[['BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID', 'SellerZone',
                'SellerNAICS', 'TruckLoad', 'SCTG_Group', 'orig_FAFID', 'dest_FAFID', 'Commodity_SCTG', 'UnitCost']]
             # print(chunk_dup.head(5))
+            chunk_dup = chunk_dup.astype({
+                'BuyerID': np.int64,
+                'BuyerZone': np.int64,
+                'BuyerNAICS': 'string',
+                'SellerID': np.int64, 
+                'SellerZone': np.int64,
+                'SellerNAICS': 'string',
+                'TruckLoad': 'float',
+                'SCTG_Group': 'int',
+                'orig_FAFID': np.int64, 
+                'dest_FAFID': np.int64, 
+                'Commodity_SCTG': 'int', 
+                'UnitCost': 'float'
+            })
             out_file_name = 'shipment_' + sctg + '_od' + str(q) + '.csv.zip'
             chunk_dup.to_csv(os.path.join(output_dir, out_file_name), index = False)
             load_to_add = float(chunk_dup.TruckLoad.sum())
@@ -111,7 +125,7 @@ def shipment_size_generation(mesozone_to_faf_file, max_load_per_shipment_file,
         print('Total load by ' + sctg)
         print(load_by_sctg)
     print('end of shipping size generation')
-    print('Total load assigned = ' + str(total_load))
+    print('Total load with shipment size assigned = ' + str(total_load))
     print('-------------------------------')
     
     return

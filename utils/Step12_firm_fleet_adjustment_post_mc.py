@@ -50,6 +50,7 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
 # # inputs vary by scenario
 # ev_availability_file = os.path.join(parameter_dir, 'fleet/synthfirm_ev_availability.csv')
 # private_fuel_mix_file = os.path.join(parameter_dir, 'fleet/private_fuel_mix_scenario.csv')
+    print('Adjusting regional fleet generation using mode choice results...')    
     scenario_name = fleet_name + ' & ' + regulations
     analysis_year = fleet_year
     result_dir = os.path.join(output_path, str(analysis_year), scenario_name)
@@ -58,6 +59,9 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
     private_fleet = read_csv(private_fleet_file)
     
     firms = read_csv(firms_with_fleet_file)
+    firm_count = len(firms.BusID.unique())
+    print(f'Total firms before post-MC fleet adjustment = {firm_count}')
+
     # forecast values
     private_fuel_mix = read_csv(private_fuel_mix_file)
     ev_availability = read_csv(ev_availability_file)
@@ -110,13 +114,19 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
     selected_firms_with_load = combined_b2b_flow.groupby(['SellerID'])[['TruckLoad']].sum()
     selected_firms_with_load = selected_firms_with_load.reset_index()
     selected_firms_with_load.columns = ['BusID', 'Production']
+    
+    print('Number of firms that need private fleets:')
     print(len(selected_firms_with_load))
+    
     selected_sellers = selected_firms_with_load.BusID.unique()
     firms_without_adj = firms.loc[~firms['BusID'].isin(selected_sellers)]
     firms_with_adj = pd.merge(firms, selected_firms_with_load,
                               on = 'BusID', how = 'inner')
-    print(len(firms_without_adj))
-    print(len(firms_with_adj))
+    
+    firm_count = len(firms_with_adj.BusID.unique())
+    # print(len(firms_without_adj))
+    print(f'Numbers of firms selected before adjustment = {firm_count}')
+
     
     # <codecell>
     
@@ -165,8 +175,9 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
         firms_with_fleet.loc[:, veh] = firms_with_fleet.loc[:, 'Emp'] * \
             firms_with_fleet.loc[:, rate_attr]
     firms_with_fleet.drop(columns = to_drop, inplace = True)    
-    print(firms_with_fleet[vehicle_types].sum())
-    
+    # print(firms_with_fleet[vehicle_types].sum())
+    print('Numbers of firms after fleet size generation:')
+    print(len(firms_with_fleet))
     
     # <codecell>
     
@@ -185,6 +196,7 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
     target_gap = 0.01 * payload_gap
     
     iterator = 0
+    threshold_size = 50
     while abs(payload_gap) >= target_gap:
     
         firms_with_fleet.loc[:, 'simulated_capacity'] = 0
@@ -197,12 +209,13 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
         
         firms_with_fleet.loc[:, vehicle_types] = \
             firms_with_fleet.loc[:, vehicle_types].mul(firms_with_fleet['adj_fac'], axis = 0)
+        
         # round up maximum to ensure at least 1 truck presents in the fleet        
         firms_with_fleet.loc[:, 'max_size'] = \
                 firms_with_fleet.loc[:, vehicle_types].max(axis = 1)
                 
         # ensure the firms with large scale factor will have largest trucks, no small trucks needed
-        threshold_size = 50
+        
         firms_with_fleet.loc[firms_with_fleet['adj_fac'] >= threshold_size, 'Heavy-duty Tractor'] = \
             firms_with_fleet.loc[firms_with_fleet['adj_fac'] >= threshold_size, 'max_size']
         firms_with_fleet.loc[firms_with_fleet['adj_fac'] >= threshold_size, 'Light-duty Class12A'] = 0
@@ -224,15 +237,15 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
                       firms_with_fleet.loc[:, 'simulated_capacity'])
         payload_gap  = firms_with_fleet.loc[insuff_idx, 'required_capacity'].sum() -\
             firms_with_fleet.loc[insuff_idx, 'simulated_capacity'].sum()
-        print(payload_gap)
+        # print(payload_gap)
         iterator += 1
         if iterator > 10:
-            print('Failed to converge!')
+            print('The payload adjustment step failed to converge!')
             break
         # break
     
     
-    print(firms_with_fleet[vehicle_types].sum())   
+    # print(firms_with_fleet[vehicle_types].sum())   
         
     
     # <codecell>
@@ -340,6 +353,9 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
     firms_with_fleet_out.loc[:, 'n_trucks'] = firms_with_fleet_out.loc[:, veh_comb].sum(axis = 1)
     print(firms_with_fleet_out[veh_comb].sum())
     
+    firm_count = len(firms_with_fleet_out.BusID.unique())
+    print(f'Selected firms after fleet adjustments = {firm_count}')
+
     
     # <codecell>
     # assign fleet to private truck shipments
@@ -351,7 +367,14 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
     firms_with_fleet_short.groupby('BusID')['pdf'].cumsum()
     
     
-    # load b2b output
+    # load b2b output and assign fleet ID for private shippers
+    
+    # define output data format
+    int_var = ['BuyerID', 'BuyerZone', 'SellerID',
+       'SellerZone', 'Commodity_SCTG', 'SCTG_Group', 
+       'shipment_id', 'orig_FAFID', 'dest_FAFID']
+    
+    float_var = ['TruckLoad', 'UnitCost', 'probability', 'Distance', 'Travel_time']
     
     for i in range(5):
         sctg = i + 1
@@ -374,6 +397,8 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
             sample_size = len(private_truck)
             if sample_size > 0:
                 private_truck.loc[:, 'rand'] = pd.Series(np.random.uniform(size = sample_size))
+                
+                # sampling fleet
                 private_truck = pd.merge(private_truck, firms_with_fleet_short,
                                         left_on = 'SellerID', right_on = 'BusID',
                                         how = 'left')
@@ -384,9 +409,22 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
                 private_truck = private_truck.drop_duplicates(subset = ['shipment_id'], 
                                                               keep = 'first')
                 private_truck = private_truck.drop(columns=['rand',	'BusID', 'veh_capacity', 'pdf', 'cdf', 'indicator'])
-                private_truck.to_csv(result_dir +  '/private_truck_shipment_' + sctg_code + '_' + str(j) + '.csv', index = False)
+                
+                # convert output format
+                private_truck.loc[:, int_var] = private_truck.loc[:, int_var].astype(np.int64)
+                private_truck.loc[:, float_var] = private_truck.loc[:, float_var].astype(float)
+                
+                # writing output
+                private_truck.to_csv(result_dir + \
+                                     '/private_truck_shipment_' + sctg_code + '_' + str(j) + '.csv.zip', index = False)
             if len(for_hire_truck) > 0:
-                for_hire_truck.to_csv(result_dir +  '/for_hire_truck_shipment_' + sctg_code  + '_' + str(j) + '.csv', index = False)
+                # convert output format
+                for_hire_truck.loc[:, int_var] = for_hire_truck.loc[:, int_var].astype(np.int64)
+                for_hire_truck.loc[:, float_var] = for_hire_truck.loc[:, float_var].astype(float)
+                
+                # writing output
+                for_hire_truck.to_csv(result_dir + \
+                                      '/for_hire_truck_shipment_' + sctg_code  + '_' + str(j) + '.csv.zip', index = False)
             j += 1
     
     # <codecell>
@@ -395,5 +433,25 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
             
     firms_with_fleet_out = firms_with_fleet_out.drop(columns=['veh_capacity'])
     firms_output = pd.concat([firms_with_fleet_out, firms_without_adj])  
+    data_format = {
+    'CBPZONE': np.int64,
+    'FAFZONE': np.int64,
+    'esizecat': np.int64, 
+    'Industry_NAICS6_Make': 'string',
+    'Commodity_SCTG': np.int64,
+    'Emp': 'float',
+    'BusID': np.int64, 
+    'MESOZONE': np.int64, 
+    'lat': 'float', 
+    'lon': 'float',
+    'state_abbr': 'string', 
+    'fleet_id': np.int64, 
+    'EV_powertrain (if any)': 'string'
+    }
+    firms_with_fleet_out = firms_with_fleet_out.astype(data_format)
+    
+    print('Total firms after post-MC fleet adjustment:')
+    print(len(firms))
+    
     firms_output.to_csv(firms_with_fleet_mc_adj_files, index = False)
     print('Fleet alignment with mode choice result done')

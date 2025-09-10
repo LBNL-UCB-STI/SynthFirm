@@ -31,7 +31,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
                        max_load_per_shipment_file, sctg_group_file,
                        supplier_selection_param_file, output_path):
     
-    print('Performing supplier selection at national-scale')
+    print('Performing supplier selection at national-scale...')
     
     # load inputs
     mesozone_to_faf_lookup = read_csv(mesozone_to_faf_file)
@@ -104,7 +104,7 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
         # process each buyer industry
         buyer_count = 0
         for com in list_of_commodity:
-            print(com)
+            # print(com)
             output_b2b_flow = None
             output_file = "sctg" + str(sctg) + '_' + str(com) + ".csv.zip"
             path_to_output = os.path.join(output_dir, output_file)
@@ -299,17 +299,31 @@ def supplier_selection(mesozone_to_faf_file, shipment_by_distance_file,
             #     break
     
             # break
+            output_b2b_flow.dropna(inplace = True)
             if output_b2b_flow is None:
                 print('pairing failed for selected buyers ' + str(len(selected_buyer)))
                 continue
+            else:
             #print('writing output for commodity ' + str(com))
-            output_b2b_flow.to_csv(path_to_output, index = False)
-            load_to_add = float(output_b2b_flow.TruckLoad.sum())
-            total_load += load_to_add/2000/1000 # in 1000 tons
-            buyers_to_add = int(len(output_b2b_flow.BuyerID.unique()))
-            # print('buyers assigned:')
-            # print(buyers_to_add)
-            total_buyers += buyers_to_add
+                output_b2b_flow = output_b2b_flow.astype({
+                    'BuyerID': np.int64,
+                    'BuyerZone': np.int64,
+                    'BuyerNAICS': 'string',
+                    'SellerID': np.int64, 
+                    'SellerZone': np.int64,
+                    'SellerNAICS': 'string',
+                    'TruckLoad': 'float',
+                    'SCTG_Group': 'int',
+                    'Commodity_SCTG': 'int', 
+                    'UnitCost': 'float'
+                })
+                output_b2b_flow.to_csv(path_to_output, index = False)
+                load_to_add = float(output_b2b_flow.TruckLoad.sum())
+                total_load += load_to_add/2000/1000 # in 1000 tons
+                buyers_to_add = int(len(output_b2b_flow.BuyerID.unique()))
+                # print('buyers assigned:')
+                # print(buyers_to_add)
+                total_buyers += buyers_to_add
         # print(buyer_count)
         # break
     print('end of supplier selection')

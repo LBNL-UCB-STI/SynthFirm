@@ -80,6 +80,8 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
     
     # loading input
     firms = read_csv(synthetic_firms_with_location_file)
+    print('Total firms before fleet assignment:')
+    print(len(firms))
     private_fleet = read_csv(private_fleet_file)
     for_hire_fleet = read_csv(for_hire_fleet_file)
     cargo_type_distribution = read_csv(cargo_type_distribution_file)
@@ -131,7 +133,7 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
 
     private_fleet.replace(np.inf, np.nan, inplace = True)
     private_fleet.fillna(0, inplace = True)
-    print(private_fleet[vehicle_types].sum())
+    # print(private_fleet[vehicle_types].sum())
     # <codecell>
     
     # --------------------------------------------------------
@@ -173,9 +175,10 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
         firms_with_fleet.loc[:, veh] = firms_with_fleet.loc[:, 'Emp'] * \
             firms_with_fleet.loc[:, rate_attr]
         
-    print(firms_with_fleet[vehicle_types].sum())
+    # print(firms_with_fleet[vehicle_types].sum())
     firms_with_fleet.drop(columns = to_drop, inplace = True)
-    
+    print('Total firms after fleet size generation:')
+    print(len(firms_with_fleet))
     # <codecell>
     
     # split data into three sets
@@ -188,6 +191,11 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
         firms_with_fleet[~firms_with_fleet['Industry_NAICS6_Make'].isin(['492000', '484000', '532100'])]
     private_fleet.loc[:, vehicle_types] = np.round(private_fleet.loc[:, vehicle_types], 0)
     
+    firms_count = len(private_fleet)
+    carrier_count = len(carriers)
+    leasing_count = len(leasing)
+    print(f'Total firms, carriers and leased firms before fleet generation = \
+          {firms_count}, {carrier_count}, and {leasing_count}')
     # <codecell>
     
     # ------------------------------------------------------------
@@ -198,7 +206,7 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
     private_fleet_no_truck = private_fleet.loc[private_fleet['n_trucks'] == 0]
     private_fleet_no_truck.drop(columns = vehicle_types, inplace = True)
     private_fleet_truck = private_fleet.loc[private_fleet['n_trucks'] > 0]
-    print(private_fleet_truck[vehicle_types].sum())
+    # print(private_fleet_truck[vehicle_types].sum())
     
     # <codecell>
     
@@ -267,7 +275,7 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
     
     carriers_with_fleet.loc[:, vehicle_types] = \
         np.round(carriers_with_fleet.loc[:, vehicle_types], 0)
-    print(carriers_with_fleet.loc[:, vehicle_types].sum())
+    # print(carriers_with_fleet.loc[:, vehicle_types].sum())
     
     
     # scale resulting fleet size 
@@ -280,7 +288,7 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
     abs_error.loc[:, 'error'] = np.abs(abs_error.loc[:, 'modeled'] - \
                                        abs_error.loc[:, 'population_by_year'])
     error_metric = int(abs_error.loc[:, 'error'].sum())
-    print(error_metric)
+    # print(error_metric)
     err_threshold = 0.01 * hire_stock.population_by_year.sum()
     
     # <codecell>
@@ -308,20 +316,20 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
         abs_error.loc[:, 'error'] = np.abs(abs_error.loc[:, 'modeled'] - \
                                            abs_error.loc[:, 'population_by_year'])
         error_metric = int(abs_error.loc[:, 'error'].sum())
-        print(error_metric)
+        # print(error_metric)
         # break
     # scale fleet size
 
     carriers_with_fleet.loc[:, 'n_trucks'] = \
         carriers_with_fleet.loc[:, vehicle_types].sum(axis = 1)
-    print(carriers_with_fleet.loc[:, 'n_trucks'].min())
+    # print(carriers_with_fleet.loc[:, 'n_trucks'].min())
     
     # <codecell>
     # sampling carrier by state
     carrier_veh_type = ['Heavy-duty Tractor', 'Heavy-duty Vocational', 'Medium-duty Vocational']
     carriers_with_fleet.loc[:, 'n_trucks'] = \
         carriers_with_fleet.loc[:, carrier_veh_type].sum(axis = 1)
-    print(carriers_with_fleet.loc[:, 'n_trucks'].min())
+    # print(carriers_with_fleet.loc[:, 'n_trucks'].min())
     
     to_comb = ['101-1000', '>1000']
     for_hire_fleet.loc[for_hire_fleet['FLEET_SIZE'].isin(to_comb), 'FLEET_SIZE'] = '>100'
@@ -334,14 +342,17 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
         pd.cut(carriers_with_fleet.loc[:, 'n_trucks'], bins = fleet_size_bin,
                labels=bin_labels, right =  True)
         
-    print(carriers_with_fleet.groupby('FLEET_SIZE').size())
+    # print(carriers_with_fleet.groupby('FLEET_SIZE').size())
     
     # scaling up carrier fleet based on FMCSA data
     carriers_with_fleet_resampled = None
-    print('total trucks from FMCSA:')
+    print('Total trucks from FMCSA:')
     print(for_hire_fleet.TRUCK_COUNT.sum())
+    
+    prev_size = '<=2'
+    
     for state in for_hire_fleet.HB_STATE.unique():
-        print(state)
+        # print(state)
         for_hire_state = for_hire_fleet.loc[for_hire_fleet['HB_STATE'] == state]
         for size in for_hire_state['FLEET_SIZE'].unique():
             sample_size =  for_hire_state.loc[for_hire_state['FLEET_SIZE'] == size, \
@@ -350,21 +361,37 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
             fleet_size = for_hire_state.loc[for_hire_state['FLEET_SIZE'] == size, 
                                             'TRUCK_COUNT']
             fleet_size = int(fleet_size)
+            # truck_per_carrier = int(fleet_size/sample_size)
             pool_of_carriers = \
                 carriers_with_fleet.loc[(carriers_with_fleet['state_abbr'] == state)  & \
                                         (carriers_with_fleet['FLEET_SIZE'] == size)]
             pool_size = len(pool_of_carriers)
             if pool_size == 0:
-                print('There is no carrier in this state to sample from under size ' + size)
+                # print(f'There is no carrier in {state} to sample from under size {size}')
+                # collecting samples from previous size groups and reassign fleet size
+                pool_of_carriers = \
+                    carriers_with_fleet.loc[(carriers_with_fleet['state_abbr'] == state)  & \
+                                            (carriers_with_fleet['FLEET_SIZE'] == prev_size)]
+                pool_size = len(pool_of_carriers)
             else:
-                sample_carriers = pool_of_carriers.sample(n = sample_size, replace = True)
-                sample_carriers.loc[:, 'fleet_id'] = \
-                    sample_carriers.groupby('BusID').cumcount() + 1
-                carriers_with_fleet_resampled = pd.concat([carriers_with_fleet_resampled,
-                                                           sample_carriers])
-
+                prev_size = size # update size
+                
+            sample_carriers = pool_of_carriers.sample(n = sample_size, replace = True)
+            sample_carriers.loc[:, 'fleet_id'] = \
+                sample_carriers.groupby('BusID').cumcount() + 1
+            # scaling_factor = fleet_size / sample_carriers.loc[:, 'n_trucks'].sum()
+            # scaling_factor = max(1, scaling_factor)
             
-    print('total trucks after resampling SynthFirm carriers:')
+            # for alt in carrier_veh_type:
+            #     sample_carriers.loc[:, alt] *= scaling_factor
+            #     sample_carriers.loc[:, alt] = \
+            #         np.round(sample_carriers.loc[:, alt], 0)
+            # sample_carriers.loc[:, 'n_trucks'] = \
+            #     sample_carriers.loc[:, carrier_veh_type].sum(axis = 1)
+            carriers_with_fleet_resampled = pd.concat([carriers_with_fleet_resampled,
+                                                       sample_carriers])
+            
+    print('Total trucks after resampling SynthFirm carriers:')
     print(carriers_with_fleet_resampled.n_trucks.sum())
     
     # <codecell>
@@ -454,7 +481,7 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
     leasing_with_fleet.loc[:, vehicle_types] = \
         np.round(leasing_with_fleet.loc[:, vehicle_types], 0)
     # print(hire_stock)
-    print(leasing_with_fleet.loc[:, vehicle_types].sum())
+    # print(leasing_with_fleet.loc[:, vehicle_types].sum())
     
     # scale resulting fleet size 
     lease_sum = leasing_with_fleet.loc[:, vehicle_types].sum()
@@ -466,7 +493,7 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
     abs_error.loc[:, 'error'] = np.abs(abs_error.loc[:, 'modeled'] - \
                                        abs_error.loc[:, 'population_by_year'])
     error_metric = int(abs_error.loc[:, 'error'].sum())
-    print(error_metric)
+    # print(error_metric)
     err_threshold = 0.01 * lease_stock.population_by_year.sum()
     
     # <codecell>
@@ -494,14 +521,14 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
         abs_error.loc[:, 'error'] = np.abs(abs_error.loc[:, 'modeled'] - \
                                            abs_error.loc[:, 'population_by_year'])
         error_metric = int(abs_error.loc[:, 'error'].sum())
-        print(error_metric)
+        # print(error_metric)
         # break
     
     # scale fleet size
     
     leasing_with_fleet.loc[:, 'n_trucks'] = \
         leasing_with_fleet.loc[:, vehicle_types].sum(axis = 1)
-    print(leasing_with_fleet.loc[:, 'n_trucks'].min())
+    # print(leasing_with_fleet.loc[:, 'n_trucks'].min())
     
     # <codecell>
     # assign lease fuel type
@@ -566,7 +593,7 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
     leasing_with_fleet_out = None
     
     for bt in body_types:
-        print(bt)
+        # print(bt)
         ev_availability_select = \
         ev_availability.loc[ev_availability['vehicleType'] == bt]
         powertrain = ev_availability_select.Powertrain.to_numpy()
@@ -687,6 +714,35 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
     print('Final lease fleet:')
     leasing_with_fleet_out.loc[:, 'n_trucks'] = leasing_with_fleet_out.loc[:, veh_comb].sum(axis = 1)
     print(leasing_with_fleet_out[veh_comb].sum())
+    
+    # check remaining business count
+    firms_count = len(firms_with_fleet_out.BusID.unique())
+    carrier_count = len(carriers_with_fleet_out.BusID.unique())
+    leasing_count = len(leasing_with_fleet_out.BusID.unique())
+    # firms_count = firms_count + carrier_count + leasing_count
+    
+    print(f'Total firms, carriers and leased firms after fleet generation = \
+          {firms_count}, {carrier_count}, and {leasing_count}')
+    
+    # format data output
+    data_format = {
+    'CBPZONE': np.int64,
+    'FAFZONE': np.int64,
+    'esizecat': np.int64, 
+    'Industry_NAICS6_Make': 'string',
+    'Commodity_SCTG': np.int64,
+    'Emp': 'float',
+    'BusID': np.int64, 
+    'MESOZONE': np.int64, 
+    'lat': 'float', 
+    'lon': 'float',
+    'state_abbr': 'string', 
+    'fleet_id': np.int64, 
+    'EV_powertrain (if any)': 'string'
+    }
+    firms_with_fleet_out = firms_with_fleet_out.astype(data_format)
+    carriers_with_fleet_out = carriers_with_fleet_out.astype(data_format)
+    leasing_with_fleet_out = leasing_with_fleet_out.astype(data_format)
     
     # <codecell>
     

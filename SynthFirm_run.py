@@ -82,7 +82,12 @@ def main():
     
     # preparing run log
     log_filename = datetime.datetime.now().strftime("run_%Y%m%d_%H%M%S.log")
-    logfile = os.path.join(output_path, log_filename)
+    log_path = os.path.join(output_path, 'log')
+    if not os.path.exists(log_path):
+        os.mkdir(log_path)
+    else:
+      print("Log directory exists!")
+    logfile = os.path.join(log_path, log_filename)
     sys.stdout = Logger(logfile)
     
     # Get the defined synthFirm regions
@@ -443,14 +448,14 @@ def main():
     if run_fleet_generation:
         if need_regional_calibration:
             print('Adding calibrated variables under fleet generation')
-            firm_fleet_generator(int(fleet_year), fleet_name, regulations,
-                                     synthetic_firms_with_location_file, private_fleet_file,
-                                     for_hire_fleet_file, cargo_type_distribution_file, state_fips_lookup_file,
-                                     private_fuel_mix_file, hire_fuel_mix_file, lease_fuel_mix_file,
-                                     private_stock_file, hire_stock_file, lease_stock_file,
-                                     firms_with_fleet_file, carriers_with_fleet_file, leasing_with_fleet_file, 
-                                     ev_availability_file, output_path, 
-                                     need_regional_calibration, regional_variable)
+            # firm_fleet_generator(int(fleet_year), fleet_name, regulations,
+            #                          synthetic_firms_with_location_file, private_fleet_file,
+            #                          for_hire_fleet_file, cargo_type_distribution_file, state_fips_lookup_file,
+            #                          private_fuel_mix_file, hire_fuel_mix_file, lease_fuel_mix_file,
+            #                          private_stock_file, hire_stock_file, lease_stock_file,
+            #                          firms_with_fleet_file, carriers_with_fleet_file, leasing_with_fleet_file, 
+            #                          ev_availability_file, output_path, 
+            #                          need_regional_calibration, regional_variable)
 
             
             firm_fleet_generator_post_mc(int(fleet_year), fleet_name, regulations, synthetic_firms_with_location_file,
