@@ -81,7 +81,7 @@ def main():
     param_path = os.path.join(file_path, parameter_dir)
     
     # preparing run log
-    log_filename = datetime.datetime.now().strftime("run_%Y%m%d_%H%M%S.log")
+    log_filename = datetime.datetime.now().strftime(out_scenario_name + "_run_%Y%m%d.log")
     log_path = os.path.join(output_path, 'log')
     if not os.path.exists(log_path):
         os.mkdir(log_path)
@@ -93,6 +93,7 @@ def main():
     # Get the defined synthFirm regions
     regional_analysis = config.getboolean('ENVIRONMENT', 'regional_analysis') 
     forecast_analysis = config.getboolean('ENVIRONMENT', 'forecast_analysis') 
+    port_analysis = config.getboolean('ENVIRONMENT', 'port_analysis') 
     
     if regional_analysis:
         
@@ -109,7 +110,7 @@ def main():
     else:
         forecast_year = None
         print('Run base year 2017 results')
-    # print(region_code_str)
+
     
 
     # load module to run
@@ -224,7 +225,12 @@ def main():
     mode_choice_param_file = os.path.join(input_path, config['INPUTS']['mode_choice_param_file'])
     distance_travel_skim_file = os.path.join(param_path, config['PARAMETERS']['distance_travel_skim_file'])
         
-    
+    # input/outputs first appear in domestic post analysis
+    domestic_summary_file = os.path.join(output_path, 
+                                         config['OUTPUTS']['domestic_summary_file'])
+    domestic_summary_zone_file = os.path.join(output_path, 
+                                         config['OUTPUTS']['domestic_summary_zone_file'])
+
     # input/output appear in fleet generation (optional)
     
     # scenario-specific inputs
@@ -260,8 +266,18 @@ def main():
                                                        config['FLEET_IO']['leasing_with_fleet_file'])
         firms_with_fleet_mc_adj_files = os.path.join(output_path, fleet_year, fleet_scenario_name,
                                                        config['FLEET_IO']['firms_with_fleet_mc_adj_files'])
+
+    # input/output appear in port analysis (optional)
     
-    if run_international_flow:
+    # those files are needed across module (international + validation)
+    if port_analysis:
+        international_summary_file = os.path.join(output_path, 
+                                             config['OUTPUTS']['international_summary_file'])
+        international_summary_zone_file = os.path.join(output_path, 
+                                             config['OUTPUTS']['international_summary_zone_file'])
+
+    # those files are only needed for international
+    if run_international_flow: 
     # input/output appear in international flow
         need_domestic_adjustment = config.getboolean('INPUTS', 'need_domestic_adjustment') 
         if need_domestic_adjustment:
@@ -437,7 +453,8 @@ def main():
     ##### Step 9 - post mode choice analysis and result summary
     if run_post_analysis:
         post_mode_choice(sctg_group_file, mesozone_to_faf_file, 
-                     output_path, region_code)
+                     output_path, domestic_summary_file, 
+                     domestic_summary_zone_file, region_code)
     
 
     
@@ -448,14 +465,14 @@ def main():
     if run_fleet_generation:
         if need_regional_calibration:
             print('Adding calibrated variables under fleet generation')
-            # firm_fleet_generator(int(fleet_year), fleet_name, regulations,
-            #                          synthetic_firms_with_location_file, private_fleet_file,
-            #                          for_hire_fleet_file, cargo_type_distribution_file, state_fips_lookup_file,
-            #                          private_fuel_mix_file, hire_fuel_mix_file, lease_fuel_mix_file,
-            #                          private_stock_file, hire_stock_file, lease_stock_file,
-            #                          firms_with_fleet_file, carriers_with_fleet_file, leasing_with_fleet_file, 
-            #                          ev_availability_file, output_path, 
-            #                          need_regional_calibration, regional_variable)
+            firm_fleet_generator(int(fleet_year), fleet_name, regulations,
+                                     synthetic_firms_with_location_file, private_fleet_file,
+                                     for_hire_fleet_file, cargo_type_distribution_file, state_fips_lookup_file,
+                                     private_fuel_mix_file, hire_fuel_mix_file, lease_fuel_mix_file,
+                                     private_stock_file, hire_stock_file, lease_stock_file,
+                                     firms_with_fleet_file, carriers_with_fleet_file, leasing_with_fleet_file, 
+                                     ev_availability_file, output_path, 
+                                     need_regional_calibration, regional_variable)
 
             
             firm_fleet_generator_post_mc(int(fleet_year), fleet_name, regulations, synthetic_firms_with_location_file,
@@ -525,9 +542,18 @@ def main():
                                                 output_path)
             
         # international mode choice
-        international_mode_choice(int_mode_choice_file, distance_travel_skim_file,
-                                  import_od, export_od, import_mode_file, export_mode_file,
-                                  mode_choice_spec, output_path)
+        if regional_analysis:
+            international_mode_choice(int_mode_choice_file, distance_travel_skim_file,
+                                      import_od, export_od, import_mode_file, export_mode_file,
+                                      mode_choice_spec, output_path, mesozone_to_faf_file,
+                                      international_summary_file,
+                                      international_summary_zone_file, region_code)
+        else:
+            international_mode_choice(int_mode_choice_file, distance_travel_skim_file,
+                                      import_od, export_od, import_mode_file, export_mode_file,
+                                      mode_choice_spec, output_path, mesozone_to_faf_file,
+                                      international_summary_file,
+                                      international_summary_zone_file)
         
         # domestic receiver assignment
         domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_file,

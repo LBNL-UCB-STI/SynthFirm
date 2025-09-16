@@ -20,7 +20,8 @@ warnings.filterwarnings("ignore")
 
 # os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 def post_mode_choice(sctg_group_file, mesozone_to_faf_file, 
-                     output_path, region_code):
+                     output_path, domestic_summary_file, 
+                     domestic_summary_zone_file, region_code):
     
     print('Post process domestic mode choice results and generate truck flows...')
     sctg_group_lookup = read_csv(sctg_group_file, sep = ',')
@@ -193,8 +194,10 @@ def post_mode_choice(sctg_group_file, mesozone_to_faf_file,
     # <codecell>
     combined_modeled_OD_agg.loc[:, 'Source'] = 'Domestic'
     combined_modeled_OD_mesozone.loc[:, 'Source'] = 'Domestic'
-    combined_modeled_OD_agg.to_csv(os.path.join(output_dir, 'processed_b2b_flow_summary.csv'), sep = ',')
-    combined_modeled_OD_mesozone.to_csv(os.path.join(output_dir, 'processed_b2b_flow_summary_mesozone.csv'), sep = ',')
+    combined_modeled_OD_agg.to_csv(os.path.join(output_dir, domestic_summary_file), 
+                                   sep = ',', index = False)
+    combined_modeled_OD_mesozone.to_csv(os.path.join(output_dir, domestic_summary_zone_file), 
+                                        sep = ',', index = False)
     print('End of post mode choice analysis for domestic shipments.')
     print('--------------------------------')
     

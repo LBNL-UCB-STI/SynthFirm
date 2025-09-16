@@ -91,17 +91,26 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
             export_forecast_factor.loc[:, 'load_factor'] # backcasting load and then project value
 
         # adj USATO data by load first (the values will be adjusted till the end)
+        port_level_import.loc[:, 'SCTG_Code'] = 0
+        port_level_import.loc[port_level_import['HS Code'] == 27, 'SCTG_Code'] = 16
+        port_level_import.loc[port_level_import['HS Code'] == 88, 'SCTG_Code'] = 37
         port_level_import = pd.merge(port_level_import, import_forecast_factor,
-                                     on = ['FAFID', 'CFS_CODE'], how = 'left')
+                                     on = ['FAFID', 'SCTG_Code'], how = 'left')
         port_level_import.loc[:, 'load_factor'].fillna(1, inplace = True)
         port_level_import.loc[:, 'Customs Value (Gen) ($US)'] = \
             port_level_import.loc[:, 'Customs Value (Gen) ($US)'] * port_level_import.loc[:, 'load_factor']
+        
+        port_level_export.loc[:, 'SCTG_Code'] = 0
+        port_level_export.loc[port_level_export['HS Code'] == 27, 'SCTG_Code'] = 16
+        port_level_export.loc[port_level_export['HS Code'] == 88, 'SCTG_Code'] = 37
         port_level_export = pd.merge(port_level_export, export_forecast_factor,
-                                     on = ['FAFID', 'CFS_CODE'], how = 'left')
+                                     on = ['FAFID', 'SCTG_Code'], how = 'left')
         port_level_export.loc[:, 'load_factor'].fillna(1, inplace = True)
         port_level_export.loc[:, 'Total Exports Value ($US)'] = \
             port_level_export.loc[:, 'Total Exports Value ($US)'] * port_level_export.loc[:, 'load_factor']
-       
+        port_level_import.drop(columns = ['SCTG_Code'], inplace = True)
+        port_level_export.drop(columns = ['SCTG_Code'], inplace = True)
+        
     # pre-select data
     sctg_lookup_short = sctg_lookup[['SCTG_Code', 'SCTG_Group']]
     int_shipment_size_short = \
@@ -311,11 +320,11 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                                import_by_port_te, 'import value', 'import_frac')
     export_by_port_te = port_allocation_factor(regional_export_by_size_te, 
                                                export_by_port_te, 'export value', 'export_frac')
-    print('range of import adj. factors')
-    print(import_by_airport['import_frac'].min(), import_by_airport['import_frac'].max())
-    # export_by_airport['export_frac'].hist()
-    print('range of export adj. factors')
-    print(export_by_airport['export_frac'].min(), export_by_airport['export_frac'].max())
+    # print('range of import adj. factors')
+    # print(import_by_airport['import_frac'].min(), import_by_airport['import_frac'].max())
+    # # export_by_airport['export_frac'].hist()
+    # print('range of export adj. factors')
+    # print(export_by_airport['export_frac'].min(), export_by_airport['export_frac'].max())
     
     
     # <codecell>
@@ -431,13 +440,13 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     export_by_other_port = port_allocation_factor(remain_exports_to_assign, 
                                                export_by_other_port, 'export value', 'export_frac')    
     # import_by_other_port['import_frac'].hist()
-    print('range of import adj. factors')
-    print(import_by_other_port['import_frac'].min(), 
-          import_by_other_port['import_frac'].max())
-    # export_by_other_port['export_frac'].hist()
-    print('range of export adj. factors')
-    print(export_by_other_port['export_frac'].min(), 
-          export_by_other_port['export_frac'].max())
+    # print('range of import adj. factors')
+    # print(import_by_other_port['import_frac'].min(), 
+    #       import_by_other_port['import_frac'].max())
+    # # export_by_other_port['export_frac'].hist()
+    # print('range of export adj. factors')
+    # print(export_by_other_port['export_frac'].min(), 
+    #       export_by_other_port['export_frac'].max())
     
     # <codecell>
     # assign destination to other ports import
@@ -498,11 +507,16 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     
     # value forecast
     if forecast_year is not None:
-        import_forecast_factor.rename(columns = {'FAFID':'FAF'}, inplace = True)
-        export_forecast_factor.rename(columns = {'FAFID':'FAF'}, inplace = True)
+        import_forecast_factor.rename(columns = {'FAFID':'FAF', 
+                                                 'SCTG_Code': 'SCTG_Group'}, inplace = True)
+        export_forecast_factor.rename(columns = {'FAFID':'FAF', 
+                                                 'SCTG_Code': 'SCTG_Group'}, inplace = True)
         # adj output data by value  
+        import_by_port_by_dest.loc[:, 'SCTG_Group'] = 0
+        import_by_port_by_dest.loc[import_by_port_by_dest['SCTG_Code'] == 16, 'SCTG_Group'] = 16
+        import_by_port_by_dest.loc[import_by_port_by_dest['SCTG_Code'] == 37, 'SCTG_Group'] = 37
         import_by_port_by_dest = pd.merge(import_by_port_by_dest, import_forecast_factor,
-                                     on = ['FAF', 'CFS_CODE'], how = 'left')
+                                     on = ['FAF', 'SCTG_Group'], how = 'left')
         import_by_port_by_dest.loc[:, 'value_factor'].fillna(1, inplace = True)
         import_by_port_by_dest.loc[:, 'value_2017'] = \
             import_by_port_by_dest.loc[:, 'value_2017'] * \
@@ -510,11 +524,14 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
         import_by_port_by_dest.loc[:, 'value_density'] = \
             import_by_port_by_dest.loc[:, 'value_density'] * \
                 import_by_port_by_dest.loc[:, 'value_factor']
-        import_by_port_by_dest.drop(columns = ['load_factor', 'value_factor'],
+        import_by_port_by_dest.drop(columns = ['load_factor', 'value_factor', 'SCTG_Group'],
                                     inplace = True)
         
+        export_by_port_by_orig.loc[:, 'SCTG_Group'] = 0
+        export_by_port_by_orig.loc[export_by_port_by_orig['SCTG_Code'] == 16, 'SCTG_Group'] = 16
+        export_by_port_by_orig.loc[export_by_port_by_orig['SCTG_Code'] == 37, 'SCTG_Group'] = 37
         export_by_port_by_orig = pd.merge(export_by_port_by_orig, export_forecast_factor,
-                                     on = ['FAF', 'CFS_CODE'], how = 'left')
+                                     on = ['FAF', 'SCTG_Group'], how = 'left')
         export_by_port_by_orig.loc[:, 'value_factor'].fillna(1, inplace = True)
         export_by_port_by_orig.loc[:, 'value_2017'] = \
             export_by_port_by_orig.loc[:, 'value_2017'] * \
@@ -522,7 +539,7 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
         export_by_port_by_orig.loc[:, 'value_density'] = \
             export_by_port_by_orig.loc[:, 'value_density'] * \
                 export_by_port_by_orig.loc[:, 'value_factor']
-        export_by_port_by_orig.drop(columns = ['load_factor', 'value_factor'],
+        export_by_port_by_orig.drop(columns = ['load_factor', 'value_factor', 'SCTG_Group'],
                                     inplace = True)
 
 
@@ -645,7 +662,45 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     export_by_port_by_orig = pd.merge(export_by_port_by_orig,
                                        sctg_lookup_short,
                                        on = ['SCTG_Code'], how = 'left')
+    data_format_import = {'PORTID': np.int64, 
+                   'CBP Port Location':'string', 
+                   'FAF':'int', 
+                   'CBPZONE': np.int64, 
+                   'MESOZONE': np.int64, 
+                   'TYPE': 'string', 
+                    'is_airport': 'int', 
+                    'CFS_CODE': 'string', 
+                    'CFS_NAME': 'string', 
+                    'dms_dest': 'int', 
+                    'SCTG_Code': 'int',
+                    'TruckLoad': 'float',
+                    'ship_count': np.int64,
+                    'value_2017': 'float',
+                    'value_density': 'float',
+                    'SCTG_Group': 'int'
+                    }
+    import_by_port_by_dest = import_by_port_by_dest.astype(data_format_import)
+
+    data_format_export = {'PORTID': np.int64, 
+                   'CBP Port Location':'string', 
+                   'FAF':'int', 
+                   'CBPZONE': np.int64, 
+                   'MESOZONE': np.int64, 
+                   'TYPE': 'string', 
+                    'is_airport': 'int', 
+                    'CFS_CODE': 'string', 
+                    'CFS_NAME': 'string', 
+                    'dms_orig': 'int', 
+                    'SCTG_Code': 'int',
+                    'TruckLoad': 'float',
+                    'ship_count': np.int64,
+                    'value_2017': 'float',
+                    'value_density': 'float',
+                    'SCTG_Group': 'int'
+                    }
+    export_by_port_by_orig = export_by_port_by_orig.astype(data_format_export)    
     
+    # write output
     import_by_port_by_dest.to_csv(os.path.join(output_path, import_od), index = False)
     export_by_port_by_orig.to_csv(os.path.join(output_path, export_od), index = False)
     
@@ -660,3 +715,5 @@ def international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
     
     print('Total export value after scaling:')
     print(export_by_port_by_orig.loc[:, "value_2017"].sum())
+    
+    print('International shipment generation at port level finished!')
