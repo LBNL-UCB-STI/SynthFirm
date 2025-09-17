@@ -24,7 +24,6 @@ os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 # define scatter plot
 
-# <codecell>
 # define scenario
 scenario_name = 'Seattle'
 out_scenario_name = 'Seattle_2050'
@@ -41,20 +40,39 @@ lehd_file = 'US_naics.csv'
 map_file = scenario_name + '_freight.geojson'
 add_base_map_selection = True
 logscale_selection = False
+port_analysis = True
+truck_only = False
 
 if not os.path.exists(plot_dir):
     os.mkdir(plot_dir)
 else:
   print("plot directory exists")
 
-# load inputs
-synthfirm_all = read_csv(os.path.join(output_dir, 'synthetic_firms_with_location.csv'))
-region_map = gpd.read_file(os.path.join(input_dir, map_file))
-mesozone_id_lookup = read_csv(os.path.join(input_dir, 'zonal_id_lookup_final.csv'))
-lehd_validation = read_csv(os.path.join(param_dir, lehd_file))
-synthfirm_output = read_csv(os.path.join(output_dir, 'processed_b2b_flow_summary_mesozone.csv'))
+# load input directories --> will be replaced by config
+synthetic_firms_with_location_file = os.path.join(output_dir, 'synthetic_firms_with_location.csv')
+spatial_boundary_file = os.path.join(input_dir, map_file)
+mesozone_to_faf_file = os.path.join(os.path.join(input_dir, 'zonal_id_lookup_final.csv'))
+lehd_file = os.path.join(param_dir, lehd_file) # add this to config
+us_county_map_file = os.path.join(param_dir, 'US_countries.geojson') # add this to config
+domestic_summary_zone_file = os.path.join(output_dir, 
+                                          'domestic_b2b_flow_summary_mesozone.csv')
+
+
+
+# load input files
+synthfirm_all = read_csv(synthetic_firms_with_location_file)
+region_map = gpd.read_file(spatial_boundary_file)
+mesozone_id_lookup = read_csv(mesozone_to_faf_file)
+lehd_validation = read_csv(lehd_file)
+synthfirm_output_domestic = read_csv(domestic_summary_zone_file)
+
+if port_analysis:
+    international_summary_zone_file = os.path.join(output_dir, 
+                                               'international_b2b_flow_summary_mesozone.csv')
+    synthfirm_output_international = read_csv(international_summary_zone_file)
 
 # <codecell>
+
 region_map.dropna(subset = ['geometry'], inplace = True)
 # calculate land area
 region_map.loc[:, "area"] = \
@@ -62,8 +80,8 @@ region_map['geometry'].to_crs({'proj':'cea'}).map(lambda p: p.area / 10**6)
 
 # load shifted county geometry
 analysis_year = 2017
-us_counties = gpd.read_file(os.path.join(param_dir, 'US_countries.geojson'))
-# us_counties.plot()
+us_counties = gpd.read_file(us_county_map_file)
+
 # <codecell>
 
 ##################################################################
@@ -305,15 +323,43 @@ vk.plot_county_map(county_map_with_firm, 'emp_per_area',
 
 # plot production and consumption results by CBG zone
 # production density
-truck_only = True
+
 truck_modes = ['For-hire Truck', 'Private Truck']
+
+prod_attr = ['SellerZone', 'mode_choice', 'ShipmentLoad']
+cons_attr = ['BuyerZone', 'mode_choice', 'ShipmentLoad']
+intr_attr = ['MESOZONE', 'mode_choice', 'ShipmentLoad']
 if focus_region is not None:
-    production_in_region = synthfirm_output.loc[synthfirm_output['orig_FAFID'].isin([focus_region])]
-    attraction_in_region = synthfirm_output.loc[synthfirm_output['dest_FAFID'].isin([focus_region])]
+    production_in_region = \
+        synthfirm_output_domestic.loc[synthfirm_output_domestic['orig_FAFID'].isin([focus_region])]
+    production_in_region = production_in_region[prod_attr]
+    attraction_in_region = \
+        synthfirm_output_domestic.loc[synthfirm_output_domestic['dest_FAFID'].isin([focus_region])]
+    attraction_in_region = attraction_in_region[cons_attr]
 else:
-    production_in_region = synthfirm_output.copy()
-    attraction_in_region = synthfirm_output.copy()
-if truck_only:
+    production_in_region = synthfirm_output_domestic.copy()
+    production_in_region = production_in_region[prod_attr]
+    attraction_in_region = synthfirm_output_domestic.copy()
+    attraction_in_region = attraction_in_region[cons_attr]
+
+if port_analysis: # add international flow if generated
+    production_in_region_int = \
+        synthfirm_output_international.loc[synthfirm_output_international['Source'] == 'Import']
+    production_in_region_int = \
+        production_in_region_int.loc[production_in_region_int['orig_FAFID'].isin([focus_region])]
+    production_in_region_int = production_in_region_int[intr_attr]
+    production_in_region_int.rename(columns = {'MESOZONE': 'SellerZone'}, inplace = True)
+    production_in_region = pd.concat([production_in_region, production_in_region_int])
+    
+    attraction_in_region_int = \
+        synthfirm_output_international.loc[synthfirm_output_international['Source'] == 'Export']
+    attraction_in_region_int = \
+        attraction_in_region_int.loc[attraction_in_region_int['dest_FAFID'].isin([focus_region])]
+    attraction_in_region_int = attraction_in_region_int[intr_attr]
+    attraction_in_region_int.rename(columns = {'MESOZONE': 'BuyerZone'}, inplace = True)
+    attraction_in_region = pd.concat([attraction_in_region, attraction_in_region_int])
+
+if truck_only: # select truck for plotting
     production_in_region = \
         production_in_region.loc[production_in_region['mode_choice'].isin(truck_modes)]
     attraction_in_region = \
@@ -350,6 +396,7 @@ region_map_with_cf.loc[:, 'area']
 region_map_with_cf.loc[:, 'consumption_per_area'] = \
 region_map_with_cf.loc[:, 'consumption'] * 0.907185/ \
 region_map_with_cf.loc[:, 'area']
+
 # <codecell>
 if truck_only:
     map_file_3 = os.path.join(plot_dir, 'region_production_truck.png')
@@ -385,17 +432,18 @@ mesozone_to_county.loc[:, 'CBPZONE'] = \
 production_in_region_ct = pd.merge(production_in_region, mesozone_to_county,
                                    on = 'MESOZONE', how = 'left')
 production_in_region_ct = \
-    production_in_region_ct.groupby(agg_level)[['production']].sum()
+    production_in_region_ct.groupby(agg_level)[['production']].sum().reset_index()
 
 attraction_in_region_ct = pd.merge(attraction_in_region, mesozone_to_county,
                                    on = 'MESOZONE', how = 'left')
 attraction_in_region_ct = \
-    attraction_in_region_ct.groupby(agg_level)[['consumption']].sum()
+    attraction_in_region_ct.groupby(agg_level)[['consumption']].sum().reset_index()
 
 joint_commodity_flow_ct = pd.merge(production_in_region_ct,
                                 attraction_in_region_ct,
                                 on = agg_level, how = 'outer')
 joint_commodity_flow_ct.fillna(0, inplace = True)
+
 # <codecell>
 county_map_with_cf = \
 us_counties.merge(joint_commodity_flow_ct, on = agg_level, how='inner')
@@ -404,8 +452,10 @@ us_counties.merge(joint_commodity_flow_ct, on = agg_level, how='inner')
 county_map_with_cf.loc[:, 'production_per_area'] = \
 county_map_with_cf.loc[:, 'production'] * 0.907185/ \
 county_map_with_cf.loc[:, 'area']
-
-map_file_3c = os.path.join(plot_dir, 'region_production_allmodes_ct.png')
+if truck_only:
+    map_file_3c = os.path.join(plot_dir, 'region_production_truck_ct.png')
+else:
+    map_file_3c = os.path.join(plot_dir, 'region_production_allmodes_ct.png')
 vk.plot_county_map(county_map_with_cf, 'production_per_area', 
                 'Commodity Production (1000 tons/$km^{2}$)', # title
                     map_file_3c, logscale = True, 
@@ -415,7 +465,10 @@ county_map_with_cf.loc[:, 'consumption_per_area'] = \
 county_map_with_cf.loc[:, 'consumption'] * 0.907185/ \
 county_map_with_cf.loc[:, 'area']
 
-map_file_4c = os.path.join(plot_dir, 'region_attraction_allmodes_ct.png')
+if truck_only:
+    map_file_4c = os.path.join(plot_dir, 'region_attraction_truck_ct.png')
+else:
+    map_file_4c = os.path.join(plot_dir, 'region_attraction_allmodes_ct.png')
 vk.plot_county_map(county_map_with_cf, 'consumption_per_area', 
                 'Commodity Attraction (1000 tons/$km^{2}$)', # title
                 map_file_4c, logscale = True,

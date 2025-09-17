@@ -23,9 +23,9 @@ warnings.filterwarnings("ignore")
 data_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 os.chdir(data_path)
 
-analysis_year = '2050'
+analysis_year = '2018'
 region_name = 'Seattle'
-out_scenario_name = 'Seattle_2050'
+out_scenario_name = 'Seattle'
 psrc_crs = 'EPSG:2285'
 
 '''

@@ -17,7 +17,7 @@ import visualkit as vk
 import warnings
 warnings.filterwarnings('ignore')
 
-# <codecell>
+
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 scenario_name = 'Seattle'
@@ -55,17 +55,33 @@ FAF_mode_mapping = {'Truck':['For-hire Truck', 'Private Truck'],
                     'Rail':['Rail/IMX'], 
                     'Air': ['Air'], 'Parcel':['Parcel']}
 
-# <codecell>
+
+port_analysis = True
+# define file name
+mesozone_to_faf_file = os.path.join(os.path.join(input_dir, 'zonal_id_lookup_final.csv'))
+sctg_group_file = os.path.join(param_dir, 'SCTG_Groups_revised_V2.csv')
+faf_data_file = os.path.join(validation_dir, 'FAF5.3.csv') # add to config
+cfs_data_file = os.path.join(validation_dir,'CFS2017_stats_by_zone.csv') # add to config
+domestic_summary_file = os.path.join(output_dir, 'domestic_b2b_flow_summary.csv')
 
 #load modeled, FAF and CFS results
-faf_data = read_csv(os.path.join(validation_dir, 'FAF5.3.csv'), sep = ',')
-cfs_data = read_csv(os.path.join(validation_dir,'CFS2017_stats_by_zone.csv'), sep = ',')
-modeled_data = read_csv(os.path.join(output_dir, 'processed_b2b_flow_summary.csv'), sep = ',')
-modeled_data = modeled_data.loc[modeled_data['mode_choice'] != 'Other']
+faf_data = read_csv(faf_data_file, sep = ',')
+cfs_data = read_csv(cfs_data_file, sep = ',')
+modeled_data = read_csv(domestic_summary_file, sep = ',')
 
+
+# add international OD if available
+if port_analysis:
+    international_summary_file = os.path.join(output_dir, 'international_b2b_flow_summary.csv')
+    modeled_data_international = read_csv(international_summary_file, sep = ',')
+    modeled_data = pd.concat([modeled_data, modeled_data_international])
+    modeled_data = modeled_data.reset_index()
 #load parameters
-sctg_group_lookup = read_csv(os.path.join(param_dir, 'SCTG_Groups_revised_V2.csv'), sep = ',')
-mesozone_lookup = read_csv(os.path.join(input_dir, 'zonal_id_lookup_final.csv'), sep = ',')
+sctg_group_lookup = read_csv(sctg_group_file, sep = ',')
+mesozone_lookup = read_csv(mesozone_to_faf_file, sep = ',')
+
+# processing data before validation
+modeled_data = modeled_data.loc[modeled_data['mode_choice'] != 'Other']
 sctg_names = sctg_group_lookup['SCTG_Name'].unique()
 sctg_group_definition = sctg_group_lookup.loc[:, ['SCTG_Group', 'SCTG_Name']]
 sctg_group_definition = sctg_group_definition.drop_duplicates()
@@ -106,7 +122,10 @@ faf_data.loc[:, 'Distance'] = 1000 * faf_data.loc[:, 'Tonmiles'] / faf_data.loc[
 faf_data.loc[:, 'Tonmiles'] *= 1000000 
 faf_data = faf_data.dropna(subset = ['Distance'])
 trade_type_id = 1 # domestic only
-faf_data_domestic = faf_data.loc[faf_data['trade_type'] == trade_type_id] #select domestic shipment only
+if port_analysis:
+    faf_data_domestic = faf_data.copy()
+else:
+    faf_data_domestic = faf_data.loc[faf_data['trade_type'] == trade_type_id] #select domestic shipment only
 faf_data_domestic = \
 faf_data_domestic.loc[faf_data_domestic['Mode'] != 'Other']
 faf_data_domestic = \
@@ -209,7 +228,6 @@ def summary_statistics_generator(data, tonmile_unit_factor = 1000000, shipment_l
     return(min_distance, max_distance, mean_distance, median_distance, total_shipment_load)
 
   
-
 mode_choice_5alt = modeled_data['Mode Choice'].unique()
 mode_choice_4alt = set(CFS_to_FAF_mapping.values())
 
