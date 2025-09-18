@@ -26,7 +26,7 @@ os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
 # define scenario
 scenario_name = 'Seattle'
-out_scenario_name = 'Seattle_2050'
+out_scenario_name = 'Seattle'
 param_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
 output_dir = 'outputs_' + out_scenario_name
