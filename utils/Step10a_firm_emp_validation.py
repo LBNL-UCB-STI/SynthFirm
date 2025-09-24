@@ -25,17 +25,17 @@ os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 # define scatter plot
 
 # define scenario
-scenario_name = 'Seattle'
-out_scenario_name = 'Seattle'
+scenario_name = 'BayArea'
+out_scenario_name = 'BayArea'
 param_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
 output_dir = 'outputs_' + out_scenario_name
 plot_dir = 'plots_' + out_scenario_name
 # region_code = None # using None for national --> need to be replaced with run type
 # focus_region = None # using None for national --> need to be replaced with run type
-region_code = [411, 531, 532, 539]
-# region_code = [62, 64, 65, 69]
-focus_region = 531
+# region_code = [411, 531, 532, 539]
+region_code = [62, 64, 65, 69]
+focus_region = 64
 lehd_file = 'US_naics.csv'
 map_file = scenario_name + '_freight.geojson'
 add_base_map_selection = True

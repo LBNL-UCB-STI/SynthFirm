@@ -20,8 +20,8 @@ warnings.filterwarnings('ignore')
 
 os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync')
 
-scenario_name = 'Seattle'
-out_scenario_name = 'Seattle'
+scenario_name = 'BayArea'
+out_scenario_name = 'BayArea'
 param_dir = 'SynthFirm_parameters'
 input_dir = 'inputs_' + scenario_name
 output_dir = 'outputs_' + out_scenario_name
@@ -45,9 +45,10 @@ miles_to_km = 1.60934
 shipment_load_attr = 'tons_' + analysis_year
 shipment_tonmile_attr = 'tmiles_' + analysis_year
 
-region_code = [411, 531, 532, 539]
-focus_region = 531
-
+# region_code = [411, 531, 532, 539]
+# focus_region = 531
+region_code = [62, 64, 65, 69]
+focus_region = 64
 # region_code = None
 # focus_region = None
 
