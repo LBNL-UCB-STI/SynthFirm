@@ -43,12 +43,12 @@ pd.read_excel(os.path.join(input_path, 'port', port_commodity_calibration_file),
               sheet_name='import')
 
 # load calibration parameters
-import_calibrators = import_calibrators[['SCTG_Code', 'PORTID', 'Fraction']]
+import_calibrators = import_calibrators[['SCTG_Code', 'CBP Port Location', 'Fraction']]
 import_calibrators.rename(columns = {'SCTG_Code': 'Commodity_SCTG'}, inplace = True)
 export_calibrators = \
 pd.read_excel(os.path.join(input_path, 'port', port_commodity_calibration_file),
               sheet_name='export')
-export_calibrators = export_calibrators[['SCTG_Code', 'PORTID', 'Fraction']]
+export_calibrators = export_calibrators[['SCTG_Code', 'CBP Port Location', 'Fraction']]
 export_calibrators.rename(columns = {'SCTG_Code': 'Commodity_SCTG'}, inplace = True)
 
 import_flow.loc[:, 'total_load'] = \
@@ -73,17 +73,17 @@ port_attr = ['PORTID', 'CBP Port Location', 'FAF', 'CBPZONE', 'MESOZONE',
 
 port_location = port_location[port_attr]
 port_location.rename(columns = {'MESOZONE': 'PORTZONE'}, inplace = True)
-import_calibrators = pd.merge(import_calibrators, port_location, on = 'PORTID')
-export_calibrators = pd.merge(export_calibrators, port_location, on = 'PORTID')
+import_calibrators = pd.merge(import_calibrators, port_location, on = 'CBP Port Location')
+export_calibrators = pd.merge(export_calibrators, port_location, on = 'CBP Port Location')
 
-import_set = import_calibrators['PORTID'].unique()
-export_set = export_calibrators['PORTID'].unique()
+import_set = import_calibrators['CBP Port Location'].unique()
+export_set = export_calibrators['CBP Port Location'].unique()
 
-import_flow_to_cal = import_flow.loc[import_flow['PORTID'].isin(import_set)]
-import_flow_no_cal = import_flow.loc[~import_flow['PORTID'].isin(import_set)]
+import_flow_to_cal = import_flow.loc[import_flow['CBP Port Location'].isin(import_set)]
+import_flow_no_cal = import_flow.loc[~import_flow['CBP Port Location'].isin(import_set)]
 
-export_flow_to_cal = export_flow.loc[export_flow['PORTID'].isin(export_set)]
-export_flow_no_cal = export_flow.loc[~export_flow['PORTID'].isin(export_set)]
+export_flow_to_cal = export_flow.loc[export_flow['CBP Port Location'].isin(export_set)]
+export_flow_no_cal = export_flow.loc[~export_flow['CBP Port Location'].isin(export_set)]
 
 print('total import load to assign:')
 print(import_flow_to_cal.loc[:, 'total_load'].sum())
@@ -93,16 +93,16 @@ print(export_flow_to_cal.loc[:, 'total_load'].sum())
 
 
 import_tonnage_by_port = \
-import_flow_to_cal.groupby(['PORTID'])[['total_load']].sum()
+import_flow_to_cal.groupby(['CBP Port Location'])[['total_load']].sum()
 
 export_tonnage_by_port = \
-export_flow_to_cal.groupby(['PORTID'])[['total_load']].sum()
+export_flow_to_cal.groupby(['CBP Port Location'])[['total_load']].sum()
 
 import_tonnage_by_port.rename(columns = {'total_load': 'import'}, inplace = True)
 export_tonnage_by_port.rename(columns = {'total_load': 'export'}, inplace = True)
 
 tonnage_by_port = pd.merge(import_tonnage_by_port, export_tonnage_by_port,
-                           on = 'PORTID', how = 'left')
+                           on = 'CBP Port Location', how = 'left')
 # tonnage_by_port = tonnage_by_port.set_index('PORTID')
 tonnage_by_port.plot(kind = 'bar', stacked = True)
 
@@ -131,7 +131,7 @@ import_flow_to_cal = import_flow_to_cal.groupby(essential_var).sample(n = 1,
 
 
 import_tonnage_by_port = \
-import_flow_to_cal.groupby(['PORTID'])[['total_load']].sum()
+import_flow_to_cal.groupby(['CBP Port Location'])[['total_load']].sum()
 print(import_tonnage_by_port.total_load.sum())
 import_tonnage_by_port.plot(kind = 'bar')
 
@@ -159,7 +159,7 @@ export_flow_to_cal = export_flow_to_cal.groupby(essential_var).sample(n = 1,
 
 
 export_tonnage_by_port = \
-export_flow_to_cal.groupby(['PORTID'])[['total_load']].sum()
+export_flow_to_cal.groupby(['CBP Port Location'])[['total_load']].sum()
 print(export_tonnage_by_port.total_load.sum())
 export_tonnage_by_port.plot(kind = 'bar')
 
@@ -168,7 +168,7 @@ import_tonnage_by_port.rename(columns = {'total_load': 'import'}, inplace = True
 export_tonnage_by_port.rename(columns = {'total_load': 'export'}, inplace = True)
 
 tonnage_by_port = pd.merge(import_tonnage_by_port, export_tonnage_by_port,
-                           on = 'PORTID', how = 'left')
+                           on = 'CBP Port Location', how = 'left')
 # tonnage_by_port = tonnage_by_port.set_index('PORTID')
 tonnage_by_port.plot(kind = 'bar', stacked = True)
 
