@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore")
 data_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
 os.chdir(data_path)
 
-analysis_year = '2018'
+
 region_name = 'Seattle'
 out_scenario_name = 'Seattle'
 psrc_crs = 'EPSG:2285'
@@ -35,8 +35,8 @@ This post-processor assign parcel ID to individual firms within psrc region
 input_dir = 'Inputs_' + region_name
 output_dir = 'outputs_' + out_scenario_name
 plot_dir = 'plots_' + out_scenario_name
-# load parcel data
-psrc_parcel_path = os.path.join(input_dir, 'parcel_data_' + analysis_year + '.csv')
+# load parcel data => check year before running the code
+psrc_parcel_path = os.path.join(input_dir, 'parcel_data_2018.csv')
 psrc_parcels = pd.read_csv(psrc_parcel_path, sep = ',')
 
 # need to replace this file with firms with fleet after fleet generation updated

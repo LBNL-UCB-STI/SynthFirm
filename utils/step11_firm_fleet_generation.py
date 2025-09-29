@@ -624,7 +624,7 @@ def firm_fleet_generator(fleet_year, fleet_name, regulations,
     veh_class_renaming = {'Heavy-duty Tractor': 'Class 7&8 Tractor', 
                           'Heavy-duty Vocational': 'Class 7&8 Vocational',
                           'Light-duty Class12A': 'Class 1&2A Vocational', 
-                          'Light-duty Class2B3': 'Class 2&B3 Vocational',
+                          'Light-duty Class2B3': 'Class 2B&3 Vocational',
                           'Medium-duty Vocational': 'Class 4-6 Vocational'}
     
     firms_with_fleet_out.loc[:, 'veh_class'] = \
