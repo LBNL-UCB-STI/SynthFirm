@@ -55,7 +55,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description=des)
     parser.add_argument("--config", type = str, help = "config file name", 
-                        default= 'configs/Seattle_2050_psrc.conf')
+                        default= 'configs/national_base.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -116,6 +116,7 @@ def main():
         print(f'Run model validation with selected FAF zones = {focus_region}')
     else:
         region_code = None
+        focus_region = None
         print('Run national-scale model')
     
     if forecast_analysis:
@@ -624,10 +625,10 @@ def main():
         else: # run national validation (without ports)
             print('Validate national results without international flow.')
             validate_firm_employment(synthetic_firms_with_location_file,
-                                     spatial_boundary_file,
-                                     mesozone_to_faf_file, 
-                                     domestic_summary_zone_file, 
-                                     lehd_file, us_county_map_file, plot_path)
+                                      spatial_boundary_file,
+                                      mesozone_to_faf_file, 
+                                      domestic_summary_zone_file, 
+                                      lehd_file, us_county_map_file, plot_path)
             
             validate_commodity_flow(sctg_group_file,
                                     faf_data_file, cfs_data_file,

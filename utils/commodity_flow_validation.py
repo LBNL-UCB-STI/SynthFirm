@@ -64,7 +64,7 @@ def validate_commodity_flow(sctg_group_file,
     #                     'Air': ['Air'], 'Parcel':['Parcel']}
     
     
-    port_analysis = True
+    # port_analysis = True
     # define file name
     # mesozone_to_faf_file = os.path.join(os.path.join(input_dir, 'zonal_id_lookup_final.csv'))
     # sctg_group_file = os.path.join(param_dir, 'SCTG_Groups_revised_V2.csv')
