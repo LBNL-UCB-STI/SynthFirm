@@ -425,7 +425,7 @@ def plot_top_OD_bar(
     cfs_outflow.groupby([agg_level])[[attr_name]].sum()
     
     # Modeled aggregation
-    print(modeled_outflow.columns)
+    # print(modeled_outflow.columns)
     modeled_flow_by_zone = \
         modeled_outflow.groupby([agg_level, agg_level_name])[[attr_name]].sum().reset_index()
     

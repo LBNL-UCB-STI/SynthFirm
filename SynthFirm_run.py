@@ -6,7 +6,7 @@ import warnings
 import configparser
 import sys
 import datetime
-
+import utils.visualkit as vk
 
 # import SynthFirm modules
 from utils.Step1_Firm_Generation import synthetic_firm_generation
@@ -23,6 +23,8 @@ from utils.Step12_firm_fleet_adjustment_post_mc import firm_fleet_generator_post
 from utils.Step13_international_shipment import international_demand_generation
 from utils.Step14_international_mode_assignment import international_mode_choice
 from utils.Step15_international_B2B_flow_generator import domestic_receiver_assignment
+from utils.firm_emp_validation import validate_firm_employment
+from utils.commodity_flow_validation import validate_commodity_flow
 
 warnings.filterwarnings("ignore")
 
@@ -53,7 +55,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description=des)
     parser.add_argument("--config", type = str, help = "config file name", 
-                        default= 'configs/Seattle_base_psrc.conf')
+                        default= 'configs/Seattle_2050_psrc.conf')
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
     options = parser.parse_args()
@@ -63,9 +65,15 @@ def main():
         
 
     # load config
+    # print(options.config)
+    # f=open(options.config,'r')
+    # l=f.readlines()
+    # print(l)
+    # f.close()
     conf_file = options.config
     config = configparser.ConfigParser()
     config.read(conf_file)
+    # print(list(config.keys()))
     print(config['ENVIRONMENT']['file_path'])
     scenario_name = config['ENVIRONMENT']['scenario_name']
     out_scenario_name = config['ENVIRONMENT']['out_scenario_name']
@@ -75,10 +83,12 @@ def main():
     number_of_processes = int(number_of_processes) if number_of_processes else 0
     input_dir = 'inputs_' + scenario_name
     output_dir = 'outputs_' + out_scenario_name
+    plot_dir = 'plots_' + out_scenario_name
 
     input_path = os.path.join(file_path, input_dir)
     output_path = os.path.join(file_path, output_dir)
     param_path = os.path.join(file_path, parameter_dir)
+    plot_path = os.path.join(file_path, plot_dir)
     
     # preparing run log
     log_filename = datetime.datetime.now().strftime(out_scenario_name + "_run_%Y%m%d.log")
@@ -100,6 +110,10 @@ def main():
         region_code_str = config['ENVIRONMENT']['region_code']
         region_code = [int(num) for num in region_code_str.split(',')]
         print(f'Run regional model with selected FAF zones = {region_code}')
+        
+        focus_region_str = config['VALIDATION']['focus_region']
+        focus_region = [int(num) for num in focus_region_str.split(',')]
+        print(f'Run model validation with selected FAF zones = {focus_region}')
     else:
         region_code = None
         print('Run national-scale model')
@@ -157,6 +171,10 @@ def main():
     if run_international_flow:
             print('including international flow generation in the pipeline...')
     
+    run_model_validation = config.getboolean('ENVIRONMENT', 'enable_model_validation')
+    if run_model_validation:
+            print('including model validation in the pipeline...')
+            
     # define if regional calibration is needed
     need_regional_calibration = config.getboolean('ENVIRONMENT', 'need_regional_calibration') 
     
@@ -308,6 +326,11 @@ def main():
         export_with_firm_file = os.path.join(output_path, 'international', config['OUTPUTS']['export_with_firm_file'])
         import_with_firm_file = os.path.join(output_path, 'international', config['OUTPUTS']['import_with_firm_file'])
     
+    # input/output appear in model validation
+    lehd_file = os.path.join(param_path, config['VALIDATION']['lehd_file'])
+    us_county_map_file = os.path.join(param_path, config['VALIDATION']['us_county_map_file'])
+    faf_data_file = os.path.join(param_path, config['VALIDATION']['faf_data_file'])
+    cfs_data_file = os.path.join(param_path, config['VALIDATION']['cfs_data_file'])
     # prepare mode choice specifications
     mode_choice_spec = {} 
     lb_to_ton = float(config['CONSTANTS']['lb_to_ton'])
@@ -459,7 +482,7 @@ def main():
     
 
     
-    ###### placeholder for validation and fleet generation
+    ###### placeholder for model calibration 
 
     ##### Step 11/12 - generate firm-level fleet before and after mode choice
     
@@ -495,7 +518,7 @@ def main():
                                      private_fleet_file, private_fuel_mix_file, ev_availability_file, 
                                      firms_with_fleet_file, firms_with_fleet_mc_adj_files, output_path, need_regional_calibration)
            
-    ###### Step 13 -- international shipment
+    ###### Steps 13-15 -- international flow, mode choice and shipment generation
     
     if run_international_flow:
         
@@ -562,7 +585,55 @@ def main():
                                  export_with_firm_file, 
                                  import_with_firm_file, output_path)
             
+    ###### Final step -- model validation 
+    if run_model_validation: 
+        if regional_analysis: # include region code and focus zone
+            if port_analysis: # include international summary
+                print('Validate regional results with international flow.')
+                validate_firm_employment(synthetic_firms_with_location_file,
+                                         spatial_boundary_file,
+                                         mesozone_to_faf_file, 
+                                         domestic_summary_zone_file, 
+                                         lehd_file, us_county_map_file, plot_path, 
+                                         region_code, focus_region,
+                                         port_analysis,                                          
+                                         international_summary_zone_file) 
+                
+                validate_commodity_flow(sctg_group_file,
+                                            faf_data_file, cfs_data_file,
+                                            domestic_summary_file,
+                                            forecast_year, plot_path, 
+                                            region_code, focus_region,                     
+                                            port_analysis, 
+                                            international_summary_file)
+                
+            else:
+                print('Validate regional results without international flow.')
+                validate_firm_employment(synthetic_firms_with_location_file,
+                                         spatial_boundary_file,
+                                         mesozone_to_faf_file, 
+                                         domestic_summary_zone_file, 
+                                         lehd_file, us_county_map_file, plot_path, 
+                                         region_code, focus_region, port_analysis)
+                
+                validate_commodity_flow(sctg_group_file,
+                                            faf_data_file, cfs_data_file,
+                                            domestic_summary_file,
+                                            forecast_year, plot_path, 
+                                            region_code, focus_region)
+        else: # run national validation (without ports)
+            print('Validate national results without international flow.')
+            validate_firm_employment(synthetic_firms_with_location_file,
+                                     spatial_boundary_file,
+                                     mesozone_to_faf_file, 
+                                     domestic_summary_zone_file, 
+                                     lehd_file, us_county_map_file, plot_path)
             
+            validate_commodity_flow(sctg_group_file,
+                                    faf_data_file, cfs_data_file,
+                                    domestic_summary_file,
+                                    forecast_year, plot_path)
+                
     print('SynthFirm run for ' + scenario_name + ' finished!')
     print('All outputs are under ' + output_path)
     print('-------------------------------------------------')
