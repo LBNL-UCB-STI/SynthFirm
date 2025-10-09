@@ -24,10 +24,22 @@ path2file <-
 setwd(path2file)
 
 # define inputs
-selected_state = c('WA', 'OR')
-output_state = 'WA'
-selected_year = 2018
-region_name = 'Seattle'
+
+#output_state = c('CA')
+output_state = 'US'
+output_state_name = 'US'
+selected_year = 2019
+region_name = 'national'
+
+if (output_state =='US'){
+  selected_state = unique(fips_codes$state)[1:56]
+  # Workplace area characteristics (latest data from AK is 2016)
+  selected_state <- selected_state[!selected_state %in%  c("AS", "GU", "MP", "PR", "UM", "AK")]
+}else{
+  # user needs to define the state here
+  selected_state = output_state
+}
+
 
 
 ####### BEGINNING OF CENSUS DATA PROCESSES ######
@@ -39,6 +51,18 @@ state_wac <- grab_lodes(selected_state,
                   segment = "S000", # select total jobs
                   agg_geo = "bg")
 head(state_wac)
+
+if (output_state =='US'){
+  state_wac_ak <- grab_lodes('AK', 
+                          2016,
+                          version = 'LODES7',
+                          lodes_type = "wac",
+                          job_type = "JT00", #all jobs combined
+                          segment = "S000", # select total jobs
+                          agg_geo = "bg")
+  state_wac = rbind(state_wac, state_wac_ak)
+}
+
 
 naics = c(
   "n11",
@@ -65,7 +89,7 @@ naics = c(
 
 state_wac <- state_wac %>% 
   rename(GEOID = w_bg) %>% 
-  mutate(metalayer_id = substr(GEOID, 1, 8),
+  mutate(
          n11 = CNS01, 
          n21 = CNS02, 
          n22 = CNS03,
@@ -89,7 +113,7 @@ state_wac <- state_wac %>%
          )
 
 state_wac = state_wac %>% 
-  select(GEOID, metalayer_id, all_of(naics)) # note: metalayer id is not used in following analysis
+  select(GEOID, all_of(naics)) # note: metalayer id is not used in following analysis
 
 
 state_bg_df = get_acs(
@@ -100,13 +124,31 @@ state_bg_df = get_acs(
   geometry = TRUE
 )
 
+if (output_state =='US'){
+  state_bg_df_ak <- get_acs(
+    geography = "block group",
+    year = selected_year,
+    variables = c('B01003_001'),
+    state = 'AK',
+    geometry = TRUE)
+  state_bg_df = rbind(state_bg_df, state_bg_df_ak)
+}
+
 state_bg_df_filtered <- state_bg_df %>% filter(! grepl('Block Group 0', NAME)) # with population
+state_bg_df <- state_bg_df%>% mutate(county = substr(GEOID, 1, 5))
+print(length(unique(state_bg_df$county)))
+# state_bg_df_filtered <- state_bg_df_filtered%>% mutate(county = substr(GEOID, 1, 5))
+# print(length(unique(state_bg_df_filtered$county)))
 list_of_geoid <- unique(state_bg_df_filtered$GEOID)
 bg_name = paste0('inputs_', region_name, '/', output_state, '_bg.geojson')
 sf::st_write(state_bg_df_filtered, bg_name, append=FALSE)
 
+# 215,509 CBG nationwide, after excluding block group id 0
 state_wac_filtered <- state_wac %>% filter(GEOID %in% list_of_geoid)
-output_name = paste0('inputs_', region_name, '/', output_state, '_naics_2018.csv')
+
+
+output_name = paste0('inputs_', region_name, '/', output_state_name, '_naics.csv')
+
 data.table::fwrite(state_wac_filtered, output_name)
 
 

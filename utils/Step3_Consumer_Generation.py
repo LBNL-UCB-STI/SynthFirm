@@ -195,7 +195,16 @@ def consumer_generation(synthetic_firms_no_location_file, mesozone_to_faf_file,
     print('Total number of consumers is:')
     print(len(consumers_out))
     # 8,968,556
+    print('Total load from consumption in 1000 tons:')
+    print(consumers_out.PurchaseAmountlb.sum()/2000/1000)
     
+    consumers_out = consumers_out.astype({
+        'Commodity_SCTG': np.int64, 
+        'BuyerID': np.int64, 
+        'Zone': np.int64,  
+        'NAICS': 'string', 
+        'InputCommodity': 'string', 
+        'PurchaseAmountlb': 'float'})
     consumers_out.to_csv(os.path.join(output_path, consumer_file), index = False)
     sample_consumers.to_csv(os.path.join(output_path, sample_consumer_file), index = False)
     # <codecell>
@@ -213,7 +222,9 @@ def consumer_generation(synthetic_firms_no_location_file, mesozone_to_faf_file,
       print("Processing SCTG Group " + str(i+1))
       
       g1_cons = consumers_out.loc[consumers_out['SCTG_Group'] == i+1] 
-      g1_cons = g1_cons[['SCTG_Group', 'Commodity_SCTG', 'BuyerID', 'Zone', 'NAICS', 'InputCommodity', 'PurchaseAmountlb']]
+      g1_cons = g1_cons[['SCTG_Group', 'Commodity_SCTG', 'BuyerID', 'Zone', 
+                         'NAICS', 'InputCommodity', 'PurchaseAmountlb']]
+      g1_cons = g1_cons.astype({'SCTG_Group': 'int'})
       g1_cons.to_csv(os.path.join(output_path, consumer_by_sctg_filehead + str(i+1) + ".csv"), index = False)
      
     print('Consumer generation is done!')

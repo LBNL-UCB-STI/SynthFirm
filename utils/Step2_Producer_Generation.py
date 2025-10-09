@@ -119,7 +119,8 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     wholesale_flow.groupby(['Industry_NAICS6_Make_y', 'Industry_NAICS6_Use_y'])['ProVal'].transform('sum')
     
     wholesalecostfactor = (whlcons + whlprod) / whlcons # assume zero inventory -> all commodity purchased will be sold
-    print(wholesalecostfactor)
+    print(f'Estimated wholesale cost ratio (selling/buying) is {wholesalecostfactor}')
+    # print(wholesalecostfactor)
     wholesale_flow.loc[:, 'CellValue'] = wholesale_flow.loc[:, 'ProValPctUse'] * wholesale_flow.loc[:, 'ProValFromWhl'] 
     
     wholesale_flow.loc[:, 'CellValue'] *= whlcons/whlprod # scale value to cost of good
@@ -330,7 +331,7 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     
     # <codecell>
     
-    output_var = ["SellerID", "Zone", "NAICS", "SCTG", "Size", "OutputCapacitylb", "NonTransportUnitCost"]
+    # output_var = ["SellerID", "Zone", "NAICS", "SCTG", "Size", "OutputCapacitylb", "NonTransportUnitCost"]
     
     # combine producers
     producers_output = \
@@ -345,7 +346,8 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     
     # Add in wholesalers to producers
     wholesalers_output = \
-        wholesalers_with_value[["BusID", "MESOZONE", "Industry_NAICS6_Make", 'Commodity_SCTG', "Emp", "ProdCap", "UnitCost"]]
+        wholesalers_with_value[["BusID", "MESOZONE", "Industry_NAICS6_Make", 
+                                'Commodity_SCTG', "Emp", "ProdCap", "UnitCost"]]
     # size = 308,235 * 7
     
     # wholesalers_output.columns = output_var
@@ -367,6 +369,19 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     print('Total number of wholesalers (among producers):')
     print(len(wholesalers_output))
     
+    print('Total load from production in 1000 tons:')
+    print(producers_output.OutputCapacitylb.sum()/2000/1000)
+    
+    producers_output = producers_output.astype({
+        'SellerID': np.int64, 
+        'Zone': np.int64, 
+        'NAICS': 'string',
+        'Commodity_SCTG': np.int64,
+        'Size': 'float',
+        'OutputCapacitylb': 'float',
+        'NonTransportUnitCost':  'float'
+        })
+    
     wholesalers_with_value.to_csv(wholesaler_file, index = False)
     producers_output.to_csv(producer_file, index = False)
     io_with_wholesale.to_csv(io_filtered_file, index = False)
@@ -383,6 +398,7 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
       
       g1_prods = producers_output.loc[producers_output['SCTG_Group'] == i+1] 
       g1_prods = g1_prods[['SCTG_Group', 'Commodity_SCTG', 'SellerID', 'Zone', 'NAICS', 'Size', 'OutputCapacitylb', 'NonTransportUnitCost']]
+      g1_prods = g1_prods.astype({'SCTG_Group': 'int'})
       g1_prods.to_csv(producer_by_sctg_filehead + str(i+1) + ".csv", index = False)
      
     

@@ -1,470 +1,590 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Aug  8 10:47:47 2023
+Created on Tue Mar 11 13:48:31 2025
 
 @author: xiaodanxu
 """
 
-import os
-from pandas import read_csv
 import pandas as pd
-import matplotlib.pyplot as plt
-# import seaborn as sns
+import os
 import numpy as np
+from pandas import read_csv
 import warnings
-# from shapely.geometry import Point, Polygon
-# import geopandas as gpd
-# import random
-
 warnings.filterwarnings("ignore")
 
-# os.chdir('/Users/xiaodanxu/Documents/SynthFirm.nosync/')
 
-########## vehicle assignment function #############
-def veh_type_simulator(n_truck, vehicle_type_fraction): # Simulate mode choice
-    choice = np.random.multinomial(n_truck, vehicle_type_fraction, size = 1)
-    choice = pd.Series(choice[0])
-#     print(choice)
-    return(choice)
+########################################################
+#### step 1 - configure environment and load inputs ####
+########################################################
 
-def split_dataframe(df, chunk_size = 100000): 
-    chunks = list()
-    num_chunks = len(df) // chunk_size + 1
-    for i in range(num_chunks):
-        chunks.append(df[i*chunk_size:(i+1)*chunk_size])
-    return chunks
+# scenario_name = 'Seattle'
+# out_scenario_name = 'Seattle'
+# file_path = '/Users/xiaodanxu/Documents/SynthFirm.nosync'
+# parameter_dir = 'SynthFirm_parameters'
+# number_of_processes = 4
+# input_dir = 'inputs_' + scenario_name
+# output_path = 'outputs_' + out_scenario_name
 
-########### define inputs ################
-def firm_fleet_generator(fleet_year, fleet_scenario_name, synthetic_firms_with_location_file,
-                         private_fleet_file, for_hire_fleet_file, for_lease_fleet_file,
-                         cargo_type_distribution_file, national_fleet_composition_file,
-                         vehicle_type_by_state_file, ev_availability_file, state_fips_lookup_file,
-                         firms_with_fleet_file, carriers_with_fleet_file,
-                         leasing_with_fleet_file, output_path):
-    print('loading fleet inputs...')
+# fleet_year = 2030
+# fleet_name = 'Ref_highp6'
+# regulations = 'ACC and ACT'
+
+# # define input files --> eventually loading to pipeline
+# os.chdir(file_path)   
+
+# # from upstream module
+# synthetic_firms_with_location_file = os.path.join(output_path, 
+#                                                   'synthetic_firms_with_location.csv')
+
+# # inputs not vary by scenario
+# private_fleet_file = os.path.join(parameter_dir, 'fleet/veh_per_emp_by_state.csv')
+# for_hire_fleet_file = os.path.join(parameter_dir, 'fleet/FMCSA_truck_count_by_state_size.csv')
+# cargo_type_distribution_file = os.path.join(parameter_dir, 'fleet/probability_of_cargo_group.csv')
+# state_fips_lookup_file = os.path.join(parameter_dir, 'us-state-ansi-fips.csv')
+
+# # inputs vary by scenario
+# ev_availability_file = os.path.join(parameter_dir, 'fleet/synthfirm_ev_availability.csv')
+# private_fuel_mix_file = os.path.join(parameter_dir, 'fleet/private_fuel_mix_scenario.csv')
+# hire_fuel_mix_file = os.path.join(parameter_dir, 'fleet/hire_fuel_mix_scenario.csv')
+# lease_fuel_mix_file = os.path.join(parameter_dir, 'fleet/lease_fuel_mix_scenario.csv')
+
+# private_stock_file = os.path.join(parameter_dir, 'fleet/private_stock_projection.csv')
+# hire_stock_file = os.path.join(parameter_dir, 'fleet/hire_stock_projection.csv')
+# lease_stock_file = os.path.join(parameter_dir, 'fleet/lease_stock_projection.csv')
+# define output files --> eventually loading to pipeline
+
+def firm_fleet_generator(fleet_year, fleet_name, regulations,
+                         synthetic_firms_with_location_file, private_fleet_file,
+                         for_hire_fleet_file, cargo_type_distribution_file, state_fips_lookup_file,
+                         private_fuel_mix_file, hire_fuel_mix_file, lease_fuel_mix_file,
+                         private_stock_file, hire_stock_file, lease_stock_file,
+                         firms_with_fleet_file, carriers_with_fleet_file, leasing_with_fleet_file, 
+                         ev_availability_file, output_path, 
+                         need_regional_calibration = False, regional_variable = None):
     
-    analysis_year = int(fleet_year)
-    scenario_name = fleet_scenario_name
-    # input_dir = 'inputs_Seattle/'
-    # output_dir = 'outputs_Seattle/'
-    # param_dir = 'SynthFirm_parameters/'
-    # firm_name = 'synthetic_firms_with_location.csv'
+    scenario_name = fleet_name + ' & ' + regulations
+    result_dir = os.path.join(output_path, str(fleet_year), scenario_name)
+    isExist = os.path.exists(result_dir)
+    if not isExist:
+       # Create a new directory because it does not exist
+       os.makedirs(result_dir)
+       
+    firms_with_fleet_file = os.path.join(firms_with_fleet_file)
+    carriers_with_fleet_file = os.path.join(carriers_with_fleet_file)
+    leasing_with_fleet_file = os.path.join(leasing_with_fleet_file)
+    
+    # <codecell>
+    
+    print('Starting national fleet generation...')
+    
+    # loading input
     firms = read_csv(synthetic_firms_with_location_file)
-    
+    print('Total firms before fleet assignment:')
+    print(len(firms))
     private_fleet = read_csv(private_fleet_file)
     for_hire_fleet = read_csv(for_hire_fleet_file)
-    for_lease_fleet = read_csv(for_lease_fleet_file)
     cargo_type_distribution = read_csv(cargo_type_distribution_file)
+    state_fips_lookup = read_csv(state_fips_lookup_file)
+    state_fips_lookup.loc[:, 'stusps'] = state_fips_lookup.loc[:, 'stusps'].str[1:]
     
-    # forecast values
-    national_fleet_composition = read_csv(national_fleet_composition_file)
-    vehicle_type_by_state = read_csv(vehicle_type_by_state_file)
+    # loading forecast values
+    private_fuel_mix = read_csv(private_fuel_mix_file)
+    hire_fuel_mix = read_csv(hire_fuel_mix_file)
+    lease_fuel_mix = read_csv(lease_fuel_mix_file)
+    
+    private_stock = read_csv(private_stock_file)
+    hire_stock = read_csv(hire_stock_file)
+    lease_stock = read_csv(lease_stock_file)
+    
+    
     ev_availability = read_csv(ev_availability_file)
     
-    state_fips_lookup = read_csv(state_fips_lookup_file)
+    # generate list of all possible vehicle + fuel combinations across all years + scenarios 
     
+    private_fuel_mix.loc[:, 'veh_type'] = \
+        private_fuel_mix.loc[:, 'fuel type'] + ' ' + private_fuel_mix.loc[:, 'veh_class']
+    veh_comb = private_fuel_mix.veh_type.unique()
+    
+    # select forecasted data under current scenario
+    private_fuel_mix = \
+        private_fuel_mix.loc[(private_fuel_mix['scenario'] == fleet_name) & 
+                             (private_fuel_mix['rules'] == regulations) &
+                             (private_fuel_mix['yearID'] == fleet_year)]
+    hire_fuel_mix = \
+        hire_fuel_mix.loc[(hire_fuel_mix['scenario'] == fleet_name) & 
+                             (hire_fuel_mix['rules'] == regulations)&
+                             (hire_fuel_mix['yearID'] == fleet_year)]
+    lease_fuel_mix = \
+        lease_fuel_mix.loc[(lease_fuel_mix['scenario'] == fleet_name) & 
+                             (lease_fuel_mix['rules'] == regulations)&
+                             (hire_fuel_mix['yearID'] == fleet_year)]
+        
+    ev_availability = ev_availability.loc[ev_availability['scenario'] == fleet_name]
+    ev_availability = ev_availability.loc[ev_availability['Year'] == fleet_year]
+    
+    private_stock = private_stock.loc[private_stock['yearID'] == fleet_year]
+    hire_stock = hire_stock.loc[hire_stock['yearID'] == fleet_year]
+    lease_stock = lease_stock.loc[lease_stock['yearID'] == fleet_year]
+    
+    vehicle_types = private_fuel_mix.veh_class.unique()
+    
+    # drop missing in data
+
+    private_fleet.replace(np.inf, np.nan, inplace = True)
+    private_fleet.fillna(0, inplace = True)
+    # print(private_fleet[vehicle_types].sum())
     # <codecell>
     
-    ############## pre-processing data ################
-    print('initial fleet composition generation...')
-    # filter vehicle composition data
+    # --------------------------------------------------------
+    # Section 2: Generate fleet size by state
+    # --------------------------------------------------------
     
-    vehicle_type_by_state = \
-    vehicle_type_by_state.loc[vehicle_type_by_state['Year'] == analysis_year]
+    # generate fleet size
+    private_fleet.loc[:, 'industry'] = private_fleet.loc[:, 'industry'].astype(str)
+    firms.loc[:, 'industry'] = firms.loc[:, 'Industry_NAICS6_Make'].astype(str).str[0:2]
+    firms.loc[firms['industry'].isin(["31", "32", "33"]), 'industry'] = "3133"
+    firms.loc[firms['industry'].isin(["44", "45", "4A"]), 'industry'] = "4445"
+    firms.loc[firms['industry'].isin(["48", "49"]), 'industry'] = "4849"
+    firms.loc[firms['industry'].isin(["S0"]), 'industry'] = "92"
+
     
-    national_fleet_composition = \
-    national_fleet_composition.loc[national_fleet_composition['Year'] == analysis_year]
+    attr_to_keep = ['state_abbr', 'industry']
+    for veh in vehicle_types:
+        rate_attr = 'rate_' + veh
+        attr_to_keep.append(rate_attr)
+
     
-    ev_availability = ev_availability.loc[ev_availability['Year'] == analysis_year]
+    private_fleet = private_fleet[attr_to_keep]
     
-    # format fleet composition
-    list_of_veh_tech = vehicle_type_by_state['vehicle category'].unique().tolist()
-    # print(list_of_veh_tech)
-    
-    private_fleet_by_state = \
-    vehicle_type_by_state.loc[vehicle_type_by_state['Service type'] == 'PRIVATE']
-    private_fleet_by_state_wide = pd.pivot_table(private_fleet_by_state,
-                                                 values='veh_fraction', 
-                                                 index=['state'],
-                                                 columns=['vehicle category'], 
-                                                 aggfunc=np.mean, fill_value=0)
-    private_fleet_by_state_wide = private_fleet_by_state_wide.reset_index()
-    
-    
-    for_hire_fleet_by_state = \
-    vehicle_type_by_state.loc[vehicle_type_by_state['Service type'] == 'FOR HIRE']
-    for_hire_fleet_by_state_wide = pd.pivot_table(for_hire_fleet_by_state,
-                                                 values='veh_fraction', 
-                                                 index=['state'],
-                                                 columns=['vehicle category'], 
-                                                 aggfunc=np.mean, fill_value=0)
-    for_hire_fleet_by_state_wide = for_hire_fleet_by_state_wide.reset_index()
-    
-    
-    for_lease_fleet_by_state = \
-    vehicle_type_by_state.loc[vehicle_type_by_state['Service type'] == 'LEASE']
-    for_lease_fleet_by_state_wide = pd.pivot_table(for_lease_fleet_by_state,
-                                                 values='veh_fraction', 
-                                                 index=['state'],
-                                                 columns=['vehicle category'], 
-                                                 aggfunc=np.mean, fill_value=0)
-    for_lease_fleet_by_state_wide = for_lease_fleet_by_state_wide.reset_index()
-    
-    # <codecell>
-    print('Fleet assignment for private companies...')
-    ########## fleet size and type generation for all firms ############
-    sample_size = len(firms)
-    print('number of firms = ' + str(sample_size))
-    
-    private_fleet_short = private_fleet[['fleet_size', 'min_size', 
-                                        'fraction_of_carrier', 
-                                        'avg_truck_per_carrier', 
-                                        'total_truck_std']]
-    
-    firm_fleet_sample = \
-    private_fleet_short.sample(n = sample_size,
-                               weights = private_fleet_short['fraction_of_carrier'],
-                               replace = True)
-    # print(len(firm_fleet_sample))
-    # generate random fleet size
-    firm_fleet_sample.loc[:, 'n_trucks'] = np.random.normal(loc = firm_fleet_sample.loc[:, 'avg_truck_per_carrier'],
-                                                       scale = firm_fleet_sample.loc[:, 'total_truck_std'])
-    criteria = (firm_fleet_sample['n_trucks'] <= firm_fleet_sample['min_size'])
-    firm_fleet_sample.loc[criteria, 'n_trucks'] = firm_fleet_sample.loc[criteria, 'min_size']
-    firm_fleet_sample.loc[:, 'n_trucks'] = np.round(firm_fleet_sample.loc[:, 'n_trucks'], 0)
-    firm_fleet_sample.loc[:, 'n_trucks'] = firm_fleet_sample.loc[:, 'n_trucks'].astype(int)
-    
-    # firm_fleet_sample['n_trucks'].hist(bins = 1000)
-    # plt.xlim([0,100])
-    # plt.show()
-    # append vehicle composition to firms by state
-    firm_fleet_sample = firm_fleet_sample.sort_values(by = ['n_trucks'], ascending = True)
-    firms = firms.sort_values(by = ['Emp'], ascending = True)
-    
-    firms.loc[:, 'FAFZONE'] = firms.loc[:,'FAFZONE'].astype(str).str.zfill(3)
+    firms.loc[:, 'FAFZONE'] = firms.loc[:,'FAFZONE'].astype(str).str.zfill(3)    
     firms.loc[:, 'st'] = firms.loc[:, 'FAFZONE'].str[:2]
     firms.loc[:, 'st'] = firms.loc[:, 'st'].astype(int)
-    
+        
     firms = pd.merge(firms, state_fips_lookup, on = 'st', how = 'left')
-    # print(len(firms))
-    firms.loc[:,'stname'] = firms.loc[:,'stname'].str.upper()
+    firms.rename(columns = {'stusps':'state_abbr'}, inplace = True)
     
-    firm_fleet_sample_short = firm_fleet_sample[['n_trucks']]
+    # calculate firm fleet by emp * rate
     
-    firms_with_fleet = pd.concat([firms.reset_index(drop=True), 
-                                  firm_fleet_sample_short.reset_index(drop=True)], axis=1)
-    
-    
-    firms_with_fleet = pd.merge(firms_with_fleet, private_fleet_by_state_wide,
-                                left_on = 'stname', right_on = 'state', how = 'left')
-    
-    # <codecell>
-    # assign vehicle technology
-    print('total trucks from initial assignment = ')
-    print(firms_with_fleet.n_trucks.sum())
-    veh_attr = []
-    for alt in list_of_veh_tech:
-        output_attr = alt + '_count'
-        veh_attr.append(output_attr)
-        firms_with_fleet.loc[:, output_attr] = \
-        firms_with_fleet.loc[:, alt] * firms_with_fleet.loc[:, 'n_trucks']
-        firms_with_fleet.loc[:, output_attr] = \
-            np.round(firms_with_fleet.loc[:, output_attr], 0)
-     
-    firms_with_fleet.loc[:, 'max_prob'] = \
-        firms_with_fleet.loc[:, list_of_veh_tech].max(axis = 1)
-    
-    # for fleet size <= 5, perform all-or-nothing assignment
-    select_rows = (firms_with_fleet['n_trucks']<= 5)
-    
-    for alt in list_of_veh_tech:
-        firms_with_fleet.loc[:, alt] = \
-            0 * (firms_with_fleet.loc[:, alt]< firms_with_fleet.loc[:, 'max_prob']) + \
-                1 * (firms_with_fleet.loc[:, alt] == firms_with_fleet.loc[:, 'max_prob'])
-    
-    for alt in list_of_veh_tech:    
-        output_attr = alt + '_count'
-        firms_with_fleet.loc[select_rows, output_attr] = \
-        firms_with_fleet.loc[select_rows, alt] * firms_with_fleet.loc[select_rows, 'n_trucks']
-        firms_with_fleet.loc[select_rows, output_attr] = \
-            np.round(firms_with_fleet.loc[select_rows, output_attr], 0)
-            
+    firms_with_fleet = pd.merge(firms, private_fleet, 
+                                on = ['state_abbr', 'industry'], how = 'left')
+    to_drop = []
+    for veh in vehicle_types:
+        rate_attr = 'rate_' + veh
+        to_drop.append(rate_attr)
+        firms_with_fleet.loc[:, veh] = firms_with_fleet.loc[:, 'Emp'] * \
+            firms_with_fleet.loc[:, rate_attr]
+        
+    # print(firms_with_fleet[vehicle_types].sum())
+    firms_with_fleet.drop(columns = to_drop, inplace = True)
+    print('Total firms after fleet size generation:')
+    print(len(firms_with_fleet))
     # <codecell>
     
-    # chunks = split_dataframe(firms_with_fleet)
-    var_to_keep = ['esizecat', 'CBPZONE', 'FAFZONE', 'Industry_NAICS6_Make',
-            'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon', 'n_trucks',
-            'st', 'stname']
+    # split data into three sets
+    carriers = \
+        firms_with_fleet.loc[firms_with_fleet['Industry_NAICS6_Make'].isin(['492000', '484000'])]
+        
+    leasing = firms_with_fleet.loc[firms_with_fleet['Industry_NAICS6_Make'].isin(['532100'])]
     
-    firms_with_fleet = pd.melt(firms_with_fleet, id_vars = var_to_keep, 
-                        value_vars = veh_attr, 
-                        var_name = 'veh_type',
-                        value_name = 'number_of_veh')
-    firms_with_fleet = firms_with_fleet.loc[firms_with_fleet['number_of_veh'] > 0]
-    firms_with_fleet.loc[:, 'veh_type'] = \
-        firms_with_fleet.loc[:, 'veh_type'].str.split('_').str[0]
-    firms_with_fleet.loc[:, 'fleet_id'] = firms_with_fleet.groupby('BusID').cumcount() + 1
+    private_fleet = \
+        firms_with_fleet[~firms_with_fleet['Industry_NAICS6_Make'].isin(['492000', '484000', '532100'])]
+    private_fleet.loc[:, vehicle_types] = np.round(private_fleet.loc[:, vehicle_types], 0)
     
-    print('total trucks before scaling = ')
-    print(firms_with_fleet.number_of_veh.sum())
-    # i = 0
-    # firms_with_fleet = None
-    # for chunk in chunks:
-    #     print('processing chunk ' + str(i))
-    #     chunk[list_of_veh_tech] = \
-    #     chunk.apply(
-    #             lambda row: veh_type_simulator(row['n_trucks'], row[list_of_veh_tech]), axis=1, result_type ='expand')
-    #     chunk = pd.melt(chunk, id_vars = var_to_keep, 
-    #                     value_vars = list_of_veh_tech, 
-    #                    var_name = 'veh_type',
-    #                    value_name = 'number_of_veh')
-    #     chunk = chunk.reset_index()
-    #     chunk = chunk.loc[chunk['number_of_veh'] > 0]
-    #     chunk.loc[:, 'fleet_id']=chunk.groupby('BusID').cumcount() + 1
-    #     firms_with_fleet = pd.concat([firms_with_fleet, chunk])
-    #     i += 1
+    firms_count = len(private_fleet)
+    carrier_count = len(carriers)
+    leasing_count = len(leasing)
+    print(f'Total firms, carriers and leased firms before fleet generation = \
+          {firms_count}, {carrier_count}, and {leasing_count}')
+    # <codecell>
     
-    # print(firms_with_fleet.number_of_veh.sum())
+    # ------------------------------------------------------------
+    # Section 3: Generate fleet characteristics for private fleet
+    # ------------------------------------------------------------
+    # process private fleet
+    private_fleet.loc[:, 'n_trucks'] = private_fleet.loc[:, vehicle_types].sum(axis = 1)
+    private_fleet_no_truck = private_fleet.loc[private_fleet['n_trucks'] == 0]
+    private_fleet_no_truck.drop(columns = vehicle_types, inplace = True)
+    private_fleet_truck = private_fleet.loc[private_fleet['n_trucks'] > 0]
+    # print(private_fleet_truck[vehicle_types].sum())
     
     # <codecell>
-    ######## fleet generation for carriers #########
-    print('Fleet assignment for carriers...')
-    # processing carriers
-    firms['Industry_NAICS6_Make'] = firms['Industry_NAICS6_Make'].astype(str)
     
-    new_firms = firms[['esizecat', 'CBPZONE', 'FAFZONE',
-                                  'Industry_NAICS6_Make', 'Commodity_SCTG',	
-                                  'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
-                                  'stname', 'st']]
+    # process fuel type mix for private fleet
     
+    fuel_attr = ['veh_class', 'state_abbr', 'fuel type', 'veh_fraction']
+    private_fuel_mix = private_fuel_mix[fuel_attr]
+    # fuel_types = private_fuel_mix['fuel type'].unique()
     
-    carriers = new_firms.loc[new_firms['Industry_NAICS6_Make'].isin(['492000', '484000'])]
-    sample_size = len(carriers)
+    idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
+           'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+           'state_abbr'] # 'ZIPCODE'
+    if need_regional_calibration:
+        idx_var.extend(regional_variable)
+    private_fleet = pd.melt(private_fleet_truck, id_vars = idx_var, value_vars = vehicle_types,
+                            var_name='veh_class', value_name='number_of_veh')
     
-    for_hire_fleet_short = for_hire_fleet[['fleet_size', 'min_size', 
-                                               'fraction_of_carrier', 
-                                               'avg_truck_per_carrier', 
-                                               'total_truck_std']]
+    # keep veh types with non-zero values
+    private_fleet = private_fleet.loc[private_fleet['number_of_veh'] > 0]
     
-    fleet_sample = for_hire_fleet_short.sample(n = sample_size,
-                                                weights = for_hire_fleet_short['fraction_of_carrier'],
-                                                replace = True)
-    print('number of carriers = ')
-    print(len(fleet_sample))
-    
-    var_to_keep = ['esizecat', 'CBPZONE', 'FAFZONE', 'Industry_NAICS6_Make',
-           'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon', 'n_trucks',
-           'st', 'stname']
-    
-    fleet_sample.loc[:, 'n_trucks'] = np.random.normal(loc = fleet_sample.loc[:, 'avg_truck_per_carrier'],
-                                                       scale = fleet_sample.loc[:, 'total_truck_std'])
-    fleet_sample.loc[:, 'n_trucks']  = fleet_sample.loc[:, 'n_trucks'].fillna(1)
-    criteria = (fleet_sample['n_trucks'] <= fleet_sample['min_size'])
-    fleet_sample.loc[criteria, 'n_trucks'] = fleet_sample.loc[criteria, 'min_size']
-    fleet_sample.loc[:, 'n_trucks'] = np.round(fleet_sample.loc[:, 'n_trucks'], 0)
-    fleet_sample.loc[:, 'n_trucks'] = fleet_sample.loc[:, 'n_trucks'].astype(int)
-    
-    fleet_sample = fleet_sample.sort_values(by = ['n_trucks'], ascending = True)
-    carriers = carriers.sort_values(by = ['Emp'], ascending = True)
-    
-    fleet_sample_short = fleet_sample[['n_trucks']]
-    
-    carriers_with_fleet = pd.concat([carriers.reset_index(drop=True), 
-                                     fleet_sample_short.reset_index(drop=True)], axis=1)
-    
-    carriers_with_fleet = pd.merge(carriers_with_fleet, for_hire_fleet_by_state_wide,
-                                left_on = 'stname', right_on = 'state', how = 'left')
+    # append fuel mix and randomly assign fuel types
+    private_fleet = pd.merge(private_fleet, private_fuel_mix,
+                             on = ['veh_class', 'state_abbr'], how = 'left')
     
     # <codecell>
-    print('total trucks from carriers before assign = ')
-    print(carriers_with_fleet.n_trucks.sum())
+    fleet_threshold = 20
+    # for large fleet, assign fuel type by fraction; for small fleet, randomly assign them to single fuel
+    private_fleet_large = private_fleet.loc[private_fleet['number_of_veh'] >= fleet_threshold]
+    private_fleet_large.loc[:, 'number_of_veh'] = \
+        private_fleet_large.loc[:, 'number_of_veh'] * private_fleet_large.loc[:, 'veh_fraction']
+    private_fleet_large.loc[:, 'number_of_veh'] = \
+        np.round(private_fleet_large.loc[:, 'number_of_veh'], 0)
+        
+    private_fleet_small = private_fleet.loc[private_fleet['number_of_veh'] < fleet_threshold]
+    idx_var.append('veh_class')
+    private_fleet_small = private_fleet_small.groupby(idx_var).sample(n=1, 
+                                          weights = private_fleet_small['veh_fraction'],
+                                          replace = False, random_state = 1)
     
-    for alt in list_of_veh_tech:
-        output_attr = alt + '_count'
-        veh_attr.append(output_attr)
-        carriers_with_fleet.loc[:, output_attr] = \
-        carriers_with_fleet.loc[:, alt] * carriers_with_fleet.loc[:, 'n_trucks']
-        carriers_with_fleet.loc[:, output_attr] = \
-            np.round(carriers_with_fleet.loc[:, output_attr], 0)
-     
-    carriers_with_fleet.loc[:, 'max_prob'] = \
-        carriers_with_fleet.loc[:, list_of_veh_tech].max(axis = 1)
+    # combine small and large fleets
     
-    # for fleet size <= 5, perform all-or-nothing assignment
-    select_rows = (carriers_with_fleet['n_trucks']<= 5)
+    private_fleet_truck = pd.concat([private_fleet_large, private_fleet_small])
     
-    for alt in list_of_veh_tech:
+    private_fleet_truck = private_fleet_truck.loc[private_fleet_truck['number_of_veh'] > 0]
+    private_fleet_truck.loc[:, 'fleet_id']=private_fleet_truck.groupby('BusID').cumcount() + 1
+    
+    
+    # <codecell>
+    
+    # --------------------------------------------------------
+    # Section 4: Generate carrier characteristics
+    # --------------------------------------------------------
+    
+    # process carrier 
+    
+    # round fleet size and ensure the minimum = 1
+    carriers_with_fleet = carriers.copy()
+    carriers_with_fleet.loc[:, 'max_size'] = \
+            carriers_with_fleet.loc[:, vehicle_types].max(axis = 1)
+    
+    # round up maximum to ensure at least 1 truck presents in the fleet        
+    for alt in vehicle_types:
         carriers_with_fleet.loc[:, alt] = \
-            0 * (carriers_with_fleet.loc[:, alt]< carriers_with_fleet.loc[:, 'max_prob']) + \
-                1 * (carriers_with_fleet.loc[:, alt] == carriers_with_fleet.loc[:, 'max_prob'])
+            carriers_with_fleet.loc[:, alt] * (carriers_with_fleet.loc[:, alt]< carriers_with_fleet.loc[:, 'max_size']) + \
+                np.ceil(carriers_with_fleet.loc[:, alt]) * (carriers_with_fleet.loc[:, alt] == carriers_with_fleet.loc[:, 'max_size'])
     
-    for alt in list_of_veh_tech:    
-        output_attr = alt + '_count'
-        carriers_with_fleet.loc[select_rows, output_attr] = \
-        carriers_with_fleet.loc[select_rows, alt] * carriers_with_fleet.loc[select_rows, 'n_trucks']
-        carriers_with_fleet.loc[select_rows, output_attr] = \
-            np.round(carriers_with_fleet.loc[select_rows, output_attr], 0)
-            
-    carriers_with_fleet = pd.melt(carriers_with_fleet, id_vars = var_to_keep, 
-                        value_vars = veh_attr, 
-                        var_name = 'veh_type',
-                        value_name = 'number_of_veh')
-    carriers_with_fleet = carriers_with_fleet.loc[carriers_with_fleet['number_of_veh'] > 0]
-    carriers_with_fleet.loc[:, 'veh_type'] = \
-        carriers_with_fleet.loc[:, 'veh_type'].str.split('_').str[0]
-    carriers_with_fleet.loc[:, 'fleet_id'] = carriers_with_fleet.groupby('BusID').cumcount() + 1
+    carriers_with_fleet.loc[:, vehicle_types] = \
+        np.round(carriers_with_fleet.loc[:, vehicle_types], 0)
+    # print(carriers_with_fleet.loc[:, vehicle_types].sum())
     
-    print('total trucks from carriers = ')
-    print(carriers_with_fleet.number_of_veh.sum())
-    # carriers_with_fleet[list_of_veh_tech] = \
-    # carriers_with_fleet.apply(
-    #         lambda row: veh_type_simulator(row['n_trucks'], row[list_of_veh_tech]), axis=1, result_type ='expand')
-    # # print(np.random.multinomial(testing_fleet_sample['n_trucks'], vehicle_type_fraction))
     
-    # carriers_with_fleet = pd.melt(carriers_with_fleet, id_vars = var_to_keep, 
-    #                 value_vars = list_of_veh_tech, 
-    #                var_name = 'veh_type',
-    #                value_name = 'number_of_veh')
-    # carriers_with_fleet = carriers_with_fleet.reset_index()
-    # carriers_with_fleet = carriers_with_fleet.loc[carriers_with_fleet['number_of_veh'] > 0]
-    # carriers_with_fleet.loc[:, 'fleet_id'] = \
-    # carriers_with_fleet.groupby('BusID').cumcount() + 1
+    # scale resulting fleet size 
+    carriers_sum = carriers_with_fleet.loc[:, vehicle_types].sum()
+    carriers_sum = carriers_sum.to_frame()
+    carriers_sum = carriers_sum.reset_index()
+    carriers_sum.columns = ['veh_class', 'modeled']
+    abs_error = pd.merge(hire_stock, carriers_sum, on = 'veh_class')
+    
+    abs_error.loc[:, 'error'] = np.abs(abs_error.loc[:, 'modeled'] - \
+                                       abs_error.loc[:, 'population_by_year'])
+    error_metric = int(abs_error.loc[:, 'error'].sum())
+    # print(error_metric)
+    err_threshold = 0.01 * hire_stock.population_by_year.sum()
     
     # <codecell>
-    ######## fleet generation for leasing #########
-    print('Fleet assignment for leasing company...')
-    leasing = new_firms.loc[new_firms['Industry_NAICS6_Make'].isin(['532100'])]
-    sample_size = len(leasing)
-    # print(tx_private_fleet.columns)
-    for_lease_fleet_short = for_lease_fleet[['fleet_size', 'min_size', 
-                                               'fraction_of_carrier', 
-                                               'avg_truck_per_carrier', 
-                                               'total_truck_std']]
     
-    fleet_sample = for_lease_fleet_short.sample(n = sample_size,
-                                                weights = for_lease_fleet_short['fraction_of_carrier'],
-                                                replace = True)
-    print('number of leasing company = ')
-    print(len(fleet_sample))
+    # adjust fleet by class
+    while error_metric > err_threshold:
+        # adj fleet by fleet
+        for alt in vehicle_types:
+            target = int(hire_stock.loc[hire_stock['veh_class'] == alt, 'population_by_year'])
+            modeled = int(carriers_with_fleet.loc[:, alt].sum())
+            scale_factor = target/modeled
+            # print(scale_factor)
+            carriers_with_fleet.loc[:, alt] = \
+                carriers_with_fleet.loc[:, alt] * scale_factor
+            carriers_with_fleet.loc[:, alt] = \
+                np.round(carriers_with_fleet.loc[:, alt], 0)
+        
+        # update error metric
+        carriers_sum = carriers_with_fleet.loc[:, vehicle_types].sum()
+        carriers_sum = carriers_sum.to_frame()
+        carriers_sum = carriers_sum.reset_index()
+        carriers_sum.columns = ['veh_class', 'modeled']
+        abs_error = pd.merge(hire_stock, carriers_sum, on = 'veh_class')
     
-    fleet_sample.loc[:, 'n_trucks'] = np.random.normal(loc = fleet_sample.loc[:, 'avg_truck_per_carrier'],
-                                                       scale = fleet_sample.loc[:, 'total_truck_std'])
-    criteria = (fleet_sample['n_trucks'] <= fleet_sample['min_size'])
-    fleet_sample.loc[criteria, 'n_trucks'] = fleet_sample.loc[criteria, 'min_size']
-    fleet_sample.loc[:, 'n_trucks'] = np.round(fleet_sample.loc[:, 'n_trucks'], 0)
-    fleet_sample.loc[:, 'n_trucks'] = fleet_sample.loc[:, 'n_trucks'].astype(int)
+        abs_error.loc[:, 'error'] = np.abs(abs_error.loc[:, 'modeled'] - \
+                                           abs_error.loc[:, 'population_by_year'])
+        error_metric = int(abs_error.loc[:, 'error'].sum())
+        # print(error_metric)
+        # break
+    # scale fleet size
+
+    carriers_with_fleet.loc[:, 'n_trucks'] = \
+        carriers_with_fleet.loc[:, vehicle_types].sum(axis = 1)
+    # print(carriers_with_fleet.loc[:, 'n_trucks'].min())
     
-    fleet_sample = fleet_sample.sort_values(by = ['n_trucks'], ascending = True)
-    leasing = leasing.sort_values(by = ['Emp'], ascending = True)
+    # <codecell>
+    # sampling carrier by state
+    carrier_veh_type = ['Heavy-duty Tractor', 'Heavy-duty Vocational', 'Medium-duty Vocational']
+    carriers_with_fleet.loc[:, 'n_trucks'] = \
+        carriers_with_fleet.loc[:, carrier_veh_type].sum(axis = 1)
+    # print(carriers_with_fleet.loc[:, 'n_trucks'].min())
     
-    fleet_sample_short = fleet_sample[['n_trucks']]
+    to_comb = ['101-1000', '>1000']
+    for_hire_fleet.loc[for_hire_fleet['FLEET_SIZE'].isin(to_comb), 'FLEET_SIZE'] = '>100'
+    for_hire_fleet = \
+        for_hire_fleet.groupby(['HB_STATE', 'FLEET_SIZE'])[['TRUCK_COUNT', 'CARRIER_COUNT']].sum()
+    for_hire_fleet= for_hire_fleet.reset_index()    
+    fleet_size_bin = [-1, 2, 5, 10, 50, 100, carriers_with_fleet.loc[:, 'n_trucks'].max()]
+    bin_labels = ['<=2', '3-5', '6-10', '11-50', '51-100', '>100']
+    carriers_with_fleet.loc[:, 'FLEET_SIZE'] = \
+        pd.cut(carriers_with_fleet.loc[:, 'n_trucks'], bins = fleet_size_bin,
+               labels=bin_labels, right =  True)
+        
+    # print(carriers_with_fleet.groupby('FLEET_SIZE').size())
     
-    leasing_with_fleet = pd.concat([leasing.reset_index(drop=True), 
-                                  fleet_sample_short.reset_index(drop=True)], axis=1)
+    # scaling up carrier fleet based on FMCSA data
+    carriers_with_fleet_resampled = None
+    print('Total trucks from FMCSA:')
+    print(for_hire_fleet.TRUCK_COUNT.sum())
     
-    leasing_with_fleet = pd.merge(leasing_with_fleet, for_lease_fleet_by_state_wide,
-                                left_on = 'stname', right_on = 'state', how = 'left')
+    prev_size = '<=2'
     
-    leasing_with_fleet[list_of_veh_tech] = \
-    leasing_with_fleet.apply(
-            lambda row: veh_type_simulator(row['n_trucks'], row[list_of_veh_tech]), axis=1, result_type ='expand')
-    # print(np.random.multinomial(testing_fleet_sample['n_trucks'], vehicle_type_fraction))
+    for state in for_hire_fleet.HB_STATE.unique():
+        # print(state)
+        for_hire_state = for_hire_fleet.loc[for_hire_fleet['HB_STATE'] == state]
+        for size in for_hire_state['FLEET_SIZE'].unique():
+            sample_size =  for_hire_state.loc[for_hire_state['FLEET_SIZE'] == size, \
+                                              'CARRIER_COUNT']
+            sample_size = int(sample_size)
+            fleet_size = for_hire_state.loc[for_hire_state['FLEET_SIZE'] == size, 
+                                            'TRUCK_COUNT']
+            fleet_size = int(fleet_size)
+            # truck_per_carrier = int(fleet_size/sample_size)
+            pool_of_carriers = \
+                carriers_with_fleet.loc[(carriers_with_fleet['state_abbr'] == state)  & \
+                                        (carriers_with_fleet['FLEET_SIZE'] == size)]
+            pool_size = len(pool_of_carriers)
+            if pool_size == 0:
+                # print(f'There is no carrier in {state} to sample from under size {size}')
+                # collecting samples from previous size groups and reassign fleet size
+                pool_of_carriers = \
+                    carriers_with_fleet.loc[(carriers_with_fleet['state_abbr'] == state)  & \
+                                            (carriers_with_fleet['FLEET_SIZE'] == prev_size)]
+                pool_size = len(pool_of_carriers)
+            else:
+                prev_size = size # update size
+                
+            sample_carriers = pool_of_carriers.sample(n = sample_size, replace = True)
+            sample_carriers.loc[:, 'fleet_id'] = \
+                sample_carriers.groupby('BusID').cumcount() + 1
+            # scaling_factor = fleet_size / sample_carriers.loc[:, 'n_trucks'].sum()
+            # scaling_factor = max(1, scaling_factor)
+            
+            # for alt in carrier_veh_type:
+            #     sample_carriers.loc[:, alt] *= scaling_factor
+            #     sample_carriers.loc[:, alt] = \
+            #         np.round(sample_carriers.loc[:, alt], 0)
+            # sample_carriers.loc[:, 'n_trucks'] = \
+            #     sample_carriers.loc[:, carrier_veh_type].sum(axis = 1)
+            carriers_with_fleet_resampled = pd.concat([carriers_with_fleet_resampled,
+                                                       sample_carriers])
+            
+    print('Total trucks after resampling SynthFirm carriers:')
+    print(carriers_with_fleet_resampled.n_trucks.sum())
+    
+    # <codecell>
+    # assign commodity type
+    unique_cargo = cargo_type_distribution.SCTG_group.unique()
+    sample_size = len(carriers_with_fleet_resampled)
+    
+    for cargo in unique_cargo:
+        fraction = \
+        cargo_type_distribution.loc[cargo_type_distribution['SCTG_group'] == cargo, 'probability']
+        carriers_with_fleet_resampled.loc[:, cargo] = np.random.binomial(1, fraction, sample_size)
+    
+    carriers_with_fleet_resampled.loc[:, 'cargo_check'] = carriers_with_fleet_resampled.loc[:, unique_cargo].sum(axis = 1)
+    carriers_with_fleet_resampled.loc[carriers_with_fleet_resampled['cargo_check'] == 0, 'other_cargo'] = 1
+    
+    
+    # <codecell>
+    # assign carrier fuel type
+    
+    idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
+           'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE',  'lat', 'lon',
+           'state_abbr', 'fleet_id'] # 'ZIPCODE',
+    # add cargo types
+    if need_regional_calibration:
+        idx_var.extend(regional_variable)
+    idx_var.extend(unique_cargo)
+    
+    carriers_with_fleet = pd.melt(carriers_with_fleet_resampled, 
+                                  id_vars = idx_var, value_vars = vehicle_types,
+                            var_name='veh_class', value_name='number_of_veh')
+    carriers_with_fleet = carriers_with_fleet.reset_index()
+    
+    # keep veh types with non-zero values
+    carriers_with_fleet = carriers_with_fleet.loc[carriers_with_fleet['number_of_veh'] > 0]
+    
+    fuel_attr = ['veh_class', 'fuel type', 'veh_fraction']
+    hire_fuel_mix = hire_fuel_mix[fuel_attr]
+    # fuel_types = hire_fuel_mix['fuel type'].unique()
+    
+    # append fuel mix and randomly assign fuel types
+    carriers_with_fleet = pd.merge(carriers_with_fleet, hire_fuel_mix,
+                             on = ['veh_class'], how = 'left')
+    
+    fleet_threshold = 20
+    # for large fleet, assign fuel type by fraction; for small fleet, randomly assign them to single fuel
+    carriers_with_fleet_large = carriers_with_fleet.loc[carriers_with_fleet['number_of_veh'] >= fleet_threshold]
+    carriers_with_fleet_large.loc[:, 'number_of_veh'] = \
+        carriers_with_fleet_large.loc[:, 'number_of_veh'] * carriers_with_fleet_large.loc[:, 'veh_fraction']
+    carriers_with_fleet_large.loc[:, 'number_of_veh'] = \
+        np.round(carriers_with_fleet_large.loc[:, 'number_of_veh'], 0)
+        
+    carriers_with_fleet_small = carriers_with_fleet.loc[carriers_with_fleet['number_of_veh'] < fleet_threshold]
+    idx_var.append('veh_class')
+    carriers_with_fleet_small = carriers_with_fleet_small.groupby(idx_var).sample(n=1, 
+                                          weights = carriers_with_fleet_small['veh_fraction'],
+                                          replace = False, random_state = 1)
+    
+    # combine small and large fleets
+    carriers_with_fleet = pd.concat([carriers_with_fleet_large, carriers_with_fleet_small])
+    
+    
+    carriers_with_fleet = carriers_with_fleet.loc[carriers_with_fleet['number_of_veh'] > 0]
+    carriers_with_fleet.loc[:, 'fleet_id']=carriers_with_fleet.groupby('BusID').cumcount() + 1
+    
+    
+    # <codecell>
+    
+    
+    # --------------------------------------------------------
+    # Section 5: Generate lease characteristics
+    # --------------------------------------------------------
+    
+    leasing_with_fleet = leasing.copy()
+    fuel_attr = ['veh_class', 'fuel type', 'veh_fraction']
+    lease_fuel_mix = lease_fuel_mix[fuel_attr]
+    # fuel_types = lease_fuel_mix['fuel type'].unique()
+    
+    leasing_with_fleet.loc[:, 'max_size'] = \
+            leasing_with_fleet.loc[:, vehicle_types].max(axis = 1)
+    
+    # round up maximum to ensure at least 1 truck presents in the fleet        
+    for alt in vehicle_types:
+        leasing_with_fleet.loc[:, alt] = \
+            leasing_with_fleet.loc[:, alt] * (leasing_with_fleet.loc[:, alt]< leasing_with_fleet.loc[:, 'max_size']) + \
+                np.ceil(leasing_with_fleet.loc[:, alt]) * (leasing_with_fleet.loc[:, alt] == leasing_with_fleet.loc[:, 'max_size'])
+    
+    leasing_with_fleet.loc[:, vehicle_types] = \
+        np.round(leasing_with_fleet.loc[:, vehicle_types], 0)
+    # print(hire_stock)
+    # print(leasing_with_fleet.loc[:, vehicle_types].sum())
+    
+    # scale resulting fleet size 
+    lease_sum = leasing_with_fleet.loc[:, vehicle_types].sum()
+    lease_sum = lease_sum.to_frame()
+    lease_sum = lease_sum.reset_index()
+    lease_sum.columns = ['veh_class', 'modeled']
+    abs_error = pd.merge(lease_stock, lease_sum, on = 'veh_class')
+    
+    abs_error.loc[:, 'error'] = np.abs(abs_error.loc[:, 'modeled'] - \
+                                       abs_error.loc[:, 'population_by_year'])
+    error_metric = int(abs_error.loc[:, 'error'].sum())
+    # print(error_metric)
+    err_threshold = 0.01 * lease_stock.population_by_year.sum()
+    
+    # <codecell>
+    
+    # adjust fleet by class
+    while error_metric > err_threshold:
+        # adj fleet by fleet
+        for alt in vehicle_types:
+            target = int(lease_stock.loc[lease_stock['veh_class'] == alt, 'population_by_year'])
+            modeled = int(leasing_with_fleet.loc[:, alt].sum())
+            scale_factor = target/modeled
+            # print(scale_factor)
+            leasing_with_fleet.loc[:, alt] = \
+                leasing_with_fleet.loc[:, alt] * scale_factor
+            leasing_with_fleet.loc[:, alt] = \
+                np.round(leasing_with_fleet.loc[:, alt], 0)
+        
+        # update error metric
+        carriers_sum = leasing_with_fleet.loc[:, vehicle_types].sum()
+        carriers_sum = carriers_sum.to_frame()
+        carriers_sum = carriers_sum.reset_index()
+        carriers_sum.columns = ['veh_class', 'modeled']
+        abs_error = pd.merge(lease_stock, carriers_sum, on = 'veh_class')
+    
+        abs_error.loc[:, 'error'] = np.abs(abs_error.loc[:, 'modeled'] - \
+                                           abs_error.loc[:, 'population_by_year'])
+        error_metric = int(abs_error.loc[:, 'error'].sum())
+        # print(error_metric)
+        # break
+    
+    # scale fleet size
+    
+    leasing_with_fleet.loc[:, 'n_trucks'] = \
+        leasing_with_fleet.loc[:, vehicle_types].sum(axis = 1)
+    # print(leasing_with_fleet.loc[:, 'n_trucks'].min())
+    
+    # <codecell>
+    # assign lease fuel type
+    
+    idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
+           'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+           'state_abbr'] # 'ZIPCODE', 
+    if need_regional_calibration:
+        idx_var.extend(regional_variable)
+    # add cargo types
+    
     leasing_with_fleet = pd.melt(leasing_with_fleet, 
-                                 id_vars = var_to_keep, 
-                    value_vars = list_of_veh_tech, 
-                   var_name = 'veh_type',
-                   value_name = 'number_of_veh')
+                                  id_vars = idx_var, value_vars = vehicle_types,
+                            var_name='veh_class', value_name='number_of_veh')
     leasing_with_fleet = leasing_with_fleet.reset_index()
+    
+    # keep veh types with non-zero values
+    leasing_with_fleet = leasing_with_fleet.loc[leasing_with_fleet['number_of_veh'] > 0]
+    
+    
+    # append fuel mix and randomly assign fuel types
+    leasing_with_fleet = pd.merge(leasing_with_fleet, lease_fuel_mix,
+                             on = ['veh_class'], how = 'left')
+    
+    fleet_threshold = 20
+    # for large fleet, assign fuel type by fraction; for small fleet, randomly assign them to single fuel
+    leasing_with_fleet_large = leasing_with_fleet.loc[leasing_with_fleet['number_of_veh'] >= fleet_threshold]
+    leasing_with_fleet_large.loc[:, 'number_of_veh'] = \
+        leasing_with_fleet_large.loc[:, 'number_of_veh'] * leasing_with_fleet_large.loc[:, 'veh_fraction']
+    leasing_with_fleet_large.loc[:, 'number_of_veh'] = \
+        np.round(leasing_with_fleet_large.loc[:, 'number_of_veh'], 0)
+        
+    leasing_with_fleet_small = leasing_with_fleet.loc[leasing_with_fleet['number_of_veh'] < fleet_threshold]
+    idx_var.append('veh_class')
+    leasing_with_fleet_small = leasing_with_fleet_small.groupby(idx_var).sample(n=1, 
+                                          weights = leasing_with_fleet_small['veh_fraction'],
+                                          replace = False, random_state = 1)
+    
+    # combine small and large fleets
+    leasing_with_fleet = pd.concat([leasing_with_fleet_large, leasing_with_fleet_small])
+    
+    
     leasing_with_fleet = leasing_with_fleet.loc[leasing_with_fleet['number_of_veh'] > 0]
     leasing_with_fleet.loc[:, 'fleet_id'] = leasing_with_fleet.groupby('BusID').cumcount() + 1
     
-    # <codecell>
-    ######## fleet generation for leasing #########
-    # post-processing results
-    
-    print('Adjusting fleet size to match national vehicle stock...')
-    
-    firms_with_fleet = \
-    firms_with_fleet[~firms_with_fleet['Industry_NAICS6_Make'].isin(['492000', '484000', '532100'])]
-    print(len(firms_with_fleet))
-    
-    # adjust the total fleet
-    firms_with_fleet_nonzero = firms_with_fleet.dropna(subset = ['number_of_veh'])
-    firm_fleet_agg = firms_with_fleet_nonzero.groupby(['veh_type'])[['number_of_veh']].sum()
-    firm_fleet_agg = firm_fleet_agg.reset_index()
-    firm_fleet_agg.columns = ['vehicle_type', 'total']
-    firm_fleet_agg.loc[:, 'source'] = 'firms'
-    
-    
-    carrier_fleet_agg = carriers_with_fleet.groupby(['veh_type'])[['number_of_veh']].sum()
-    carrier_fleet_agg = carrier_fleet_agg.reset_index()
-    carrier_fleet_agg.columns = ['vehicle_type', 'total']
-    carrier_fleet_agg.loc[:, 'source'] = 'carrier'
-    
-    lease_fleet_agg = leasing_with_fleet.groupby(['veh_type'])[['number_of_veh']].sum()
-    lease_fleet_agg = lease_fleet_agg.reset_index()
-    lease_fleet_agg.columns = ['vehicle_type', 'total']
-    lease_fleet_agg.loc[:, 'source'] = 'lease'
-    
-    modeled_fleet_agg = pd.concat([firm_fleet_agg, carrier_fleet_agg, lease_fleet_agg])
-    
-    # calculate the scaling factor
-    total_modeled_veh = pd.pivot_table(modeled_fleet_agg, values='total', 
-                                       index=['vehicle_type'], columns=['source'], aggfunc=np.sum)
-    total_modeled_veh = total_modeled_veh.reset_index()
-    
-    
-    total_modeled_veh = total_modeled_veh.reset_index()
-    
-    national_fleet_adj = pd.merge(national_fleet_composition, 
-                                  total_modeled_veh,
-                                  left_on = 'vehicle category',
-                                  right_on = 'vehicle_type', how = 'left')
-    national_fleet_adj.loc[:, 'private_stock'] = national_fleet_adj.loc[:, 'Stock'] - \
-    national_fleet_adj.loc[:, 'carrier'] - national_fleet_adj.loc[:, 'lease'] 
-    national_fleet_adj.loc[:, 'adj_factor'] = national_fleet_adj.loc[:, 'private_stock'] / \
-    national_fleet_adj.loc[:, 'firms']
-    
-    # adjust private fleet only
-    # print(national_fleet_adj['private_stock'].sum())
-    
-    national_fleet_adj_short = national_fleet_adj[['vehicle_type', 'adj_factor']]
-    firms_with_fleet_adj = pd.merge(firms_with_fleet, 
-                                    national_fleet_adj_short,
-                                   left_on = 'veh_type', right_on = 'vehicle_type',
-                                   how = 'left')
-    firms_with_fleet_adj.loc[~firms_with_fleet_adj['number_of_veh'].isna(), 'number_of_veh'] = \
-    firms_with_fleet_adj.loc[~firms_with_fleet_adj['number_of_veh'].isna(), 'number_of_veh'] * \
-    firms_with_fleet_adj.loc[~firms_with_fleet_adj['number_of_veh'].isna(), 'adj_factor']
-    
-    firms_with_fleet_adj.loc[:, 'number_of_veh'] = \
-    firms_with_fleet_adj.loc[:, 'number_of_veh'].fillna(0)
-    firms_with_fleet_adj.loc[:, 'number_of_veh'] = \
-    np.round(firms_with_fleet_adj.loc[:, 'number_of_veh'],0)
-    
-    # due to rounding error, the final number doesn't match national total, so need the second adj
-    new_scale = 5
-    while abs(new_scale - 1) > 0.05:
-        scale = national_fleet_adj['private_stock'].sum() / firms_with_fleet_adj['number_of_veh'].sum()
-        firms_with_fleet_adj.loc[~firms_with_fleet_adj['number_of_veh'].isna(), 'number_of_veh'] *= scale
-        firms_with_fleet_adj.loc[:, 'number_of_veh'] = \
-        np.round(firms_with_fleet_adj.loc[:, 'number_of_veh'], 0)
-        new_scale = national_fleet_adj['private_stock'].sum() / firms_with_fleet_adj['number_of_veh'].sum()
-    
-    print('number of private vehicles after scaling = ')
-    print(firms_with_fleet_adj['number_of_veh'].sum())  
-    
-    firms_with_fleet_adj_check = firms_with_fleet_adj.groupby('veh_type')[['number_of_veh']].sum()
-    print('fleet composition after scaling = ')
-    print(firms_with_fleet_adj_check)
     
     # <codecell>
+    
+    # --------------------------------------------------------
+    # Section 6: Assign powertrain and writing outputs
+    # --------------------------------------------------------
     
     ############# assign EV type #############
     print('Assign EV powertrain types...')
-    body_types = ev_availability['vehicle type'].unique()
-    firms_with_fleet_adj.loc[:, 'EV_powertrain (if any)'] = np.nan
+    body_types = ev_availability['vehicleType'].unique()
+    private_fleet_truck.loc[:, 'EV_powertrain (if any)'] = np.nan
     carriers_with_fleet.loc[:, 'EV_powertrain (if any)'] = np.nan
     leasing_with_fleet.loc[:, 'EV_powertrain (if any)'] = np.nan
     
@@ -475,118 +595,166 @@ def firm_fleet_generator(fleet_year, fleet_scenario_name, synthetic_firms_with_l
     for bt in body_types:
         # print(bt)
         ev_availability_select = \
-        ev_availability.loc[ev_availability['vehicle type'] == bt]
+        ev_availability.loc[ev_availability['vehicleType'] == bt]
         powertrain = ev_availability_select.Powertrain.to_numpy()
-        probability = ev_availability_select.EV_fraction.to_numpy()
+        probability = ev_availability_select.Fraction.to_numpy()
         
         firm_to_assign = \
-        firms_with_fleet_adj.loc[firms_with_fleet_adj['veh_type'].str.contains(bt)].reset_index()    
+        private_fleet_truck.loc[private_fleet_truck['veh_class'].str.contains(bt)].reset_index()    
         sample_size_1 = len(firm_to_assign)
         firm_to_assign.loc[:, 'EV_powertrain (if any)'] = \
         pd.Series(np.random.choice(powertrain, size = sample_size_1, p=probability) )
         
         carrier_to_assign = \
-        carriers_with_fleet.loc[carriers_with_fleet['veh_type'].str.contains(bt)].reset_index()   
+        carriers_with_fleet.loc[carriers_with_fleet['veh_class'].str.contains(bt)].reset_index()   
         sample_size_2 = len(carrier_to_assign)
         carrier_to_assign.loc[:, 'EV_powertrain (if any)'] = \
         pd.Series(np.random.choice(powertrain, size = sample_size_2, p=probability) )
             
         lease_to_assign = \
-        leasing_with_fleet.loc[leasing_with_fleet['veh_type'].str.contains(bt)].reset_index()   
+        leasing_with_fleet.loc[leasing_with_fleet['veh_class'].str.contains(bt)].reset_index()   
         sample_size_3 = len(lease_to_assign)
         lease_to_assign.loc[:, 'EV_powertrain (if any)'] = \
         pd.Series(np.random.choice(powertrain, size = sample_size_3, p=probability) )
-    
-    
-        firm_to_assign.loc[firm_to_assign['EV_powertrain (if any)'].isin(['PHEV Diesel', 'PHEV Gasoline']), 'EV_powertrain (if any)'] = 'PHEV'
-        carrier_to_assign.loc[carrier_to_assign['EV_powertrain (if any)'].isin(['PHEV Diesel', 'PHEV Gasoline']), 'EV_powertrain (if any)'] = 'PHEV'
-        lease_to_assign.loc[lease_to_assign['EV_powertrain (if any)'].isin(['PHEV Diesel', 'PHEV Gasoline']), 'EV_powertrain (if any)'] = 'PHEV'
+        
         firms_with_fleet_out = pd.concat([firms_with_fleet_out, firm_to_assign])
         carriers_with_fleet_out = pd.concat([carriers_with_fleet_out, carrier_to_assign])
         leasing_with_fleet_out = pd.concat([leasing_with_fleet_out, lease_to_assign])
     
+    veh_class_renaming = {'Heavy-duty Tractor': 'Class 7&8 Tractor', 
+                          'Heavy-duty Vocational': 'Class 7&8 Vocational',
+                          'Light-duty Class12A': 'Class 1&2A Vocational', 
+                          'Light-duty Class2B3': 'Class 2B&3 Vocational',
+                          'Medium-duty Vocational': 'Class 4-6 Vocational'}
+    
+    firms_with_fleet_out.loc[:, 'veh_class'] = \
+    firms_with_fleet_out.loc[:, 'veh_class'].map(veh_class_renaming)
+    firms_with_fleet_out.loc[:, 'veh_type'] = \
+        firms_with_fleet_out.loc[:, 'fuel type'] + ' ' + firms_with_fleet_out.loc[:, 'veh_class']
+    
+    carriers_with_fleet_out.loc[:, 'veh_class'] = \
+    carriers_with_fleet_out.loc[:, 'veh_class'].map(veh_class_renaming)    
+    carriers_with_fleet_out.loc[:, 'veh_type'] = \
+        carriers_with_fleet_out.loc[:, 'fuel type'] + ' ' + carriers_with_fleet_out.loc[:, 'veh_class']
+    
+    leasing_with_fleet_out.loc[:, 'veh_class'] = \
+    leasing_with_fleet_out.loc[:, 'veh_class'].map(veh_class_renaming)    
+    leasing_with_fleet_out.loc[:, 'veh_type'] = \
+        leasing_with_fleet_out.loc[:, 'fuel type'] + ' ' + leasing_with_fleet_out.loc[:, 'veh_class']
+    
+    private_fuel_mix.loc[:, 'veh_class'] = \
+        private_fuel_mix.loc[:, 'veh_class'].map(veh_class_renaming)
+    private_fuel_mix.loc[:, 'veh_type'] = \
+        private_fuel_mix.loc[:, 'fuel type'] + ' ' + private_fuel_mix.loc[:, 'veh_class']
+    veh_comb = private_fuel_mix.veh_type.unique()
+    
+    # <codecell>
+    
+    # convert long table to wide table
+    
+    idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
+           'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+           'state_abbr', 'fleet_id', 'EV_powertrain (if any)'] # 'ZIPCODE', 
+    # convert long table to wide
+    if need_regional_calibration:
+        idx_var.extend(regional_variable)
+    firms_with_fleet_out = pd.pivot_table(firms_with_fleet_out, index=idx_var,
+                                         columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
+    
+    firms_with_fleet_out = firms_with_fleet_out.reset_index()
+    firms_with_fleet_out.fillna(0, inplace = True)
+    
+    idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
+           'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+           'state_abbr', 'fleet_id', 'EV_powertrain (if any)'] # 'ZIPCODE', 
+    if need_regional_calibration:
+        idx_var.extend(regional_variable)
+    idx_var.extend(unique_cargo)
+    # convert long table to wide
+    carriers_with_fleet_out = pd.pivot_table(carriers_with_fleet_out, index=idx_var,
+                                         columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
+    
+    carriers_with_fleet_out = carriers_with_fleet_out.reset_index()
+    carriers_with_fleet_out.fillna(0, inplace = True)
+    
+    idx_var = ['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
+           'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
+           'state_abbr', 'fleet_id', 'EV_powertrain (if any)'] # 'ZIPCODE'
+    if need_regional_calibration:
+        idx_var.extend(regional_variable)
+    # convert long table to wide
+    leasing_with_fleet_out = pd.pivot_table(leasing_with_fleet_out, index=idx_var,
+                                         columns = 'veh_type', values = 'number_of_veh', aggfunc= 'sum')
+    
+    leasing_with_fleet_out = leasing_with_fleet_out.reset_index()
+    leasing_with_fleet_out.fillna(0, inplace = True)
+    
+    
+    for veh in veh_comb:
+        if veh not in firms_with_fleet_out.columns:
+                firms_with_fleet_out[veh] = 0    
+        if veh not in carriers_with_fleet_out.columns:
+                carriers_with_fleet_out[veh] = 0
+        if veh not in leasing_with_fleet_out.columns:
+                leasing_with_fleet_out[veh] = 0
+    
+    print('Final private fleet:')
+    firms_with_fleet_out.loc[:, 'n_trucks'] = firms_with_fleet_out.loc[:, veh_comb].sum(axis = 1)
+    print(firms_with_fleet_out[veh_comb].sum())
+    private_fleet_no_truck.drop(columns = ['industry', 'st', 'stname'], inplace = True)
+    firms_with_fleet_out = pd.concat([firms_with_fleet_out, private_fleet_no_truck])
+    firms_with_fleet_out.loc[:, 'EV_powertrain (if any)'] = \
+        firms_with_fleet_out.loc[:, 'EV_powertrain (if any)'].fillna('Battery Electric')
+    firms_with_fleet_out.fillna(0, inplace = True)
+    
+    print('Final for-hire fleet:')           
+    carriers_with_fleet_out.loc[:, 'n_trucks'] = carriers_with_fleet_out.loc[:, veh_comb].sum(axis = 1)
+    print(carriers_with_fleet_out[veh_comb].sum())
+    
+    print('Final lease fleet:')
+    leasing_with_fleet_out.loc[:, 'n_trucks'] = leasing_with_fleet_out.loc[:, veh_comb].sum(axis = 1)
+    print(leasing_with_fleet_out[veh_comb].sum())
+    
+    # check remaining business count
+    firms_count = len(firms_with_fleet_out.BusID.unique())
+    carrier_count = len(carriers_with_fleet_out.BusID.unique())
+    leasing_count = len(leasing_with_fleet_out.BusID.unique())
+    # firms_count = firms_count + carrier_count + leasing_count
+    
+    print(f'Total firms, carriers and leased firms after fleet generation = \
+          {firms_count}, {carrier_count}, and {leasing_count}')
+    
+    # format data output
+    data_format = {
+    'CBPZONE': np.int64,
+    'FAFZONE': np.int64,
+    'esizecat': np.int64, 
+    'Industry_NAICS6_Make': 'string',
+    'Commodity_SCTG': np.int64,
+    'Emp': 'float',
+    'BusID': np.int64, 
+    'MESOZONE': np.int64, 
+    'lat': 'float', 
+    'lon': 'float',
+    'state_abbr': 'string', 
+    'fleet_id': np.int64, 
+    'EV_powertrain (if any)': 'string'
+    }
+    firms_with_fleet_out = firms_with_fleet_out.astype(data_format)
+    carriers_with_fleet_out = carriers_with_fleet_out.astype(data_format)
+    leasing_with_fleet_out = leasing_with_fleet_out.astype(data_format)
+    
     # <codecell>
     
     
-    ########### writing output #############
-    print('Post processing and generate remaining attributes...')
-    index_var = ['esizecat', 'CBPZONE', 'FAFZONE', 'Industry_NAICS6_Make',
-           'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE', 'lat', 'lon',
-                'st', 'stname', 'EV_powertrain (if any)', 'fleet_id']
-    available_veh_tech = firms_with_fleet_out.veh_type.unique()
-    firms_with_fleet_out = firms_with_fleet_out.pivot(values = 'number_of_veh',
-                                   index = index_var, columns = 'veh_type')
-    firms_with_fleet_out = firms_with_fleet_out.reset_index()
-    firms_with_fleet_out = firms_with_fleet_out.fillna(0)
-    firms_with_fleet_out.loc[:, 'n_trucks'] = \
-    firms_with_fleet_out.loc[:, available_veh_tech].sum(axis = 1)
+    firms_sample_file = os.path.join(result_dir,'sample_firms_with_fleet.csv')
     
-    available_veh_tech = carriers_with_fleet_out.veh_type.unique()
-    carriers_with_fleet_out = carriers_with_fleet_out.pivot(values = 'number_of_veh',
-                                   index = index_var, columns = 'veh_type')
-    carriers_with_fleet_out = carriers_with_fleet_out.reset_index()
-    carriers_with_fleet_out = carriers_with_fleet_out.fillna(0)
-    carriers_with_fleet_out.loc[:, 'n_trucks'] = \
-    carriers_with_fleet_out.loc[:, available_veh_tech].sum(axis = 1)
+    sample_firms = firms_with_fleet_out.sample(n = 10000)
+    sample_firms.to_csv(firms_sample_file, index = False)
     
-    available_veh_tech = leasing_with_fleet_out.veh_type.unique()
-    leasing_with_fleet_out = leasing_with_fleet_out.pivot(values = 'number_of_veh',
-                                   index = index_var, columns = 'veh_type')
-    leasing_with_fleet_out = leasing_with_fleet_out.reset_index()
-    leasing_with_fleet_out = leasing_with_fleet_out.fillna(0)
-    leasing_with_fleet_out.loc[:, 'n_trucks'] = \
-    leasing_with_fleet_out.loc[:, available_veh_tech].sum(axis = 1)
-    
-    # assign cargo type for each carrier
-    unique_cargo = cargo_type_distribution.Cargo.unique()
-    sample_size = len(carriers_with_fleet_out)
-    for cargo in unique_cargo:
-        fraction = \
-        cargo_type_distribution.loc[cargo_type_distribution['Cargo'] == cargo, 'probability']
-        carriers_with_fleet_out.loc[:, cargo] = np.random.binomial(1, fraction, sample_size)
-    carriers_with_fleet_out.head(5)
-    carriers_with_fleet_out.loc[:, 'cargo_check'] = carriers_with_fleet_out.loc[:, unique_cargo].sum(axis = 1)
-    carriers_with_fleet_out.loc[carriers_with_fleet_out['cargo_check'] == 0, 'other_cargo'] = 1
-    
-    sctg1_cargo = ['construction_material', 'farm_product', 'large_equipment', 'other_bulk', 'other_cargo']
-    sctg2_cargo = ['farm_product', 'chemical', 'other_cargo']
-    sctg3_cargo = ['food', 'farm_product', 'other_bulk', 'other_cargo']
-    sctg4_cargo = ['construction_material', 'vehicle_home', 'large_equipment', 
-                   'other_bulk', 'household', 'other_cargo']
-    sctg5_cargo = ['garbage', 'other_bulk', 'intermodal_container', 'other_cargo']
-    
-    carriers_with_fleet_out.loc[:, 'SCTG1'] = carriers_with_fleet_out.loc[:, sctg1_cargo].sum(axis = 1)
-    carriers_with_fleet_out.loc[:, 'SCTG2'] = carriers_with_fleet_out.loc[:, sctg2_cargo].sum(axis = 1)
-    carriers_with_fleet_out.loc[:, 'SCTG3'] = carriers_with_fleet_out.loc[:, sctg3_cargo].sum(axis = 1)
-    carriers_with_fleet_out.loc[:, 'SCTG4'] = carriers_with_fleet_out.loc[:, sctg4_cargo].sum(axis = 1)
-    carriers_with_fleet_out.loc[:, 'SCTG5'] = carriers_with_fleet_out.loc[:, sctg5_cargo].sum(axis = 1)
-    
-    carriers_with_fleet_out.loc[carriers_with_fleet_out['SCTG1'] > 1, 'SCTG1'] = 1
-    carriers_with_fleet_out.loc[carriers_with_fleet_out['SCTG2'] > 1, 'SCTG2'] = 1
-    carriers_with_fleet_out.loc[carriers_with_fleet_out['SCTG3'] > 1, 'SCTG3'] = 1
-    carriers_with_fleet_out.loc[carriers_with_fleet_out['SCTG4'] > 1, 'SCTG4'] = 1
-    carriers_with_fleet_out.loc[carriers_with_fleet_out['SCTG5'] > 1, 'SCTG5'] = 1
-    
-    carriers_with_fleet_out = carriers_with_fleet_out.drop(columns=['cargo_check'])
-    
-    # writing output
-    print('Writing outputs...')    
-    # fill in columns that are not selected
-    for veh in list_of_veh_tech:
-        if veh not in firms_with_fleet_out.columns:
-            firms_with_fleet_out[veh] = 0
-        if veh not in carriers_with_fleet_out.columns:
-            carriers_with_fleet_out[veh] = 0
-        if veh not in leasing_with_fleet_out.columns:
-            leasing_with_fleet_out[veh] = 0
-            
-    result_dir = os.path.join(output_path, str(analysis_year), scenario_name)
-    isExist = os.path.exists(result_dir)
-    if not isExist:
-       # Create a new directory because it does not exist
-       os.makedirs(result_dir)
-    firms_with_fleet_out.to_csv(firms_with_fleet_file)
-    carriers_with_fleet_out.to_csv(carriers_with_fleet_file)
-    leasing_with_fleet_out.to_csv(leasing_with_fleet_file)
+    firms_with_fleet_out.to_csv(firms_with_fleet_file, index = False)
+    carriers_with_fleet_out.to_csv(carriers_with_fleet_file, index = False)
+    leasing_with_fleet_out.to_csv(leasing_with_fleet_file, index = False)
     
     print('Finished! please find outputs under ' + result_dir)
+

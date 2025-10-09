@@ -11,6 +11,8 @@ import os
 import numpy as np
 from pandas import read_csv
 import geopandas as gpd
+import concurrent.futures
+# try gpt recommmended parallel function
 # from multiprocessing import Pool
 # import time
 from shapely.geometry import box, Point, Polygon
@@ -27,6 +29,7 @@ warnings.filterwarnings("ignore")
 
 def Random_Points_in_Bounds(polygon, number, map_crs):   
     bounds = polygon.bounds
+    #print(bounds)
     x = np.random.uniform( float(bounds['minx']), float(bounds['maxx']), number )
     y = np.random.uniform( float(bounds['miny']), float(bounds['maxy']), number )
     df = pd.DataFrame()
@@ -35,12 +38,33 @@ def Random_Points_in_Bounds(polygon, number, map_crs):
     gdf_points = gpd.GeoDataFrame(df, geometry='geometry')
     gdf_points = gdf_points.set_crs(map_crs)
     return gdf_points
+
+
+def process_zone(args):
+    # Unpack arguments
+    zone, mesozone_to_faf, firm_selected, polygon, map_crs, multiplier = args
+    region = mesozone_to_faf.loc[mesozone_to_faf['MESOZONE']== zone, 'FAFNAME'].values[0]
+    region = str(region)
+    # firm_selected = firms.loc[firms['MESOZONE'] == zone]
+    sample_size = len(firm_selected) 
+    # polygon = mesozone_shapefile.loc[mesozone_shapefile['MESOZONE'] == zone]
+    if region == 'Rest of HI':
+        gdf_points = Random_Points_in_Bounds(polygon.geometry, 100 * sample_size * multiplier, map_crs)
+    else:
+        gdf_points = Random_Points_in_Bounds(polygon.geometry, 5 * sample_size * multiplier, map_crs)
+    Sjoin = gpd.tools.sjoin(gdf_points, polygon, predicate="within", how='left')
+    pnts_in_poly = gdf_points[Sjoin.MESOZONE == zone]
+    pnts_in_poly = pnts_in_poly.head(sample_size)
+    firm_selected = pd.concat([firm_selected.reset_index(), pnts_in_poly.reset_index()], axis = 1)
+    return firm_selected 
+
     
+# main function
 def firm_location_generation(synthetic_firms_no_location_file,
                              synthetic_firms_with_location_file,
                              mesozone_to_faf_file,
                              zonal_output_file,
-                             spatial_boundary_file, output_path):
+                             spatial_boundary_file, output_path, number_of_processes):
     
     print("Generating synthetic firm locations...")
     # load inputs
@@ -48,7 +72,9 @@ def firm_location_generation(synthetic_firms_no_location_file,
     mesozone_shapefile = gpd.read_file(spatial_boundary_file)
     mesozone_to_faf = read_csv(mesozone_to_faf_file)
     
-    # <codecell>
+    # convert mesozone to integer
+    firms.loc[:, 'MESOZONE'] = firms.loc[:, 'MESOZONE'].astype(np.int64)
+    mesozone_shapefile.loc[:, 'MESOZONE'] = mesozone_shapefile.loc[:, 'MESOZONE'].astype(np.int64)
     
     # remove remote island
     polygon = box(-170, 10, -66.96466, 71.365162)
@@ -65,35 +91,23 @@ def firm_location_generation(synthetic_firms_no_location_file,
     
     map_crs = mesozone_shapefile.crs
     counter = 1
+    
+    args_list = []
+    multiplier = 1
     for zone in list_of_mesozones:
         # print(zone)
-        # if zone >= 20000 or zone <=3000:
-        #     continue
-        if counter % 100 == 0:
-            print('processed ' + str(counter) + ' zones')
-        region = mesozone_to_faf.loc[mesozone_to_faf['MESOZONE']== zone, 'FAFNAME'].values[0]
-        region = str(region)
-        # print(zone, region)
+ 
         counter += 1
         firm_selected = firms.loc[firms['MESOZONE'] == zone]
-        sample_size = len(firm_selected)
         polygon = mesozone_shapefile.loc[mesozone_shapefile['MESOZONE'] == zone]
-        if region == 'Rest of HI':
-            gdf_points = Random_Points_in_Bounds(polygon.geometry, 100 * sample_size, map_crs)
-        else:
-            gdf_points = Random_Points_in_Bounds(polygon.geometry, 5 * sample_size, map_crs)
-    
-        Sjoin = gpd.tools.sjoin(gdf_points, polygon, predicate="within", how='left')
-        # # Keep points in "myPoly"
-        pnts_in_poly = gdf_points[Sjoin.MESOZONE == zone]
-        pnts_in_poly = pnts_in_poly.head(sample_size)
-        firm_selected = pd.concat([firm_selected.reset_index(), pnts_in_poly.reset_index()], axis = 1)
-        firm_with_location = pd.concat([firm_with_location, firm_selected])
-        # ax1 = pnts_in_poly.plot(alpha = 0.1, markersize = 0.1)
-        # polygon.plot(ax = ax1, facecolor='none', edgecolor='k',linewidth = 0.5)
-        # plt.show()
-        # break
-    
+        args_list.append( (zone, mesozone_to_faf, firm_selected, polygon, map_crs, multiplier))
+
+    print('Number of jobs to launch:')
+    print(len(args_list))
+    with concurrent.futures.ProcessPoolExecutor(max_workers = number_of_processes) as executor:
+        results = list(executor.map(process_zone, args_list))
+
+    firm_with_location = pd.concat(results)
     # <codecell>
     
     # for firms with no location generated, try it again
@@ -108,46 +122,51 @@ def firm_location_generation(synthetic_firms_no_location_file,
     firm_with_missing_location = None
     
     counter = 1
+    multiplier = 100
+    args_list_na = []
     for zone in list_of_mesozones:
 
-    
-        if counter % 100 == 0:
-            print('processed ' + str(counter) + ' zones')
-        region = mesozone_to_faf.loc[mesozone_to_faf['MESOZONE']== zone, 'FAFNAME']
-        region = str(region)
         counter += 1
         firm_selected = firm_with_missing.loc[firm_with_missing['MESOZONE'] == zone]
-        sample_size = len(firm_selected)
         polygon = mesozone_shapefile.loc[mesozone_shapefile['MESOZONE'] == zone]
-        if region == 'Rest of HI':
-            gdf_points = Random_Points_in_Bounds(polygon.geometry, 5000 * sample_size, map_crs)
-        else:
-            gdf_points = Random_Points_in_Bounds(polygon.geometry, 500 * sample_size, map_crs)
-    
-        Sjoin = gpd.tools.sjoin(gdf_points, polygon, predicate="within", how='left')
-        # # Keep points in "myPoly"
-        pnts_in_poly = gdf_points[Sjoin.MESOZONE == zone]
-        pnts_in_poly = pnts_in_poly.head(sample_size)
-        firm_selected = pd.concat([firm_selected.reset_index(), pnts_in_poly.reset_index()], axis = 1)
-        firm_with_missing_location = pd.concat([firm_with_missing_location, firm_selected])
-    
-    
+        args_list_na.append( (zone, mesozone_to_faf, firm_selected, polygon, map_crs, multiplier))
+ 
+    print('Number of jobs for imputation:')
+    print(len(args_list_na))
+    with concurrent.futures.ProcessPoolExecutor(max_workers = number_of_processes) as executor:
+        results = list(executor.map(process_zone, args_list_na))
+
+    firm_with_missing_location = pd.concat(results)
     print('missing value after re-generation:')
     print(firm_with_missing_location['geometry'].isna().sum())
+    
     # <codecell>
     
     firm_with_location = pd.concat([firm_no_missing, firm_with_missing_location])
-    print(len(firm_with_location))
+
     firm_with_location[['lat', 'lon']] = \
         firm_with_location.apply(lambda p: (p.geometry.y, p.geometry.x), axis=1, 
                                  result_type='expand')
         
     firm_with_location = firm_with_location.drop(columns = ['index', 'geometry'])
-    
+    print('number of firms with locations before writing outputs:')
+    print(len(firm_with_location))
+    firm_with_location = firm_with_location.astype({
+    'CBPZONE': np.int64,
+    'FAFZONE': np.int64,
+    'esizecat': np.int64, 
+    'Industry_NAICS6_Make': 'string',
+    'Commodity_SCTG': np.int64,
+    'Emp': 'float',
+    'BusID': np.int64, 
+    'MESOZONE': np.int64, 
+    'lat': 'float', 
+    'lon': 'float'
+    })
     # writing output
-    mesozone_shapefile.to_file(zonal_output_file, 
-                               driver="GeoJSON")
+    mesozone_shapefile.to_file(zonal_output_file, driver="GeoJSON")
     
     firm_with_location.to_csv(os.path.join(output_path, 
                                            synthetic_firms_with_location_file), 
                               index = False)
+    print('Synthetic firms with lat/lon attributes generated!')

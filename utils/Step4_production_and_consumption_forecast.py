@@ -27,7 +27,7 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
                               cons_forecast_file, mesozone_to_faf_file, sctg_group_file,
                               consumer_by_sctg_filehead, output_path):
 
-    print('Forecast SynthFirm production and consumption...')
+    print(f'Forecast SynthFirm production and consumption for year {forecast_year}...')
     firms_baseline = read_csv(synthetic_firms_no_location_file)
     production_baseline = read_csv(producer_file)
     consumer_baseline = read_csv(consumer_file)
@@ -38,7 +38,7 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
     #load parameters
     mesozone_to_faf_lookup = read_csv(mesozone_to_faf_file)
     sctg_lookup = read_csv(sctg_group_file)
-    # industry_commodity_lookup = read_csv(c_n6_n6io_sctg_file)
+
     # select domestic firms for forecast
     production_baseline = pd.merge(production_baseline, mesozone_to_faf_lookup,
                                    left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
@@ -46,11 +46,6 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
     consumer_baseline = pd.merge(consumer_baseline, mesozone_to_faf_lookup,
                                    left_on = 'Zone', right_on = 'MESOZONE', how = 'left')
     
-    # production_baseline_domestic = production_baseline.loc[production_baseline['Zone'] < 30000]
-    # production_baseline_foreign = production_baseline.loc[production_baseline['Zone'] >= 30000]
-    
-    # consumer_baseline_domestic = consumer_baseline.loc[consumer_baseline['Zone'] < 30000]
-    # consumer_baseline_foreign = consumer_baseline.loc[consumer_baseline['Zone'] >= 30000]
     
     # <codecell>
     
@@ -66,9 +61,7 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
                                               left_on = ['FAFID', 'Commodity_SCTG'],
                                               right_on = ['dms_orig', 'SCTG_Code'],
                                               how = 'outer')
-    
-    production_domestic_adj_factor.head(5)
-    
+        
     production_domestic_adj_factor.loc[:, forecast_tonnage] = \
         production_domestic_adj_factor.loc[:, forecast_tonnage].fillna(0)
         
@@ -93,9 +86,9 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
     production_projected = pd.merge(production_baseline, production_adj_factor_selected,
                                              on = ['FAFID', 'Commodity_SCTG'], how = 'left')
     production_projected.loc[:, 'OutputCapacitylb'] *= production_projected.loc[:, 'adj_factor']
-    
+    print('Total production tonnage after forecast:')
     print(production_projected['OutputCapacitylb'].sum() * lb_to_ton / 1000)
-    print(production_adj_factor_with_firms[forecast_tonnage].sum())
+
     
     # <codecell>
     # fill missing firms and productions
@@ -115,7 +108,6 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
         production_template = production_template.loc[production_template['acc_capacity'] <= capacity_to_add]
         scaling_factor = capacity_to_add / production_template.loc[:, 'OutputCapacitylb'].sum()
         production_template.loc[:, 'OutputCapacitylb'] *= scaling_factor
-        # print(production_template.OutputCapacitylb.sum(), capacity_to_add)
         
         # allocate zones and business IDs
         sample_size = len(production_template)
@@ -143,7 +135,7 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
                                                       right = False)
     
     max_id = firms_baseline.BusID.max()
-    # print(max_id)
+
     firms_added_formatted = firms_added_formatted.reset_index()
     firms_added_formatted.loc[:, 'BusID'] = firms_added_formatted.index + 1 + max_id
     firms_added_for_production = firms_added_formatted[['CBPZONE', 'FAFID', 'esizecat', 'NAICS',
@@ -171,7 +163,6 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
                                               right_on = ['dms_dest', 'SCTG_Code'],
                                               how = 'outer')
     
-    # consumption_domestic_adj_factor.head(5)
     
     consumption_domestic_adj_factor.loc[:, forecast_tonnage] = \
         consumption_domestic_adj_factor.loc[:, forecast_tonnage].fillna(0)
@@ -198,9 +189,9 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
     consumption_projected = pd.merge(consumer_baseline, consumption_adj_factor_selected,
                                              on = ['FAFID', 'Commodity_SCTG'], how = 'left')
     consumption_projected.loc[:, 'PurchaseAmountlb'] *= consumption_projected.loc[:, 'adj_factor']
-    
+    print('Total consumption tonnage after forecast:')
     print(consumption_projected['PurchaseAmountlb'].sum() * lb_to_ton / 1000)
-    print(consumption_adj_factor_with_firms[forecast_tonnage].sum())
+
     
     # <codecell>
     
@@ -250,7 +241,7 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
                                                       right = False)
     
     max_id_2 = firms_added_for_production.BusID.max()
-    print(max_id_2)
+    # print(max_id_2)
     firms_added_formatted_2 = firms_added_formatted_2.reset_index()
     firms_added_formatted_2.loc[:, 'BusID'] = firms_added_formatted_2.index + 1 + max_id_2
     
@@ -274,21 +265,47 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
     
     firms = firms[['CBPZONE', 'FAFZONE', 'esizecat', 'Industry_NAICS6_Make',
            'Commodity_SCTG', 'Emp', 'BusID', 'MESOZONE']]
+    firms = firms.astype({
+    'CBPZONE': np.int64,
+    'FAFZONE': np.int64,
+    'esizecat': np.int64, 
+    'Industry_NAICS6_Make': 'string',
+    'Commodity_SCTG': np.int64,
+    'Emp': 'float',
+    'BusID': np.int64, 
+    'MESOZONE': np.int64
+    })
     
     production_attr = ['Commodity_SCTG', 'NAICS', 'Size', 'SellerID', 'Zone',
            'NonTransportUnitCost', 'OutputCapacitylb']
     
     production = pd.concat([production_projected[production_attr],
                             production_added_formatted[production_attr]])
-    
-    consumption_attr = ['Commodity_SCTG', 'NAICS', 'InputCommodity', 'Zone', 'Buyer.SCTG',
-           'BuyerID', 'Size', 'ConVal', 'PurchaseAmountlb']
+    production = production.astype({
+        'SellerID': np.int64, 
+        'Zone': np.int64, 
+        'NAICS': 'string',
+        'Commodity_SCTG': np.int64,
+        'Size': 'float',
+        'OutputCapacitylb': 'float',
+        'NonTransportUnitCost':  'float'
+        })
+    consumption_attr = ['Commodity_SCTG', 'NAICS', 'InputCommodity', 
+                        'Zone', 'Buyer.SCTG', 'BuyerID', 'Size', 
+                        'ConVal', 'PurchaseAmountlb']
     consumption = pd.concat([consumption_projected[consumption_attr],
                              consumption_added_formatted[consumption_attr]])
     
-    production_to_check_sctg2 = production.loc[production['Commodity_SCTG'].isin([16,17,18,19,20,22,23])]
-    production_to_check_sctg2 = production_to_check_sctg2.loc[production_to_check_sctg2['Zone']< 20000]
-    # print(production_to_check_sctg2.OutputCapacitylb.sum()/2000/1000)
+    consumption = consumption.astype({
+        'Commodity_SCTG': np.int64, 
+        'BuyerID': np.int64, 
+        'Zone': np.int64,  
+        'NAICS': 'string', 
+        'InputCommodity': 'string', 
+        'PurchaseAmountlb': 'float'})
+    
+    print('Total number of firms after demand forecast:')
+    print(len(firms))
     firms.to_csv(synthetic_firms_no_location_file, index = False)
     production.to_csv(producer_file, index = False)
     consumption.to_csv(consumer_file, index = False)
@@ -299,16 +316,12 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
     consumption = pd.merge(consumption, sctg_lookup, 
                            left_on = 'Commodity_SCTG', right_on = 'SCTG_Code', how = 'left')
     
-    # consumption = consumption[['SCTG_Group', 'Commodity_SCTG', 'BuyerID', 'Zone', 'NAICS', 
-    #                            'InputCommodity', 'PurchaseAmountlb', 'SingleSourceMaxFraction']]
-    # sctg_groups = sctg_lookup.SCTG_Group.unique()
-    # for sg in sctg_groups:
-    #     consumption_out = consumption.loc[consumption['SCTG_Group'] == sg]
-    #     consumption_out.to_csv('outputs_SF_' +forecast_year + '/forecasted_consumption_sctg' + str(sg) + '.csv', index = False)
+
     for i in range(5):
         print("Processing SCTG Group " + str(i+1))
         g1_cons = consumption.loc[consumption['SCTG_Group'] == i+1]
         g1_cons = g1_cons[['SCTG_Group', 'Commodity_SCTG', 'BuyerID', 'Zone', 'NAICS', 'InputCommodity', 'PurchaseAmountlb']]
+        g1_cons = g1_cons.astype({'SCTG_Group': 'int'})
         g1_cons.to_csv(os.path.join(output_path, consumer_by_sctg_filehead + str(i+1) + ".csv"), index = False)
  
     print('Demand scaling is done!')
