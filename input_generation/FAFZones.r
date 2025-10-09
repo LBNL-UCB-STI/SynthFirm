@@ -23,6 +23,7 @@ path2file <-
 setwd(path2file)
 
 # define inputs
+
 region_name = 'BayArea'
 state_name = 'CA'
 analysis_year = 2016 # cbp year
@@ -32,6 +33,7 @@ study_area_faf <- c(62, 64, 65, 69) #sf ones
 # study_area_faf <- c(481, 488, 489) #austin ones
 
 regional_analysis = 1 # 0 - national analysis, 1 - regional analysis
+
 # Users can refer to 'CFS_FAF_LOOKUP.csv' for description of FAF zones and select zone IDs that covers study area
 
 cfs_df = sf::st_read("RawData/CFS2017_Areas.geojson")
