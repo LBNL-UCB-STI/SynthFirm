@@ -21,7 +21,8 @@ works, and perform publicly and display publicly, and to permit others to do so.
 <p> <b>Updates (Aug 14, 2023)</b>: documented synthetic firm, producer and consumer generation </p>
 <p> <b>Updates (Aug 22, 2023)</b>: documented B2B flow generation </p>
 <p> <b>Updates (Aug 29, 2023)</b>: added firm generation into SynthFirm pipeline and uploaded input data </p>
-<p> <b>Updates (Oct 14, 2024)</b>: update documentation to reflect V2.0 improvements </p>
+<p> <b>Updates (Oct 14, 2024)</b>: update documentation to reflect V2.0 improvements and regional implementation capabilities </p>
+<p> <b>Updates (Oct 14, 2025)</b>: update documentation to reflect V2.1 improvements, including full national run capabilities, national fleet generation and forecast, and enhanced regional modeling/validation capabilities </p>
 
 ## Task 0 -- Input data generation ##
 * Please refer to this [input generation guide](input_generation/Readme.md) to prepare inputs for selected region and scenario
