@@ -10,9 +10,9 @@ from pandas import read_csv
 import pandas as pd
 import numpy as np
 import os
-import gc
+# import gc
 import warnings
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 warnings.filterwarnings("ignore")
 
@@ -75,9 +75,9 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
         production_adj_factor_with_firms.loc[:, forecast_tonnage] / \
             production_adj_factor_with_firms.loc[:, 'tons_baseline']
     
-    production_adj_factor_to_plot = production_adj_factor_with_firms.loc[production_adj_factor_with_firms['adj_factor'] <= 300]
-    production_adj_factor_to_plot.adj_factor.hist(bins = 500)
-    plt.xlim([0,50])        
+    # production_adj_factor_to_plot = production_adj_factor_with_firms.loc[production_adj_factor_with_firms['adj_factor'] <= 300]
+    # production_adj_factor_to_plot.adj_factor.hist(bins = 500)
+    # plt.xlim([0,50])        
     # <codecell>
     from sklearn.utils import shuffle
     
@@ -177,9 +177,9 @@ def prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
         consumption_adj_factor_with_firms.loc[:, forecast_tonnage] / \
             consumption_adj_factor_with_firms.loc[:, 'tons_baseline']
     
-    consumption_adj_factor_to_plot = consumption_adj_factor_with_firms.loc[consumption_adj_factor_with_firms['adj_factor'] <= 300]
-    consumption_adj_factor_to_plot.adj_factor.hist(bins = 500)
-    plt.xlim([0,50])    
+    # consumption_adj_factor_to_plot = consumption_adj_factor_with_firms.loc[consumption_adj_factor_with_firms['adj_factor'] <= 300]
+    # consumption_adj_factor_to_plot.adj_factor.hist(bins = 500)
+    # plt.xlim([0,50])    
     
     # <codecell>
     
