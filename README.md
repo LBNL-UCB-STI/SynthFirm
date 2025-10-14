@@ -46,7 +46,6 @@ works, and perform publicly and display publicly, and to permit others to do so.
     scenario_name = BayArea # scenario name must be consistent with input generation to allow for models searching for the I-O paths
     out_scenario_name = BayArea  # scenario name for output, can be different from input scenario name, but must be consistent with firm generation configs
     parameter_path = SynthFirm_parameters # parameter directory
-    # list of FAF zone from the study region, for more information about the zonal id, please reference this guide: https://faf.ornl.gov/faf5/data/FAF5%20User%20Guide.pdf
     number_of_processes = 2 
     # number of cores to be used for parallel computing, zero means all the available cores
     ```
@@ -58,7 +57,9 @@ works, and perform publicly and display publicly, and to permit others to do so.
     
     region_code = 62, 64, 65, 69 # if 'regional_analysis = yes', please specify the FAF regions for the current run
     
-    forecast_analysis = no # this specification defines if future year run is needed. If yes, users also need to include 'forecast_year = 2050' under environment. If 'forecast_analysis = yes' and 'forecast_year = 2017', a calibration run is enabled to ensure the production/consuption equals to FAF5 values. If forecast_analysis = no, a base year 2017 run will be executed without FAF5 calibration.
+    forecast_analysis = yes # this specification defines if future year run is needed. If yes, users also need to include 'forecast_year' under environment. If 'forecast_analysis = no', a base year 2017 run will be executed.
+
+    forecast_year = 2017 # if 'forecast_analysis = yes', specify the future year for projection. If 'forecast_analysis = yes' and 'forecast_year = 2017', a calibration run is enabled to ensure the production/consuption equals to FAF5 values. 
     
     port_analysis = yes # this specification defines if international flow is included. If yes, international flow inputs are needed and 'enable_international_flow' below can be set as yes. If no, international flow inputs are optional and 'enable_international_flow' below can only be no. 
     ```
@@ -255,7 +256,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
     ```
  * The fuel price scenario definition can be found under [opcost_sensitivity_analysis](docs/opcost_sensitivity_analysis.csv)
  
-### 1.5 -- Model validation ###  
+### 1.5 -- Config model validation ###  
   * For model validation, you can also configure the specifications here:
   
     ``` 
