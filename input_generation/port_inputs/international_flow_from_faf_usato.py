@@ -34,7 +34,7 @@ mode_lookup = {1: 'Truck', 2: 'Rail', 3: 'Other', 4: 'Air',
                5: 'Parcel', 6: 'Other', 7: 'Other', 8: 'Other'}
 
 #define scenario input
-analysis_year = 2017 # for FAF inputs
+analysis_year = 2040 # for FAF inputs
 us_ton_to_ton = 0.907185
 miles_to_km = 1.60934
 shipment_load_attr = 'tons_' + str(analysis_year)

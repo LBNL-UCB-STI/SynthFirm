@@ -53,7 +53,8 @@ def plot_emp_comparison_scatter(df, x_col, y_col, agg_level,
     
     # Save
     plt.savefig(plot_filepath, dpi=200, bbox_inches='tight')
-    plt.show()
+    plt.clf()
+    # plt.show()
     
 
 # define bar plot
@@ -89,7 +90,8 @@ def plot_emp_comparison_bar(df, x_col, y_col, agg_level,
     
     # Save
     plt.savefig(plot_filepath, dpi=200, bbox_inches='tight')
-    plt.show()
+    plt.clf()
+    # plt.show()
     
 
 # define map plot
@@ -136,7 +138,8 @@ def plot_region_map(region_gdf, column, title,
     ax.axis('off')
     plt.title(title)
     plt.savefig(filename, dpi=300, bbox_inches='tight')
-    plt.show()
+    plt.clf()
+    # plt.show()
 
 # define map plot by county
 def plot_county_map(region_gdf, column, title,
@@ -194,7 +197,8 @@ def plot_county_map(region_gdf, column, title,
     ax.axis('off')
     plt.title(title)
     plt.savefig(filename, dpi=300, bbox_inches='tight')
-    plt.show()
+    plt.clf()
+    # plt.show()
 
 # kde plot for shipment distance
 def plot_distance_kde(faf_data,  cfs_data, modeled_data, 
@@ -221,7 +225,8 @@ def plot_distance_kde(faf_data,  cfs_data, modeled_data,
     plt.xlabel('Distance (km)')
     plt.ylabel('Density')
     plt.savefig(filename, bbox_inches='tight', dpi=200)
-    plt.show()  
+    plt.clf()
+    # plt.show()  
 
 # bar plot absolute shipment attributes by market segments
 
@@ -272,7 +277,8 @@ def plot_shipment_by_sector_bar(
     plt.ylabel(f'Shipment {attr_name} ({attr_unit})')
     plt.legend(fontsize=12)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
-    plt.show()
+    plt.clf()
+    # plt.show()
     
 # bar plot mode split against CFS
 def plot_shipment_by_5mode_bar(
@@ -337,7 +343,8 @@ def plot_shipment_by_5mode_bar(
     plt.ylabel(f'Shipment by {attr_name} ({attr_unit})')
     plt.legend(fontsize = 12)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
-    plt.show()
+    plt.clf()
+    # plt.show()
 
 # categorical plot for shipment by zone    
 def plot_shipment_comparison_by_zone(
@@ -396,12 +403,14 @@ def plot_shipment_comparison_by_zone(
         x="Source", hue="Source", y = output_metric, col = agg_level_name, col_wrap=2,
         alpha=.8, height=4, aspect=1.4
     )
+    ax.set(facecolor="white")
     ax.set_titles("{col_name}")
     for axn in ax.axes.flat:
         for label in axn.get_xticklabels():
             label.set_rotation(30)
     plt.savefig(filename, bbox_inches='tight', dpi=300)
-    plt.show()
+    plt.clf()
+    # plt.show()
     
     
 def plot_top_OD_bar(
@@ -464,7 +473,9 @@ def plot_top_OD_bar(
     )
     vals = ax.get_xticks()
     ax.set_xticklabels(['{:,.1%}'.format(x) for x in vals])
+    ax.set(facecolor="white")
     plt.xlabel(f'Fraction of shipment by {attr_name} ({attr_unit})')
     plt.ylabel('')
     plt.savefig(filename, bbox_inches='tight', dpi=200)
-    plt.show()
+    plt.clf()
+    # plt.show()

@@ -6,7 +6,18 @@
 <p> Updates (Aug 08, 2023): documented firm fleet generation </p>
 <p> Updates (Oct 14, 2024): update documents to reflect V2 changes and improve readability </p>
 
-## a. national-level input generation (regardless of study area)
+**List of Modules**
+<!--ts-->
+* [National-level input generation ](#a---national-level-input-generation)
+* [Study area input generation](#b---study-area-input-generation)
+* [Travel demand](#c---demand-attributes)
+* [Land use](#d---land-use)
+
+<!--te-->
+
+## A - National-level input generation 
+
+## The inputs are generated at national-scale regardless of study area
 
 ### step a.1 - processing CFS zone in [cfs_to_faf_map_generation.R](cfs_to_faf_map_generation.R):
 * Using input geographic data from CFS2017 (https://www.census.gov/programs-surveys/cfs/technical-documentation/geographies.html) and CFS2017-FAF5 mapping (https://faf.ornl.gov/faf5/)
@@ -33,7 +44,7 @@
 * Require several predefined lookup tables:
   * industy and commodity look up table (from MAG model): corresp_naics6_n6io_sctg_revised.csv
   * CFS and FAF zone lookup from FAF5 document: CFS_FAF_LOOKUP.csv (downloaded from FAF5 website under 'Related Information': https://faf.ornl.gov/faf5/)
-  * commodity SCTG group definition: SCTG_Groups_revised.csv (defined by research team)
+  * commodity SCTG group definition: SCTG_Groups_revised_V2.csv (defined by research team)
 * Produce the following 5 outputs:
   * Unit cost by commodity: SynthFirm_parameters/data_unitcost_cfs2017.csv
   * Unit cost by CFS zone and commodity: SynthFirm_parameters/data_unitcost_by_zone_cfs2017.csv
@@ -61,8 +72,13 @@
   * SynthFirm_parameters/total_commodity_consumption_{forecast_year}.csv
 * Generate unit cost by year from FAF5
   * SynthFirm_parameters/data_unitcost_by_zone_faf{forecast_year}.csv
+* Generate demand growth rate for international shipping (by SCTG and year):
+  * SynthFirm_parameters/factor_import_{forecast_year}.csv
+  * SynthFirm_parameters/factor_export_{forecast_year}.csv
+  
+## B - study area input generation
 
-## b.study area input generation (need to specify study region)
+## Inputs that need to be executed for study region
 
 ### step b.1 - collecting data from Census API in [Census.R](Census.R): 
 * No input data required (need Census API key)
