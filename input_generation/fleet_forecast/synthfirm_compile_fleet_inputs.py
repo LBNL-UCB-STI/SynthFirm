@@ -165,7 +165,7 @@ hue_orders = ["High fuel, 0.6 * elec", "High fuel, 0.8 * elec",
           "Base fuel, 1.2 * elec", "Base fuel, 1.4 * elec"]
 
 sns.set_theme(style="whitegrid", font_scale=1.4)
-state = 'CA'
+state = 'WA'
 plot_distribution_private = age_fuel_distribution_private.loc[age_fuel_distribution_private['state_abbr'] == state]
 ax = sns.relplot(data = plot_distribution_private, x= 'yearID', y = 'EV_fraction',
             hue = 'fuel scenario', hue_order = hue_orders, row='rules', col='veh_class',  
