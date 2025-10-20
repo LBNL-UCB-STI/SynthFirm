@@ -196,7 +196,7 @@
 * Produce international shipment size: 'international_shipment_size.csv'
 
 ### step d.2 - port location generation [port_location_processor.py](port_inputs/port_location_processor.py)
-* Require 2017 EPA NEI port and airport data (https://gaftp.epa.gov/Air/emismod/2017/2017emissions/)
+* Require 2017 EPA NEI port and airport data (https://drive.google.com/drive/folders/1tQViUa6b_GAVxgK4hG60ZuWDlSzS-omw)
 * Require port entry location from U.S. Customs and Border Protection (US CBP) (https://www.cbp.gov/about/contact/ports), and their GPS locations are summarized on [Wikipedia](https://en.wikipedia.org/wiki/List_of_Canada%E2%80%93United_States_border_crossings)
 * Require port code and mode availability from US CBP: https://www.cbp.gov/document/guidance/ace-appendix-d-export-port-codes
 * Extract port location (lat/lon) and geometry within study area, for airports, ports (sea and river), and border crossing.
