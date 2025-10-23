@@ -36,17 +36,21 @@ works, and perform publicly and display publicly, and to permit others to do so.
 ## Task 1 -- Prepare configuration file ##
 
 ### 1.1 -- Define run types and environment variables ###
-* Define input path and files under the [Python configure file](SynthFirm.conf), with current inputs set up for San Francisco Bay Area
-  * Fill in project information following this example:
+* Pre-defined configuration files for PSRC baseline and 2050 forecast can be found under the [configuration folder](configs).
+  * [PSRC baseline configuration](configs/Seattle_base_psrc.conf)
+  * [PSRC 2050 forecast configuration](configs/Seattle_2050_psrc.conf)
+
+* The specific model run type and steps are defined below:
+  * define model execution environment:
 
     ```
     [ENVIRONMENT]
     file_path = /Users/xiaodanxu/Documents/SynthFirm.nosync # path to project data
     
-    scenario_name = BayArea # scenario name must be consistent with input generation to allow for models searching for the I-O paths
-    out_scenario_name = BayArea  # scenario name for output, can be different from input scenario name, but must be consistent with firm generation configs
+    scenario_name = Seattle # scenario name must be consistent with input generation to allow for models searching for the I-O paths
+    out_scenario_name = Seattle_base  # scenario name for output, can be different from input scenario name, but must be consistent with firm generation configs
     parameter_path = SynthFirm_parameters # parameter directory
-    number_of_processes = 2 
+    number_of_processes = 4
     # number of cores to be used for parallel computing, zero means all the available cores
     ```
 
@@ -55,45 +59,49 @@ works, and perform publicly and display publicly, and to permit others to do so.
     ```
     regional_analysis = yes # this specification defines if SynthFirm is executed at regional or national scale, yes for regional, and no for national
     
-    region_code = 62, 64, 65, 69 # if 'regional_analysis = yes', please specify the FAF regions for the current run
+    region_code = 531, 532, 539, 411 # if 'regional_analysis = yes', please specify the FAF regions for the current run
     
     forecast_analysis = yes # this specification defines if future year run is needed. If yes, users also need to include 'forecast_year' under environment. If 'forecast_analysis = no', a base year 2017 run will be executed.
 
     forecast_year = 2017 # if 'forecast_analysis = yes', specify the future year for projection. If 'forecast_analysis = yes' and 'forecast_year = 2017', a calibration run is enabled to ensure the production/consuption equals to FAF5 values. 
     
     port_analysis = yes # this specification defines if international flow is included. If yes, international flow inputs are needed and 'enable_international_flow' below can be set as yes. If no, international flow inputs are optional and 'enable_international_flow' below can only be no. 
+
+    need_regional_calibration = yes # this specification defines if regional data will be used for model calibration, which is defaulted to 'yes' in PSRC case. The region-specific inputs will be defined in the 'CALIBRATION' section of the config file
     ```
   
   * Select the modules that are needed (must complete all of them in the following order, but can run one module at a time):
 
     ```
+    enable_psrc_pre_calibration = yes
     enable_firm_generation = yes
-    enable_producer_consumer_generation = no
-    enable_demand_forecast = no # can only be turned on if 'forecast_analysis = yes'
-    enable_firm_loc_generation = no
-    enable_supplier_selection = no
-    enable_size_generation = no
-    enable_mode_choice = no
-    enable_post_analysis = no
-    enable_fleet_generation = no
-    enable_international_flow = no # can only be turned on if 'port_analysis = yes'
-    enable_model_validation = no
+    enable_producer_consumer_generation = yes
+    enable_demand_forecast = yes # can only be turned on if 'forecast_analysis = yes'
+    enable_firm_loc_generation = yes
+    enable_psrc_post_run_calibration = yes
+    enable_supplier_selection = yes
+    enable_size_generation = yes
+    enable_mode_choice = yes
+    enable_post_analysis = yes
+    enable_fleet_generation = yes
+    enable_international_flow = yes # can only be turned on if 'port_analysis = yes'
+    enable_model_validation = yes
     ```
 
-  * Finally, if the model is executed for general purpose, not a MPO run, the user need to specify the following variables:
-    
-    ```
-    need_regional_calibration = no
-    ```
-    
-  * If the model is executed for a specific MPOs, additional spatial variables can be added for crosswalk with MPO models, such as the following case applied for PSRC:
-  
-    ```
-    need_regional_calibration = yes
-    regional_variable = ParcelID,TAZ
-    ```
 
 ### 1.2 -- Define input and output files ###
+
+* If the model is executed for a specific MPOs, additional spatial variables can be added for crosswalk with MPO models, such as the following case applied for PSRC:
+
+    ```
+    [CALIBRATION]
+    uncalibrated_mzemp_file = data_mesozone_emprankings.csv # SynthFirm employment data before PSRC calibration, once calibrated, write output to 'mzemp_file' item below
+    psrc_parcel_file = PSRC/landuse/2018/v3.0_RTP/parcels_urbansim.txt # PSRC parcel-level data
+    soundcast_db_file = PSRC/db/soundcast_inputs.db # PSRC soundcast input for defining geography
+    geography_table_name = parcel_2018_geography # table name for 2018 geography under DB
+    cleaned_parcel_file = parcel_data_2018.csv # output name for cleaned parcel data
+    regional_variable = ParcelID,TAZ # additional zonal attributes to be included in the SynthFirm output
+    ```
 
 * For the selected run, fill in the input file names:
   
@@ -101,7 +109,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
     [INPUTS]
     # below are mandatory inputs for any types of run
     cbp_file = data_emp_cbp_imputed.csv # CBP firm and employment file
-    mzemp_file = data_mesozone_emprankings.csv # in-region employment ranking at CBG level
+    mzemp_file = data_mesozone_emprankings_2018.csv # CALIBRATED employment ranking at CBG level
     mesozone_to_faf_file = zonal_id_lookup_final.csv # mesozone-FAFID-GEOID crosswalk
     mode_choice_param_file = freight_mode_choice_parameter.csv # mode choice parameter
     spatial_boundary_file_fileend = _freight.geojson # geometry file of the run
@@ -114,10 +122,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
     int_mode_choice_file = freight_mode_choice_4alt_international_sfbcal.csv
     
     # below are additional specifications for international flow, where you can reallocate domestic destinations in FAF5 from outside region to inside the region, to avoid unnecessary inter-regional flow (e.g., Los Angeles export shipped via Port of Oakland). This function can be turned off if 'need_domestic_adjustment = no' and drop out the 'location_from' and 'location_to' variables.  
-    need_domestic_adjustment = yes
-    # optional zonal inputs when there is a need to reallocate destinations
-    location_from = 61, 63
-    location_to = 62, 64, 65, 69
+    need_domestic_adjustment = no
     
     ```
   
@@ -131,7 +136,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
     employment_per_firm_file = employment_by_firm_size_naics.csv # employment per firm estimate 
     employment_per_firm_gapfill_file = employment_by_firm_size_gapfill.csv # aggregated employment per firm for initiate the model 
     BEA_io_2017_file = data_2017io_revised_USE_value_added.csv # input-output table
-    agg_unit_cost_file = data_unitcost_cfs2017.csv # unit cost of commodity
+    agg_unit_cost_file = data_unitcost_psrc_calib.csv # unit cost of commodity, calibrated to match load in PSRC region
     prod_by_zone_file = producer_value_fraction_by_faf.csv # regional allocation factor for production
     cons_by_zone_file = consumer_value_fraction_by_faf.csv # regional allocation factor for consumption
   
@@ -280,7 +285,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
   * Run [SynthFirm model](SynthFirm_run.py):
 
     ```
-    python SynthFirm_run.py --config 'SynthFirm.conf'
+    python SynthFirm_run.py --config 'configs/Seattle_base_psrc.conf'
     ```
   
   * Check output following the prompt on screen
