@@ -283,10 +283,10 @@ works, and perform publicly and display publicly, and to permit others to do so.
 
 * Run selected SynthFirm modules:
   * Open system Terminal/Shell, change directory to where the SynthFirm tool is located
-  * Run [SynthFirm model](SynthFirm_run.py):
+  * Run [customized SynthFirm model for PSRC](SynthFirm_run_PSRC.py):
 
     ```
-    python SynthFirm_run.py --config 'configs/Seattle_base_psrc.conf'
+    python SynthFirm_run_PSRC.py --config 'configs/Seattle_base_psrc.conf'
     ```
   
   * Check output following the prompt on screen
