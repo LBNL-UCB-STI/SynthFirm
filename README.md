@@ -290,7 +290,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
     ```
   
   * Check output following the prompt on screen
-  * The log file will be created for each run under the output directory, with file name '{out_scenario_name}__run__{date}.log'
+  * The log file will be created for each run under the output directory, with file name 'Seattle_base_run_{date}.log'
   
 * You are done, cheers!
 
