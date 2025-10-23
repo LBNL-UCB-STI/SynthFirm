@@ -16,13 +16,14 @@ works, and perform publicly and display publicly, and to permit others to do so.
 
 
 # SynthFirm Tutorial
-<p> <b>A quick overview of running SynthFirm for a selected region</b> </p>
+<p> <b>A quick overview of running SynthFirm for PSRC region</b> </p>
 <p> <b>Contact</b>: Xiaodan Xu, Ph.D.  (XiaodanXu@lbl.gov) </p>
 <p> <b>Updates (Aug 14, 2023)</b>: documented synthetic firm, producer and consumer generation </p>
 <p> <b>Updates (Aug 22, 2023)</b>: documented B2B flow generation </p>
 <p> <b>Updates (Aug 29, 2023)</b>: added firm generation into SynthFirm pipeline and uploaded input data </p>
 <p> <b>Updates (Oct 14, 2024)</b>: update documentation to reflect V2.0 improvements and regional implementation capabilities </p>
 <p> <b>Updates (Oct 14, 2025)</b>: update documentation to reflect V2.1 improvements, including full national run capabilities, national fleet generation and forecast, and enhanced regional modeling/validation capabilities </p>
+<p> <b>Updates (Oct 14, 2025)</b>: update documentation for PSRC application </p>
 
 ## Task 0 -- Input data generation ##
 * Please refer to this [input generation guide](input_generation/Readme.md) to prepare inputs for selected region and scenario
@@ -40,7 +41,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
   * [PSRC baseline configuration](configs/Seattle_base_psrc.conf)
   * [PSRC 2050 forecast configuration](configs/Seattle_2050_psrc.conf)
 
-* The specific model run type and steps are defined below:
+* The specific model run type and steps are defined below, with an example of PSRC baseline:
   * define model execution environment:
 
     ```
@@ -126,7 +127,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
     
     ```
   
-  * Fill in the parameter file names:
+* Fill in the parameter file names:
     ```
     [PARAMETERS]
     # below are mandatory parameters for any types of run
@@ -166,7 +167,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
     ```
     
   
-  * Fill in the output file names:
+* Fill in the output file names:
     ```
     [OUTPUTS]
     # below are generic output files for all types of runs
@@ -200,8 +201,8 @@ works, and perform publicly and display publicly, and to permit others to do so.
   
 ### 1.3 -- Define constant variables ###
 
-  * For mode choice model, the cost inputs can be adjusted under this section (in 2017 dollar):
-  
+* For mode choice model, the cost inputs can be adjusted under this section (in 2017 dollar):
+
     ```
     [CONSTANTS]
     # below are constants for general model run
@@ -233,7 +234,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
 
 ### 1.4 -- Define fleet specifications ###  
 
-  * For fleet generation, you can also configure the scenarios here:
+* For fleet generation, you can also configure the scenarios here:
   
     ```
     [FLEET_IO]
@@ -259,10 +260,10 @@ works, and perform publicly and display publicly, and to permit others to do so.
     leasing_with_fleet_file = synthetic_leasing_company.csv # synthetic truck leasing firms
     firms_with_fleet_mc_adj_files = synthetic_firms_with_fleet_mc_adjusted.csv # synthetic firms with fleet assigned and payload capacity adjusted to match shipping demand
     ```
- * The fuel price scenario definition can be found under [opcost_sensitivity_analysis](docs/opcost_sensitivity_analysis.csv)
+* The fuel price scenario definition can be found under [opcost_sensitivity_analysis](docs/opcost_sensitivity_analysis.csv)
  
 ### 1.5 -- Config model validation ###  
-  * For model validation, you can also configure the specifications here:
+* For model validation, you can also configure the specifications here:
   
     ``` 
     [VALIDATION]
@@ -275,7 +276,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
     #optional inputs for regional analysis
     focus_region = 64 #select zoom-in regions, must be selected from the 'region_code' variable above 
     ```
-  * Finish preparing configure file!
+* Finish preparing configure file!
   
 ## Task 2 -- Run synthetic firm and B2B flow generation ##
 
