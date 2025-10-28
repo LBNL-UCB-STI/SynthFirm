@@ -450,8 +450,8 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
     }
     firms_with_fleet_out = firms_with_fleet_out.astype(data_format)
     
-    print('Total firms after post-MC fleet adjustment:')
-    print(len(firms))
+    firm_count = len(firms_output.BusID.unique())
+    print(f'Total firms after post-MC fleet adjustment = {firm_count}')
     
     firms_output.to_csv(firms_with_fleet_mc_adj_files, index = False)
     print('Fleet alignment with mode choice result done')
