@@ -2,17 +2,20 @@ name: synth_firm
 channels:
   - conda-forge
 dependencies:
-  - python==3.8
-  - pip=21.2.4
-  - pandas==2.0.3
-  - matplotlib==3.7.2
-  - seaborn==0.12.2
-  - geopandas==0.12.2
-  - shapely==1.7.1
-  - scikit-learn==0.24.2
-  - statsmodels==0.14.0
+  - contextily==1.6.2
+  - fuzzywuzzy==0.18.0
+  - geopandas==1.0.1
+  - matplotlib==3.10.7
+  - numpy==2.3.4
+  - pandas==2.3.3
+  - pygris==0.2.0
+  - Requests==2.32.5
+  - scikit_learn==1.7.2
+  - seaborn==0.13.2
+  - Shapely==2.1.2
+  - statsmodels==0.14.4
   - pip:
-    - biogeme==3.2.8
-    - factor_analyzer==0.4.0
-    - rpy2==3.5.12
+    - biogeme==3.3.1
+    - factor_analyzer==0.5.1
+
 
