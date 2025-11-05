@@ -24,13 +24,16 @@ setwd(path2file)
 
 # define inputs
 
-region_name = 'BayArea'
-state_name = 'CA'
+# region_name = 'BayArea'
+# state_name = 'CA'
+
+region_name = 'Austin'
+state_name = 'TX'
 analysis_year = 2016 # cbp year
 # this is a critical step in selecting study area boundary
 # study_area_faf <- c(531, 532, 539, 411) # Seattle 
-study_area_faf <- c(62, 64, 65, 69) #sf ones
-# study_area_faf <- c(481, 488, 489) #austin ones
+# study_area_faf <- c(62, 64, 65, 69) #sf ones
+study_area_faf <- c(481, 488, 489) #austin ones
 
 regional_analysis = 1 # 0 - national analysis, 1 - regional analysis
 

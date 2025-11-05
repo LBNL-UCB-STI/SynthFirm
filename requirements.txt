@@ -1,0 +1,14 @@
+biogeme==3.3.1
+contextily==1.6.2
+factor_analyzer==0.5.1
+fuzzywuzzy==0.18.0
+geopandas==1.0.1
+matplotlib==3.10.7
+numpy==2.3.4
+pandas==2.3.3
+pygris==0.2.0
+Requests==2.32.5
+scikit_learn==1.7.2
+seaborn==0.13.2
+Shapely==2.1.2
+statsmodels==0.14.4

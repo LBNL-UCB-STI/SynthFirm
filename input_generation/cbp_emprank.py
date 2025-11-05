@@ -16,8 +16,11 @@ from shapely.geometry import box
 path2file = "/Users/xiaodanxu/Documents/SynthFirm.nosync"
 os.chdir(path2file)
 
-selected_state = 'CA'
-selected_region = 'BayArea'
+# selected_state = 'CA'
+# selected_region = 'BayArea'
+
+selected_state = 'TX'
+selected_region = 'Austin'
 
 dir_to_write = 'inputs_' + selected_region
 

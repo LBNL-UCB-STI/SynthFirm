@@ -56,7 +56,7 @@ def main():
     parser = argparse.ArgumentParser(description=des)
 
     parser.add_argument("--config", type = str, help = "config file name", 
-                        default= 'configs/Seattle_base_psrc.conf')
+                        default= 'configs/Austin_base.conf')
 
     # parser.add_argument("--param1", type=str,help="111", default="abc.aaa")
     # parser.add_argument("--verbose", action='store_true', help="print more stuff")
@@ -92,6 +92,16 @@ def main():
     param_path = os.path.join(file_path, parameter_dir)
     plot_path = os.path.join(file_path, plot_dir)
     
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    else:
+      print("Output directory exists!")    
+      
+    if not os.path.exists(plot_path):
+        os.mkdir(plot_path)
+    else:
+      print("Plot directory exists!")  
+      
     # preparing run log
     log_filename = datetime.datetime.now().strftime(out_scenario_name + "_run_%Y%m%d.log")
     log_path = os.path.join(output_path, 'log')
