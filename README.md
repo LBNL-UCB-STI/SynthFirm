@@ -29,7 +29,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
 ## Task 0 -- Input data generation ##
 * Please refer to this [input generation guide](input_generation/Readme.md) to prepare inputs for selected region and scenario
   * For FAF region, please refer to the [FAF5 website](https://faf.ornl.gov/faf5/) and search 'FAF5 Zones - 2017 CFS Geography Shapefile' for definition.
-* Following instructions to prepare inputs needed for the selected region, or use pre-generated input files: https://doi.org/10.5281/zenodo.17469395
+* Following instructions to prepare inputs needed for the selected region, or use pre-generated input files: https://doi.org/10.5281/zenodo.17583820
 * Make sure Python3 is accessible through bash/terminal.  You can check the status of Python using the following scripts:
     ```
     Python3 --version
