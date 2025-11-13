@@ -19,8 +19,8 @@ os.chdir(path2file)
 # selected_state = 'CA'
 # selected_region = 'BayArea'
 
-selected_state = 'TX'
-selected_region = 'Austin'
+selected_state = 'MA'
+selected_region = 'Boston'
 
 dir_to_write = 'inputs_' + selected_region
 

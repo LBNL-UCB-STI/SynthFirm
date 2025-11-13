@@ -34,16 +34,17 @@ mode_lookup = {1: 'Truck', 2: 'Rail', 3: 'Other', 4: 'Air',
                5: 'Parcel', 6: 'Other', 7: 'Other', 8: 'Other'}
 
 #define scenario input
-analysis_year = 2040 # for FAF inputs
+analysis_year = 2050 # for FAF inputs
 us_ton_to_ton = 0.907185
 miles_to_km = 1.60934
 shipment_load_attr = 'tons_' + str(analysis_year)
 shipment_tonmile_attr = 'tmiles_' + str(analysis_year)
 shipment_value_attr = 'value_' + str(analysis_year)
-region_name = 'BayArea'
-out_scenario_name = 'BayArea'
+region_name = 'Boston'
+out_scenario_name = 'Boston'
 # region_code = [531, 532, 539, 411] # seattle
-region_code = [62, 64, 65, 69] #Bay Area
+# region_code = [62, 64, 65, 69] #Bay Area
+region_code = [251, 259, 331, 441] # boston, excluding FAF zones 331, 441 for now as their port flow is not included
 
 path_to_write = 'inputs_' + region_name # update this based on analysis region 
 path_to_plot = 'plots_' + out_scenario_name # update this based on analysis region
@@ -76,10 +77,10 @@ list_of_ports = read_csv(port_file)
 port_loc_file = 'SynthFirm_parameters/port_location_CA_WA_OR_MA.geojson'
 port_locations = gpd.read_file(port_loc_file)
 
-import_flow_file = 'RawData/Port/Flow/SF and Seattle Port-level Imports (2017)_with OR.csv'
+import_flow_file = 'RawData/Port/Flow/MA Port-level Imports 2017.csv'
 regional_import_flow = read_csv(import_flow_file)
 
-export_flow_file = 'RawData/Port/Flow/SF and Seattle Port-level Exports (2017)_with OR.csv'
+export_flow_file = 'RawData/Port/Flow/MA Port-level Exports 2017.csv'
 regional_export_flow = read_csv(export_flow_file)
 
 study_region_definition = region_name + '_freight.geojson'

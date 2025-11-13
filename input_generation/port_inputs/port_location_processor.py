@@ -31,8 +31,9 @@ airport_loc_dir = 'RawData/Port/Location/airport_area.shp'
 port_list_dir = 'RawData/Port/port_code_cbp.csv'
 border_entry_dir = 'RawData/Port/Location/border_entry.txt'
 # filter by location
-selected_states = ['California', 'Washington', 'Oregon', 'Massachusetts']
-selected_fips = ['CA', 'WA', 'OR', 'MA']
+selected_states = ['California', 'Washington', 'Oregon', 'Massachusetts',
+                   'Rhode Island', 'New Hampshire']
+selected_fips = ['CA', 'WA', 'OR', 'MA', 'NH', 'RI']
 
 #sea and land
 port_location = gpd.read_file(port_loc_dir)
@@ -68,7 +69,7 @@ list_of_ports.loc[:, 'STATE'] = list_of_ports.loc[:, 'STATE'].str.replace(" ", "
 list_of_ports = list_of_ports.loc[list_of_ports['STATE'].isin(selected_fips)]
 
 print(len(list_of_ports))
-
+# <codecell>
 list_of_airports = \
 list_of_ports.loc[list_of_ports['is_airport'] == 1]
 print('numbers of airports in selected region:')
@@ -127,11 +128,13 @@ output_port_gdf = None
 
 port_location['NAME'] = port_location['NAME'].str.lower()
 
-
+# <codecell>
 port_location = \
 port_location.loc[port_location['NAME'] != 'other ports l.a. district, ca']
+
+record_to_drop = ((port_location['FIPS'] == '44005') & (port_location['NAME'] == 'newport'))
 port_location = \
-port_location.loc[port_location['FIPS'] != '44005']
+port_location.loc[~record_to_drop]
 canadian_border = ['Sumas, WA ', 
                    'Danville, WA ', 
                    'Ferry, WA ',
@@ -141,6 +144,9 @@ canadian_border = ['Sumas, WA ',
                 'Frontier, WA ', 
                    'Lynden, WA ', 
                    'Metaline Falls, WA '] # 9 port
+
+# <codecell>
+
 for port in otherport_names:
     print(port)
     port_loc = \
@@ -163,6 +169,8 @@ for port in otherport_names:
         port_loc = 'carquinez'
     if port == 'Aberdeen-Hoquiam, WA ':
         port_loc = 'grays harbor'
+    if port == 'Mellville, RI':
+        port_loc = 'mellville, ri'
     if port in canadian_border:
         print('do not process '  + port)
         continue
@@ -292,15 +300,15 @@ plt.show()
 combined_port_centroid.loc[:, 'state_abbr'] = \
 combined_port_centroid.loc[:, 'NAME'].str.split(', ').str[1]
 combined_port_centroid_ca = \
-combined_port_centroid.loc[combined_port_centroid['state_abbr'] == 'CA']
+combined_port_centroid.loc[combined_port_centroid['state_abbr'] == 'MA']
 print(len(combined_port_centroid_ca))
 ax = combined_port_centroid_ca.plot(figsize = (5,5), column='TYPE',
                                  marker='*', markersize=8, legend = True)
-ax.set_xlim(-123,-121.5)
-ax.set_ylim(37,38.5)
+# ax.set_xlim(-123,-121.5)
+# ax.set_ylim(37,38.5)
 cx.add_basemap(ax, crs = 'EPSG:4236', 
                    source = cx.providers.CartoDB.Positron)
-plt.savefig('RawData/Port/Plot/CA_ports_location.png')
+plt.savefig('RawData/Port/Plot/MA_ports_location.png')
 plt.show()
 
 out_path = 'SynthFirm_parameters/port_location_CA_WA_OR_MA.geojson'

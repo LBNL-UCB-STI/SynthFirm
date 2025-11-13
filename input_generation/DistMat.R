@@ -17,7 +17,7 @@ lapply(list.of.packages, require, character = TRUE)
 #################################################################################
 #install_github("f1kidd/fmlogit")
 set.seed(0)
-scenario = 'Austin'
+scenario = 'Boston'
 path2file <-
   paste0("/Users/xiaodanxu/Documents/SynthFirm.nosync/inputs_", scenario)
 setwd(path2file)
