@@ -21,7 +21,7 @@ setwd(basedir)
 firms_all = data.table::fread("./outputs/synthetic_firms_v2.csv", h = T)
 sup_df = data.table::fread("./outputs/synthetic_producers_V2.csv", h = T)
 buyer_df = data.table::fread("./outputs/synthetic_consumers_V2.csv", h = T)
-sctg_lookup = data.table::fread("./inputs/SCTG_Groups_revised.csv", h = T)
+sctg_lookup = data.table::fread("./inputs/SCTG_Groups_revised_V2.csv", h = T)
 
 sctg_lookup <- sctg_lookup %>% select(SCTG_Code, SCTG_Group, SCTG_Name) %>% as_tibble()
 sup_df = sup_df %>% left_join(sctg_lookup, by = c("Commodity_SCTG" = "SCTG_Code")) %>% as_tibble()

@@ -37,7 +37,7 @@ warnings.filterwarnings("ignore")
 # regional_export_file = 'port/FAF_regional_export.csv'
 # port_level_import_file = 'port/port_level_import.csv'
 # port_level_export_file = 'port/port_level_export.csv'
-# sctg_group_file = 'SCTG_Groups_revised.csv'
+# sctg_group_file = 'SCTG_Groups_revised_V2.csv'
 # int_shipment_size_file = 'international_shipment_size.csv'
 # sctg_by_port_file = 'commodity_to_port_constraint.csv'
 

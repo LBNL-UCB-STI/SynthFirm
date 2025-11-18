@@ -29,7 +29,7 @@ mode_lookup = {1: 'Truck', 2: 'Rail', 3: 'Other', 4: 'Air',
 faf_data = read_csv('validation/FAF5.3.csv', sep = ',')
 # print(faf_data.columns)
 
-sctg_group_lookup = read_csv('Parameter/SCTG_Groups_revised.csv', sep = ',')
+sctg_group_lookup = read_csv('Parameter/SCTG_Groups_revised_V2.csv', sep = ',')
 # sctg_group_lookup.head(5)
 
 faf_data.loc[:, 'mode_def'] = faf_data.loc[:, 'dms_mode'].map(mode_lookup)

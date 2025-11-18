@@ -30,7 +30,7 @@ print(len(CFS_df))
 # load additional input data
 naics_lookup = pd.read_csv('RawData/corresp_naics6_n6io_sctg_revised.csv')
 # load industry-commodity lookup
-sctg_group_lookup = pd.read_csv('RawData/SCTG_Groups_revised.csv')
+sctg_group_lookup = pd.read_csv('RawData/SCTG_Groups_revised_V2.csv')
 # load sctg - sctg group lookup
 sctg_group_lookup.loc[:, 'SCTG_Code'] = sctg_group_lookup.loc[:, 'SCTG_Code'].astype(str)
 sctg_group_lookup.loc[:, 'SCTG_Code'] = sctg_group_lookup.loc[:, 'SCTG_Code'].str.zfill(2)
