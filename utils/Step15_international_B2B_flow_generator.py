@@ -159,6 +159,7 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     chunksize = 10000
     # trip_generation = trip_generation.loc[trip_generation['TripGeneration'] > 0]
     chunks_of_shipments = split_dataframe(export_truck_shipments, chunksize)
+    print(f'total truck shipments to assign: {export_truck_shipments}')
     export_truck_shipment_assigned = None
     export_truck_shipment_failed = None
     i = 0
@@ -168,12 +169,18 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     for chunk in chunks_of_shipments:
         print('processing batch ' + str(i))
         producer_to_match = domestic_producer_to_match.sample(frac = 0.25) # reduce size for sampling
+        print(f'Assigning possible producers to {len(chunk)} export shipments with frac 0.25')
         chunk_export = pd.merge(chunk, producer_to_match,
                                 on = ['dms_orig', 'SCTG_Code', 'SCTG_Group'], how = 'left')
+        print(f'Matched {len(chunk_export)} possible producers')
         failed_shipment = \
         chunk_export.loc[chunk_export['SellerZone'].isna()]
+        print(f'{len(failed_shipment)} shipments not matched')
         failed_shipment = failed_shipment[existing_attr]
         chunk_export = chunk_export.dropna()
+        print(f'Matched {len(chunk_export)} possible producers after filtering')
+        print(chunk_export)
+        print(existing_attr)
 
         chunk_export = chunk_export.groupby(existing_attr).sample(n = 1, 
                                                                  weights = chunk_export['Size'],
@@ -187,48 +194,62 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
         # break
     # <codecell>
     # assign failed ones (drop SCTG)
-    producer_to_match = domestic_producer_to_match.sample(frac = 0.5) # reduce size for sampling
-    # print(len(export_truck_shipment_failed))
-    producer_to_match.drop(columns = ['SCTG_Code'], inplace = True) # ignore SCTG from producers
-    export_truck_shipment_reassign = pd.merge(export_truck_shipment_failed, 
-                                            producer_to_match,
-                                            on = ['dms_orig', 'SCTG_Group'], 
-                                            how = 'left')
-    failed_shipment = \
-    export_truck_shipment_reassign.loc[export_truck_shipment_reassign['SellerZone'].isna()]
-    failed_shipment = failed_shipment[existing_attr]
-    export_truck_shipment_reassign.dropna(inplace = True)
-    export_truck_shipment_reassign = \
-        export_truck_shipment_reassign.groupby(existing_attr).sample(n = 1, 
-                                                                 weights = export_truck_shipment_reassign['Size'],
-                                                                 replace = True, 
-                                                                 random_state = 1)
-    # print(len(export_truck_shipment_reassign))
-    export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
-                                                export_truck_shipment_reassign])
-    
-    # final imputation -- drop all SCTG
-    producer_to_match = domestic_producer_to_match.sample(frac = 0.1) # reduce size for sampling
-    # print(len(failed_shipment))
-    producer_to_match.drop(columns = ['SCTG_Code', 'SCTG_Group'], inplace = True) # ignore SCTG from producers
-    export_truck_shipment_reassign = pd.merge(failed_shipment, 
-                                            producer_to_match,
-                                            on = ['dms_orig'], 
-                                            how = 'left')
-    failed_shipment = \
-    export_truck_shipment_reassign.loc[export_truck_shipment_reassign['SellerZone'].isna()]
-    failed_shipment = failed_shipment[existing_attr]
-    export_truck_shipment_reassign.dropna(inplace = True)
-    export_truck_shipment_reassign = \
-        export_truck_shipment_reassign.groupby(existing_attr).sample(n = 1, 
-                                                                 weights = export_truck_shipment_reassign['Size'],
-                                                                 replace = True, 
-                                                                 random_state = 1)
-    # print(len(export_truck_shipment_reassign))
-    
-    export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
-                                                export_truck_shipment_reassign])
-    
+
+    if not export_truck_shipment_failed.empty:
+        producer_to_match = domestic_producer_to_match.sample(frac = 0.5) # reduce size for sampling
+        # print(len(export_truck_shipment_failed))
+
+        producer_to_match.drop(columns = ['SCTG_Code'], inplace = True) # ignore SCTG from producers
+        print(f'Assigning possible producers to {len(export_truck_shipment_failed)} failed export shipments with frac 0.5')
+
+        export_truck_shipment_reassign = pd.merge(export_truck_shipment_failed,
+                                                producer_to_match,
+                                                on = ['dms_orig', 'SCTG_Group'],
+                                                how = 'left')
+        failed_shipment = \
+        export_truck_shipment_reassign.loc[export_truck_shipment_reassign['SellerZone'].isna()]
+        print(f'{len(failed_shipment)} shipments not matched')
+
+
+        failed_shipment = failed_shipment[existing_attr]
+        export_truck_shipment_reassign.dropna(inplace = True)
+        export_truck_shipment_reassign = \
+            export_truck_shipment_reassign.groupby(existing_attr).sample(n = 1,
+                                                                     weights = export_truck_shipment_reassign['Size'],
+                                                                     replace = True,
+                                                                     random_state = 1)
+        # print(len(export_truck_shipment_reassign))
+        export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
+                                                    export_truck_shipment_reassign])
+
+    if not failed_shipment.empty:
+
+        # final imputation -- drop all SCTG
+        producer_to_match = domestic_producer_to_match.sample(frac = 1) # reduce size for sampling
+        # print(len(failed_shipment))
+        producer_to_match.drop(columns = ['SCTG_Code', 'SCTG_Group'], inplace = True) # ignore SCTG from producers
+        print(f'Assigning possible producers to {len(failed_shipment)} failed export shipments with frac 1')
+
+        export_truck_shipment_reassign = pd.merge(failed_shipment,
+                                                producer_to_match,
+                                                on = ['dms_orig'],
+                                                how = 'left')
+        failed_shipment = \
+        export_truck_shipment_reassign.loc[export_truck_shipment_reassign['SellerZone'].isna()]
+        print(f'Final {len(failed_shipment)} shipments not matched')
+
+        failed_shipment = failed_shipment[existing_attr]
+        export_truck_shipment_reassign.dropna(inplace = True)
+        export_truck_shipment_reassign = \
+            export_truck_shipment_reassign.groupby(existing_attr).sample(n = 1,
+                                                                     weights = export_truck_shipment_reassign['Size'],
+                                                                     replace = True,
+                                                                     random_state = 1)
+        # print(len(export_truck_shipment_reassign))
+
+        export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
+                                                    export_truck_shipment_reassign])
+
     
     # <codecell>
     ########################################################
@@ -262,10 +283,13 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     for chunk in chunks_of_shipments:
         print('processing batch ' + str(i))
         consumer_to_match = domestic_consumer_to_match.sample(frac = 0.01) # reduce size for sampling
+        print(f'Assigning possible consumers to {len(chunk)} import shipments with frac 0.01')
         chunk_import = pd.merge(chunk, consumer_to_match,
                                 on = ['dms_dest', 'SCTG_Code', 'SCTG_Group'], how = 'left')
+        print(f'Matched {len(chunk_import)} possible consumers')
         failed_shipment = \
         chunk_import.loc[chunk_import['BuyerZone'].isna()]
+        print(f'{len(failed_shipment)} shipments not matched')
         failed_shipment = failed_shipment[existing_attr]
         chunk_import = chunk_import.dropna()
         # chunk_attraction.loc[:, 'importance'] = 1 /((chunk_attraction.loc[:, 'distance'] + 2) ** power_coeff)
@@ -280,51 +304,58 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
                                                   failed_shipment])
         i += 1
         # break
-    
-    # <codecell>
-    # assign failed ones (drop SCTG)
-    consumer_to_match = domestic_consumer_to_match.sample(frac = 0.05) # reduce size for sampling
-    # print(len(import_truck_shipment_failed))
-    consumer_to_match.drop(columns = ['SCTG_Code'], inplace = True) # ignore SCTG from producers
-    import_truck_shipment_reassign = pd.merge(import_truck_shipment_failed, 
-                                            consumer_to_match,
-                                            on = ['dms_dest', 'SCTG_Group'], 
-                                            how = 'left')
-    failed_shipment = \
-    import_truck_shipment_reassign.loc[import_truck_shipment_reassign['BuyerZone'].isna()]
-    failed_shipment = failed_shipment[existing_attr]
-    import_truck_shipment_reassign.dropna(inplace = True)
-    import_truck_shipment_reassign = \
-        import_truck_shipment_reassign.groupby(existing_attr).sample(n = 1, 
-                                                                 weights = import_truck_shipment_reassign['Size'],
-                                                                 replace = True, 
-                                                                 random_state = 1)
-    # print(len(import_truck_shipment_reassign))
-    import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
-                                                import_truck_shipment_reassign])
-    
-    # final imputation -- drop all SCTG
-    consumer_to_match = domestic_consumer_to_match.sample(frac = 0.05) # reduce size for sampling
-    # print(len(failed_shipment))
-    consumer_to_match.drop(columns = ['SCTG_Code', 'SCTG_Group'], inplace = True) # ignore SCTG from producers
-    import_truck_shipment_reassign = pd.merge(failed_shipment, 
-                                            consumer_to_match,
-                                            on = ['dms_dest'], 
-                                            how = 'left')
-    failed_shipment = \
-    import_truck_shipment_reassign.loc[import_truck_shipment_reassign['BuyerZone'].isna()]
-    failed_shipment = failed_shipment[existing_attr]
-    import_truck_shipment_reassign.dropna(inplace = True)
-    import_truck_shipment_reassign = \
-        import_truck_shipment_reassign.groupby(existing_attr).sample(n = 1, 
-                                                                  weights = import_truck_shipment_reassign['Size'],
-                                                                  replace = True, 
-                                                                  random_state = 1)
-    # print(len(import_truck_shipment_reassign))
-    
-    import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
-                                                import_truck_shipment_reassign])
-    
+
+    if not import_truck_shipment_failed.empty:
+
+        # <codecell>
+        # assign failed ones (drop SCTG)
+        consumer_to_match = domestic_consumer_to_match.sample(frac = 0.05) # reduce size for sampling
+        # print(len(import_truck_shipment_failed))
+        consumer_to_match.drop(columns = ['SCTG_Code'], inplace = True) # ignore SCTG from producers
+        print(f'Assigning possible consumers to {len(import_truck_shipment_failed)} failed import shipments with frac 0.05')
+        import_truck_shipment_reassign = pd.merge(import_truck_shipment_failed,
+                                                consumer_to_match,
+                                                on = ['dms_dest', 'SCTG_Group'],
+                                                how = 'left')
+        failed_shipment = \
+        import_truck_shipment_reassign.loc[import_truck_shipment_reassign['BuyerZone'].isna()]
+        print(f'{len(failed_shipment)} shipments not matched')
+        failed_shipment = failed_shipment[existing_attr]
+        import_truck_shipment_reassign.dropna(inplace = True)
+        import_truck_shipment_reassign = \
+            import_truck_shipment_reassign.groupby(existing_attr).sample(n = 1,
+                                                                     weights = import_truck_shipment_reassign['Size'],
+                                                                     replace = True,
+                                                                     random_state = 1)
+        # print(len(import_truck_shipment_reassign))
+        import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
+                                                    import_truck_shipment_reassign])
+    if not failed_shipment.empty:
+
+        # final imputation -- drop all SCTG
+        consumer_to_match = domestic_consumer_to_match.sample(frac = 0.1) # reduce size for sampling
+        # print(len(failed_shipment))
+        consumer_to_match.drop(columns = ['SCTG_Code', 'SCTG_Group'], inplace = True) # ignore SCTG from producers
+        print(f'Assigning possible consumers to {len(failed_shipment)} failed import shipments with frac 0.1')
+        import_truck_shipment_reassign = pd.merge(failed_shipment,
+                                                consumer_to_match,
+                                                on = ['dms_dest'],
+                                                how = 'left')
+        failed_shipment = \
+        import_truck_shipment_reassign.loc[import_truck_shipment_reassign['BuyerZone'].isna()]
+        print(f'Final {len(failed_shipment)} shipments not matched')
+        failed_shipment = failed_shipment[existing_attr]
+        import_truck_shipment_reassign.dropna(inplace = True)
+        import_truck_shipment_reassign = \
+            import_truck_shipment_reassign.groupby(existing_attr).sample(n = 1,
+                                                                      weights = import_truck_shipment_reassign['Size'],
+                                                                      replace = True,
+                                                                      random_state = 1)
+        # print(len(import_truck_shipment_reassign))
+
+        import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
+                                                    import_truck_shipment_reassign])
+
     # write export output
     # <codecell>
     
