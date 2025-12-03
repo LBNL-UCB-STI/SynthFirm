@@ -8,10 +8,11 @@ Created on Wed Feb  5 10:17:52 2025
 
 import pandas as pd
 import sqlite3
-# import geopandas as gps
+import geopandas as gpd
 # import matplotlib.pyplot as plt
 # import seaborn as sns
 import warnings
+from pygris import block_groups
 # import os
 from pandas import read_csv
 import numpy as np
@@ -42,31 +43,76 @@ def boston_employment_calibration(taz_file,
     boston_blocks = pd.concat([boston_employment_ma_2019, boston_employment_nhri_2020], ignore_index=True)
     print("Combined shape:", boston_blocks.shape)
 
-    #Get Block Group ID
     boston_blocks["block_id"] = boston_blocks["block_id"].astype(str)
-    boston_blocks["block_group"] = boston_blocks["block_id"].str[:12]
+    boston_blocks["len"] = boston_blocks["block_id"].str.len()
+    print("Total jobs:", boston_blocks["total_jobs"].sum())
 
-    #Aggregate from Group ID to Block Group ID
+    boston_blocks_15  = boston_blocks[boston_blocks["len"]==15].copy()
+    boston_blocks_6   = boston_blocks[boston_blocks["len"]==6].copy()
+    print("  15-digit rows:", len(boston_blocks_15))
+    print("  6-digit (TAZ) rows:", len(boston_blocks_6))
+    boston_blocks_15 = boston_blocks_15.drop(columns=["len"])
+    boston_blocks_6 = boston_blocks_6.drop(columns=["len"])
+
     group_cols = [
         '1_constr', '2_eduhlth', '3_finance', '4_public', '5_info',
         '6_ret_leis', '7_manu', '8_other', '9_profbus', '10_ttu',
         'total_jobs', 'total_households'
     ]
-    boston_bg = boston_blocks.groupby("block_group", as_index=False)[group_cols].sum()
-    print("Block groups:", boston_bg.shape)
 
-    # Create MESOZONE (used by SynthFirm)
-    boston_bg["MESOZONE"] = boston_bg["block_group"].astype(int)
+    #Get Block Group ID
+    boston_blocks_15["block_group"] = boston_blocks_15["block_id"].str[:12]
+    boston_blocks_15 = boston_blocks_15.groupby("block_group", as_index=False)[group_cols].sum()
+    boston_blocks_15 = boston_blocks_15.rename(columns={"block_group":"MESOZONE"})
+    print("  Total Block groups from block ids:", len(boston_blocks_15))
 
+    boston_blocks_6["taz_id"] = boston_blocks_6["block_id"].astype(int)
+    taz_emp = boston_blocks_6.groupby("taz_id", as_index=False)[group_cols].sum()
+
+    taz = gpd.read_file(taz_file)
+    taz["taz_id"] = taz["taz_id"].astype(int)
+    taz = taz.merge(taz_emp, on="taz_id", how="inner")
+
+    print('taz associated to unique taz_id form 6-digit Boston codes', len(taz))
+
+    # Load block groups from pygris
+    print("  Loading block groups via pygris...")
+    ma_bg = block_groups("MA", year=2018)
+    nh_bg = block_groups("NH", year=2018)
+    ri_bg = block_groups("RI", year=2018)
+    bg = pd.concat([ma_bg,nh_bg,ri_bg])[["GEOID","geometry"]]
+
+    # Reproject
+    taz = taz.to_crs("EPSG:26919")
+    bg  = bg.to_crs("EPSG:26919")
+
+    # Overlay
+    print("  Computing BG–TAZ intersections...")
+    inter = gpd.overlay(bg, taz[["taz_id","geometry"]+group_cols], how="intersection")
+    inter["overlap"] = inter.area
+
+    a = taz[["taz_id","geometry"]].copy()
+    a["taz_area"] = a.area
+    inter = inter.merge(a[["taz_id","taz_area"]], on="taz_id")
+    inter["w"] = inter["overlap"] / inter["taz_area"]
+
+    # Weighted employment
+    for c in group_cols:
+        inter[c] = inter[c] * inter["w"]
+
+    bg_from_taz = inter.groupby("GEOID", as_index=False)[group_cols].sum()
+    bg_from_taz = bg_from_taz.rename(columns={"GEOID":"MESOZONE"})
+    print(" Total Block groups from TAZ ids:", len(bg_from_taz))
+
+    print("Combining block groups from MA + NH/RI...")
+    boston_bg = pd.concat([boston_blocks_15, bg_from_taz], ignore_index=True)
+    boston_bg = boston_bg.groupby("MESOZONE", as_index=False)[group_cols].sum()
+    print("Total Block groups:", len(boston_bg))
+    boston_bg[group_cols] = boston_bg[group_cols].round(0).astype(int)
     # Extract state FIPS (first 2 digits)
-    boston_bg["state_fips"] = boston_bg["block_group"].str[:2]
-
-    # Basic totals check
-    emp_cols = [
-        '1_constr','2_eduhlth','3_finance','4_public','5_info',
-        '6_ret_leis','7_manu','8_other','9_profbus','10_ttu',
-        'total_jobs','total_households'
-    ]
+    boston_bg["state_fips"] = boston_bg["MESOZONE"].str[:2]
+    # Create MESOZONE (used by SynthFirm)
+    boston_bg["MESOZONE"] = boston_bg["MESOZONE"].astype(int)
 
     print("Total jobs:", boston_bg["total_jobs"].sum())
     print("Total households:", boston_bg["total_households"].sum())
@@ -88,7 +134,7 @@ def boston_employment_calibration(taz_file,
     # Observed Boston employment in LONG format:
     # one row per MESOZONE × industry
     boston_emp_long = boston_bg.melt(
-        id_vars=["MESOZONE", "block_group", "state_fips"],
+        id_vars=["MESOZONE",  "state_fips"],
         value_vars=boston_sector_cols,
         var_name="industry",
         value_name="BOSTON_emp"
@@ -120,7 +166,7 @@ def boston_employment_calibration(taz_file,
     )
 
     print("emp_ranking_long shape:", emp_ranking_long.shape)
-    print("total LEHD jobs:", emp_ranking_long["LEHD_emp"].sum())
+    print("total LEHD jobs to adjust:", emp_ranking_long["LEHD_emp"].sum())
 
     # --- Extract NAICS code from rankXX (strip 'rank')
     emp_ranking_long["NAICS_code"] = emp_ranking_long["NAICS"].str.replace("rank", "", regex=False)
@@ -175,8 +221,10 @@ def boston_employment_calibration(taz_file,
 
     emp_ranking_long.loc[:, 'LEHD_emp'].fillna(0, inplace = True)
     emp_ranking_long.loc[:, 'BOSTON_emp'].fillna(0, inplace = True)
-    boston_total = boston_emp_long["BOSTON_emp"].sum()
+    boston_total = emp_ranking_long.groupby(["MESOZONE", "industry"])["BOSTON_emp"].first().sum()
     lehd_total = emp_ranking_long["LEHD_emp"].sum()
+    print(f"Total Boston observed jobs (all MESOZONE × industry) after the merge with LEHD block groups: {boston_total}" )
+    print(f"Total LEHD jobs in Boston MESOZONEs (raw) {lehd_total}:")
 
     # Compute total LEHD employment by (industry, NAICS) across all zones
     frac_among_ind = (
@@ -233,7 +281,8 @@ def boston_employment_calibration(taz_file,
     diff_ratio = abs(emp_ranking_long["emp_adj"].sum() / boston_total - 1)
 
     iterator = 1
-    while diff_ratio > adj_threshold:
+    max_iter = 20
+    while diff_ratio > adj_threshold  and iterator <= max_iter:
         print(f"Calibration iteration {iterator}")
         print("  Total emp before iteration:", emp_ranking_long["emp_adj"].sum())
 
@@ -281,67 +330,29 @@ def boston_employment_calibration(taz_file,
 
 
 
+    # Keep only the fields we need
+    emp_ranking_adjusted = emp_ranking_long[["MESOZONE", "COUNTY", "NAICS", "emp_adj"]].copy()
 
+    # Pivot back to wide format: one row per MESOZONE × COUNTY, columns = NAICS (rankXX)
+    emp_ranking_adjusted = (
+        emp_ranking_adjusted
+        .pivot_table(
+            index=["MESOZONE", "COUNTY"],
+            columns="NAICS",
+            values="emp_adj",
+            aggfunc="sum"
+        )
+        .reset_index()
+    )
 
+    # Columns after pivot are something like ['MESOZONE', 'COUNTY', 'rank11', 'rank21', ...]
+    # Merge with zones outside Boston that we did not calibrate
+    emp_ranking_output = pd.concat(
+        [emp_ranking_adjusted, emp_ranking_no_adj],
+        ignore_index=True
+    )
 
+    # Save calibrated mzemp file for the rest of SynthFirm
+    emp_ranking_output.to_csv(mzemp_file, index=False)
+    print("Calibrated mzemp written to:", mzemp_file)
 
-
-
-
-    
-    adj_threshold = 0.001
-    psrc_total = psrc_emp_long.loc[:, 'PSRC_emp'].sum()
-    diff_ratio = abs(emp_ranking_long.loc[:, 'emp_adj'].sum()/psrc_total - 1)
-    
-    iterator = 1
-    while diff_ratio > adj_threshold:
-        emp_ranking_long.loc[:, 'LEHD_emp_sum'] = \
-            emp_ranking_long.groupby(['MESOZONE', 'industry'])['emp_adj'].transform('sum')
-            
-        print('this is the iteration number ' + str(iterator))
-        print('total employment from LEHD data (before adjustment):')
-        print(emp_ranking_long.loc[:, 'emp_adj'].sum())
-        
-        emp_ranking_long.loc[:, 'adj_factor'] = \
-            emp_ranking_long.loc[:, 'PSRC_emp'] / emp_ranking_long.loc[:, 'LEHD_emp_sum'] 
-        
-        # wipe out emp if PSRC_emp is zero    
-        emp_ranking_long.loc[emp_ranking_long['imp_flag']==2, 'emp_adj'] = 0
-        
-        # distribute PSRC employment if LEHD employment is zero    
-        emp_ranking_long.loc[emp_ranking_long['imp_flag']==3, 'emp_adj'] = \
-            emp_ranking_long.loc[emp_ranking_long['imp_flag']==3,'PSRC_emp'] * \
-                emp_ranking_long.loc[emp_ranking_long['imp_flag']==3,'fraction']
-                
-        # scale lehd employment if both sets are none zero   
-        emp_ranking_long.loc[emp_ranking_long['imp_flag']==1, 'emp_adj'] = \
-            emp_ranking_long.loc[emp_ranking_long['imp_flag']==1,'emp_adj'] * \
-                emp_ranking_long.loc[emp_ranking_long['imp_flag']==1,'adj_factor']
-        emp_ranking_long.loc[:, 'emp_adj'] = np.round(emp_ranking_long.loc[:, 'emp_adj'], 0)  
-         
-        print('total employment from LEHD data (after adjustment):')
-        print(emp_ranking_long.loc[:, 'emp_adj'].sum())
-        diff_ratio = abs(emp_ranking_long.loc[:, 'emp_adj'].sum()/psrc_total - 1)
-        
-        # print(diff_ratio)
-        iterator += 1
-    
-    # <codecell>
-    
-    # convert data back to emp ranking
-    emp_ranking_adjusted = emp_ranking_long[['MESOZONE', 'COUNTY', 'NAICS', 'emp_adj']]
-    emp_ranking_adjusted.loc[:, 'NAICS'] = \
-        'rank' + emp_ranking_adjusted.loc[:, 'NAICS']
-    
-    emp_ranking_adjusted = pd.pivot_table(emp_ranking_adjusted, 
-                                          index = ['MESOZONE', 'COUNTY'],
-                                          columns = 'NAICS', 
-                                          values = 'emp_adj',
-                                          aggfunc= 'sum')
-    
-    emp_ranking_adjusted = emp_ranking_adjusted.reset_index()
-    emp_ranking_output = pd.concat([emp_ranking_adjusted, emp_ranking_no_adj])
-    
-    # output_file = os.path.join(output_dir,'data_mesozone_emprankings_2050.csv')
-    emp_ranking_output.to_csv(mzemp_file, index = False)
-    
