@@ -32,7 +32,7 @@ warnings.filterwarnings("ignore")
 # # c_n6_n6io_sctg_file = 'corresp_naics6_n6io_sctg_revised.csv'
 # # synthetic_firms_no_location_file = "synthetic_firms.csv" 
 # # zonal_id_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
-# # sctg_group_file = 'SCTG_Groups_revised.csv'
+# # sctg_group_file = 'SCTG_Groups_revised_V2.csv'
 # # int_mode_choice_file = 'freight_mode_choice_4alt_international_seacal.csv' # using this for seattle
 # int_mode_choice_file = 'freight_mode_choice_4alt_international_seacal.csv'
 # distance_travel_skim_file = 'combined_travel_time_skim.csv'

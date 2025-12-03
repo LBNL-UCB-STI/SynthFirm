@@ -36,7 +36,7 @@ warnings.filterwarnings("ignore")
 # producer_file = 'synthetic_producers.csv'
 # consumer_file = 'synthetic_consumers.csv'
 # mesozone_to_faf_file = "zonal_id_lookup_final.csv" # zonal ID lookup table 
-# sctg_group_file = "SCTG_Groups_revised.csv" # Commodity type to group lookup (pre-defined)
+# sctg_group_file = "SCTG_Groups_revised_V2.csv" # Commodity type to group lookup (pre-defined)
 # export_with_firm_file = 'export_OD_with_seller.csv'
 # import_with_firm_file = 'import_OD_with_buyer.csv'
 

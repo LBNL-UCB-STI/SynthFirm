@@ -25,7 +25,7 @@ region_df = pd.read_csv('RawData/CFS/CFS2017_national_forML_short.csv')
 # CFS2017 data with imputation 
 factor_df = pd.read_csv('RawData/CFS/data_unitcost_by_zone_cfs2017.csv')
 # unit cost from CFS 2017
-sctg_group = pd.read_csv('RawData/SCTG_Groups_revised.csv')
+sctg_group = pd.read_csv('RawData/SCTG_Groups_revised_V2.csv')
 # pre-defined sctg group
 cfs_to_faf_lookup = pd.read_csv('RawData/CFS_FAF_LOOKUP.csv')
 # cfs and faf zone crosswalk

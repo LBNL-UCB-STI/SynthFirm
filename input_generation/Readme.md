@@ -58,7 +58,7 @@
 * Require unit cost estimation by zone and sctg from step a.4 (data_unitcost_by_zone_cfs2017)
 * Require several predefined lookup tables:
   * CFS and FAF zone lookup from FAF5 document: CFS_FAF_LOOKUP.csv (downloaded from FAF5 website under 'Related Information': https://faf.ornl.gov/faf5/)
-  * commodity SCTG group definition: SCTG_Groups_revised.csv (defined by research team)
+  * commodity SCTG group definition: SCTG_Groups_revised_V2.csv (defined by research team)
 * Perform MNL model using CFS O-D data for supplier selection
 * Produce the following 5 outputs:
   * Avg. routed distance matrix from CFS observation: CFS2017_routed_distance_matrix.csv
@@ -66,7 +66,7 @@
 
 
 ### step a.6 - generate demand forecast inputs in [demand_forecast_input_generation.py](demand_forecast_input_generation.py):
-* Require FAF5 and SCTG group definition (SCTG_Groups_revised.csv)
+* Require FAF5 and SCTG group definition (SCTG_Groups_revised_V2.csv)
 * Require CFS and FAF zone lookup from FAF5 document: CFS_FAF_LOOKUP.csv (downloaded from FAF5 website under 'Related Information': https://faf.ornl.gov/faf5/)
 * Generate total production and consumption by FAF zone, SCTG and forecast year:
   * SynthFirm_parameters/total_commodity_production_{forecast_year}.csv

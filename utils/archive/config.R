@@ -24,7 +24,7 @@ BEA_io_2017_file <- "data_2017io_revised_USE_value_added.csv" # final scaled BEA
 agg_unit_cost_file <- "data_unitcost_cfs2017.csv" # unit cost by commodity from CFS 2017 (all zones combined)
 prod_by_zone_file <- "producer_value_fraction_by_faf.csv" # Total production value by FAF zone from CFS 2017
 cons_by_zone_file <- "consumer_value_fraction_by_faf.csv" # Total consumption value  by FAF zone from CFS 2017
-SCTG_group_file <- "SCTG_Groups_revised.csv" # Commodity type to group lookup (pre-defined)
+SCTG_group_file <- "SCTG_Groups_revised_V2.csv" # Commodity type to group lookup (pre-defined)
 
 # define constant
 foreignprodcostfactor <- 0.9     # producer cost factor for foreign produers (applied to unit costs) 

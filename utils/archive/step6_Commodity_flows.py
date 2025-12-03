@@ -26,7 +26,7 @@ producer = read_csv("outputs/synthetic_producers_V2.csv", low_memory = False)
 cost_by_location = read_csv('inputs/data_unitcost_by_zone_cfs2017.csv')
 cfs_to_faf = read_csv('inputs/CFS_FAF_LOOKUP.csv')
 max_load_per_shipment = read_csv('inputs/max_load_per_shipment_90percent.csv')
-sctg_group = read_csv('inputs/SCTG_Groups_revised.csv')
+sctg_group = read_csv('inputs/SCTG_Groups_revised_V2.csv')
 supplier_selection_param = read_csv('inputs/supplier_selection_parameter.csv')
 
 
