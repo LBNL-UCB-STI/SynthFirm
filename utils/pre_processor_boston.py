@@ -40,8 +40,14 @@ def boston_employment_calibration(taz_file,
     print("NHRI shape:", boston_employment_nhri_2020.shape)
     print("MA columns:", boston_employment_ma_2019.columns.tolist())
     print("NHRI columns:", boston_employment_nhri_2020.columns.tolist())
-    boston_blocks = pd.concat([boston_employment_ma_2019, boston_employment_nhri_2020], ignore_index=True)
+    boston_blocks = pd.concat([boston_employment_ma_2019, boston_employment_nhri_2020], ignore_index=True).drop_duplicates()
     print("Combined shape:", boston_blocks.shape)
+
+    ma_ids = set(boston_employment_ma_2019['block_id'])
+    nhri_ids = set(boston_employment_nhri_2020['block_id'])
+    duplicate_block_ids = ma_ids.intersection(nhri_ids)
+    print("Number of repeated block IDs:", len(duplicate_block_ids))
+    print("Sample:", list(duplicate_block_ids)[:10])
 
     boston_blocks["block_id"] = boston_blocks["block_id"].astype(str)
     boston_blocks["len"] = boston_blocks["block_id"].str.len()
@@ -175,12 +181,19 @@ def boston_employment_calibration(taz_file,
     naics_to_boston = {
         "11":   "8_other",
         "21":   "8_other",
-        "22":   "8_other",
+        "22":   "10_ttu",
         "23":   "1_constr",
         "3133": "7_manu",
-        "42":   "9_profbus",
+        "31": "7_manu",
+        "32": "7_manu",
+        "33": "7_manu",
+        "42":   "10_ttu",
         "4445": "6_ret_leis",
+        "44": "6_ret_leis",
+        "45": "6_ret_leis",
         "4849": "10_ttu",
+        "48": "10_ttu",
+        "49": "10_ttu",
         "51":   "5_info",
         "52":   "3_finance",
         "53":   "3_finance",
@@ -193,6 +206,7 @@ def boston_employment_calibration(taz_file,
         "72":   "6_ret_leis",
         "81":   "8_other",
         "92":   "4_public",
+        "99":   "8_other",
     }
 
     emp_ranking_long["industry"] = emp_ranking_long["NAICS_code"].map(naics_to_boston)
