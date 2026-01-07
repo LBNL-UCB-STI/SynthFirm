@@ -22,6 +22,7 @@ warnings.filterwarnings("ignore")
 def boston_employment_calibration(taz_file,
                                  boston_employment_ma_2019 , boston_employment_ma_2050,
                                  boston_employment_nhri_2020, boston_employment_nhri_2050,
+                                 forecast_year,
                                  uncalibrated_mzemp_file,
                                  mzemp_file):
     
@@ -29,22 +30,29 @@ def boston_employment_calibration(taz_file,
 
     #####################################################################
     #Prepare BOSTON File
-    boston_employment_ma_2019 = read_csv(boston_employment_ma_2019)
-    boston_employment_nhri_2020 = read_csv(boston_employment_nhri_2020)
+    if forecast_year == 2050:
+        boston_employment_ma = read_csv(boston_employment_ma_2050)
+        boston_employment_nhri = read_csv(boston_employment_nhri_2050)
+        boston_employment_nhri = boston_employment_nhri[boston_employment_nhri["block_id"]<1000000]
+    else:
+        boston_employment_ma = read_csv(boston_employment_ma_2019)
+        boston_employment_nhri = read_csv(boston_employment_nhri_2020)
+        boston_employment_nhri = boston_employment_nhri[boston_employment_nhri["block_id"]<1000000]
+
 
     # emp_ranking_file = os.path.join(uncalibrated_mzemp_file)
     emp_ranking = read_csv(uncalibrated_mzemp_file)
 
     #Stack Emp files
-    print("MA shape:", boston_employment_ma_2019.shape)
-    print("NHRI shape:", boston_employment_nhri_2020.shape)
-    print("MA columns:", boston_employment_ma_2019.columns.tolist())
-    print("NHRI columns:", boston_employment_nhri_2020.columns.tolist())
-    boston_blocks = pd.concat([boston_employment_ma_2019, boston_employment_nhri_2020], ignore_index=True).drop_duplicates()
+    print("MA shape:", boston_employment_ma.shape)
+    print("NHRI shape:", boston_employment_nhri.shape)
+    print("MA columns:", boston_employment_ma.columns.tolist())
+    print("NHRI columns:", boston_employment_nhri.columns.tolist())
+    boston_blocks = pd.concat([boston_employment_ma, boston_employment_nhri], ignore_index=True).drop_duplicates()
     print("Combined shape:", boston_blocks.shape)
 
-    ma_ids = set(boston_employment_ma_2019['block_id'])
-    nhri_ids = set(boston_employment_nhri_2020['block_id'])
+    ma_ids = set(boston_employment_ma['block_id'])
+    nhri_ids = set(boston_employment_nhri['block_id'])
     duplicate_block_ids = ma_ids.intersection(nhri_ids)
     print("Number of repeated block IDs:", len(duplicate_block_ids))
     print("Sample:", list(duplicate_block_ids)[:10])
