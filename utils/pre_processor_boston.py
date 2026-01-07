@@ -30,7 +30,7 @@ def boston_employment_calibration(taz_file,
 
     #####################################################################
     #Prepare BOSTON File
-    if forecast_year == 2050:
+    if forecast_year == '2050':
         boston_employment_ma = read_csv(boston_employment_ma_2050)
         boston_employment_nhri = read_csv(boston_employment_nhri_2050)
         boston_employment_nhri = boston_employment_nhri[boston_employment_nhri["block_id"]<1000000]
