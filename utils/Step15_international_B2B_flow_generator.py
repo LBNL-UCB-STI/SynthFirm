@@ -40,12 +40,18 @@ warnings.filterwarnings("ignore")
 # export_with_firm_file = 'export_OD_with_seller.csv'
 # import_with_firm_file = 'import_OD_with_buyer.csv'
 
-def split_dataframe(df, chunk_size = 10000): 
-    chunks = list()
-    num_chunks = len(df) // chunk_size + 1
-    for i in range(num_chunks):
-        chunks.append(df[i*chunk_size:(i+1)*chunk_size])
-    return chunks
+def split_dataframe(df, chunk_size = 10000):
+    print(f"Preparing chunks: len(df)={len(df)}, num_chunks={len(range(0, len(df), chunk_size))}")
+    return [df.iloc[i:i+chunk_size] for i in range(0, len(df), chunk_size)]
+
+#     chunks = list()
+#     num_chunks = len(df) // chunk_size + 1
+#     print(f"num_chunks: {num_chunks}")
+#     for i in range(num_chunks):
+#         chunks.append(df[i*chunk_size:(i+1)*chunk_size])
+#         print(i*chunk_size,(i+1)*chunk_size)
+#         print(f"len_chunks: {len(df[i*chunk_size:(i+1)*chunk_size])}")
+#     return chunks
 
 def process_truck_shipments(data, mode_to_select, capacity_to_use, payload_frac_thres):
     # Filter by mode choice
@@ -173,14 +179,23 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
         failed_shipment = \
         chunk_export.loc[chunk_export['SellerZone'].isna()]
         failed_shipment = failed_shipment[existing_attr]
+        
+        print(f"len(chunk_export): {len(chunk_export)}")
+        print(f"len(failed_shipment): {len(failed_shipment)}")
         chunk_export = chunk_export.dropna()
+        print(f"len(chunk_export) after dropping nan: {len(chunk_export)}")
+#         print(chunk_export[existing_attr])
 
-        chunk_export = chunk_export.groupby(existing_attr).sample(n = 1, 
-                                                                 weights = chunk_export['Size'],
-                                                                 replace = True, 
-                                                                 random_state = 1)
-        export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
-                                                    chunk_export])
+        if len(chunk_export) > 0:
+            chunk_export = chunk_export.groupby(existing_attr).sample(n = 1,
+                                                                     weights = chunk_export['Size'],
+                                                                     replace = True,
+                                                                     random_state = 1)
+            export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
+                                                        chunk_export])
+        else:
+            print('No export shipments to concatenate from this chunk')
+
         export_truck_shipment_failed = pd.concat([export_truck_shipment_failed,
                                                   failed_shipment])
         i += 1
@@ -198,15 +213,19 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     export_truck_shipment_reassign.loc[export_truck_shipment_reassign['SellerZone'].isna()]
     failed_shipment = failed_shipment[existing_attr]
     export_truck_shipment_reassign.dropna(inplace = True)
-    export_truck_shipment_reassign = \
-        export_truck_shipment_reassign.groupby(existing_attr).sample(n = 1, 
-                                                                 weights = export_truck_shipment_reassign['Size'],
-                                                                 replace = True, 
-                                                                 random_state = 1)
-    # print(len(export_truck_shipment_reassign))
-    export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
-                                                export_truck_shipment_reassign])
-    
+
+    if len(export_truck_shipment_reassign) > 0:
+
+        export_truck_shipment_reassign = \
+            export_truck_shipment_reassign.groupby(existing_attr).sample(n = 1,
+                                                                     weights = export_truck_shipment_reassign['Size'],
+                                                                     replace = True,
+                                                                     random_state = 1)
+        # print(len(export_truck_shipment_reassign))
+        export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
+                                                    export_truck_shipment_reassign])
+    else:
+        print('No export shipments to reassign (lev1) from this chunk')
     # final imputation -- drop all SCTG
     producer_to_match = domestic_producer_to_match.sample(frac = 0.1) # reduce size for sampling
     # print(len(failed_shipment))
@@ -219,17 +238,20 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     export_truck_shipment_reassign.loc[export_truck_shipment_reassign['SellerZone'].isna()]
     failed_shipment = failed_shipment[existing_attr]
     export_truck_shipment_reassign.dropna(inplace = True)
-    export_truck_shipment_reassign = \
-        export_truck_shipment_reassign.groupby(existing_attr).sample(n = 1, 
-                                                                 weights = export_truck_shipment_reassign['Size'],
-                                                                 replace = True, 
-                                                                 random_state = 1)
-    # print(len(export_truck_shipment_reassign))
-    
-    export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
-                                                export_truck_shipment_reassign])
-    
-    
+
+    if len(export_truck_shipment_reassign) > 0:
+
+        export_truck_shipment_reassign = \
+            export_truck_shipment_reassign.groupby(existing_attr).sample(n = 1,
+                                                                     weights = export_truck_shipment_reassign['Size'],
+                                                                     replace = True,
+                                                                     random_state = 1)
+        # print(len(export_truck_shipment_reassign))
+
+        export_truck_shipment_assigned = pd.concat([export_truck_shipment_assigned,
+                                                    export_truck_shipment_reassign])
+    else:
+        print('No export shipments to reassign (lev2) from this chunk')
     # <codecell>
     ########################################################
     #### step 3 - import B2B flow to consumers #############
@@ -270,12 +292,16 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
         chunk_import = chunk_import.dropna()
         # chunk_attraction.loc[:, 'importance'] = 1 /((chunk_attraction.loc[:, 'distance'] + 2) ** power_coeff)
         # chunk_attraction.loc[chunk_attraction['importance'] < 0.0001, 'importance'] = 0.0001
-        chunk_import = chunk_import.groupby(existing_attr).sample(n = 1, 
-                                                                 weights = chunk_import['Size'],
-                                                                 replace = True, 
-                                                                 random_state = 1)
-        import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
-                                                    chunk_import])
+        if len(chunk_import) > 0:
+            chunk_import = chunk_import.groupby(existing_attr).sample(n = 1,
+                                                                     weights = chunk_import['Size'],
+                                                                     replace = True,
+                                                                     random_state = 1)
+            import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
+                                                        chunk_import])
+        else:
+            print('No import shipments to concatenate from this chunk')
+
         import_truck_shipment_failed = pd.concat([import_truck_shipment_failed,
                                                   failed_shipment])
         i += 1
@@ -294,15 +320,19 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     import_truck_shipment_reassign.loc[import_truck_shipment_reassign['BuyerZone'].isna()]
     failed_shipment = failed_shipment[existing_attr]
     import_truck_shipment_reassign.dropna(inplace = True)
-    import_truck_shipment_reassign = \
-        import_truck_shipment_reassign.groupby(existing_attr).sample(n = 1, 
-                                                                 weights = import_truck_shipment_reassign['Size'],
-                                                                 replace = True, 
-                                                                 random_state = 1)
-    # print(len(import_truck_shipment_reassign))
-    import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
-                                                import_truck_shipment_reassign])
-    
+
+    if len(import_truck_shipment_reassign) > 0:
+
+        import_truck_shipment_reassign = \
+            import_truck_shipment_reassign.groupby(existing_attr).sample(n = 1,
+                                                                     weights = import_truck_shipment_reassign['Size'],
+                                                                     replace = True,
+                                                                     random_state = 1)
+        # print(len(import_truck_shipment_reassign))
+        import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
+                                                    import_truck_shipment_reassign])
+    else:
+        print('No import shipments to reassign (lev1) from this chunk')
     # final imputation -- drop all SCTG
     consumer_to_match = domestic_consumer_to_match.sample(frac = 0.05) # reduce size for sampling
     # print(len(failed_shipment))
@@ -315,16 +345,20 @@ def domestic_receiver_assignment(consumer_file, producer_file, mesozone_to_faf_f
     import_truck_shipment_reassign.loc[import_truck_shipment_reassign['BuyerZone'].isna()]
     failed_shipment = failed_shipment[existing_attr]
     import_truck_shipment_reassign.dropna(inplace = True)
-    import_truck_shipment_reassign = \
-        import_truck_shipment_reassign.groupby(existing_attr).sample(n = 1, 
-                                                                  weights = import_truck_shipment_reassign['Size'],
-                                                                  replace = True, 
-                                                                  random_state = 1)
-    # print(len(import_truck_shipment_reassign))
-    
-    import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
-                                                import_truck_shipment_reassign])
-    
+
+    if len(import_truck_shipment_reassign) > 0:
+
+        import_truck_shipment_reassign = \
+            import_truck_shipment_reassign.groupby(existing_attr).sample(n = 1,
+                                                                      weights = import_truck_shipment_reassign['Size'],
+                                                                      replace = True,
+                                                                      random_state = 1)
+        # print(len(import_truck_shipment_reassign))
+
+        import_truck_shipment_assigned = pd.concat([import_truck_shipment_assigned,
+                                                    import_truck_shipment_reassign])
+    else:
+        print('No import shipments to reassign (lev2) from this chunk')
     # write export output
     # <codecell>
     
