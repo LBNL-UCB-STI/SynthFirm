@@ -10,7 +10,8 @@ import pandas as pd
 import os
 import numpy as np
 from pandas import read_csv
-
+import warnings
+import time
 
 
 ########################################################
@@ -39,7 +40,8 @@ from pandas import read_csv
 def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, 
                               c_n6_n6io_sctg_file, employment_per_firm_file,
                               employment_per_firm_gapfill_file, zip_to_tract_file,
-                              synthetic_firms_no_location_file, output_path):
+                              synthetic_firms_no_location_file, output_path,
+                              assign_enterprises, susb_file='', costar_file = '', county_to_msa_file='', firm_enterprise_file=''):
     print("Start synthetic firm generation...")
     # load model inputs
     cbp = read_csv(cbp_file)
@@ -155,9 +157,75 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     print(cbp.loc[:, 'employment'].sum())
     print('Total number of modeled employment before LEHD scaling:')
     print(total_employment_est)
-    
+
+    print('Firms:')
+    print(firms.head())
     # <codecell>
-    
+
+
+    ##################################################
+    #### step 2.1 - Assign enterprise information ######
+    ##################################################
+    if assign_enterprises:
+
+        print('Assign Enterprises...')
+
+        #SUSB
+        susb_data = read_csv(susb_file)
+        susb_data.loc[:, 'MSA Code'] ='C' + susb_data.loc[:, 'MSA'].astype(str).str[0:4]
+        susb_data['NAICS'] = susb_data['NAICS'].astype(str)
+        susb_data.rename(columns = {'NAICS': 'n3'}, inplace = True)
+        susb_data.loc[:, 'susb_emp_per_est'] = susb_data.loc[:, 'EMPL']/ susb_data.loc[:, 'ESTB']
+
+        print(f'# of enterprises from SUSB Data: {susb_data.FIRM.sum()}')
+        print(f'# of firms from SUSB Data: {susb_data.ESTB.sum()}')
+        print(f'# of total employees from SUSB: {susb_data.EMPL.sum()}')
+
+        #CoStar
+        costar_data = read_csv(costar_file)
+        costar_data['naics6d'] = costar_data['naics6d'].astype(int).astype(str)
+        costar_data['naics3'] = costar_data['naics3'].astype(str)
+        costar_data.rename(columns = {'naics3': 'n3'}, inplace = True)
+
+        print(f'# of enterprises GT5 from Costar Data: {len(costar_data.firm_id.unique())}')
+        print(f'# of firms from GT5 Costar Data: {costar_data.N.sum()}')
+        print(f'# of total employees from GT5 Costar Data: {costar_data.employees.sum()}')
+
+        #SynthFirm
+        firms.loc[:, 'n3'] = firms.loc[:, 'Industry_NAICS6_CBP'].astype(str).str[0:3]
+        county_to_msa = read_csv(county_to_msa_file)
+        county_to_msa.rename(columns = {'County Code': 'CBPZONE'},
+                             inplace = True)
+        county_to_msa_short = county_to_msa[['CBPZONE', 'MSA Code']]
+        firms['CBPZONE'] = firms['CBPZONE'].astype(int)
+        firms = pd.merge(firms, county_to_msa, on = 'CBPZONE',
+                         how = 'left')
+
+        print(f'# of generated firms from synthfirm: {len(firms)}')
+        print(f'# of total employees from synthfirm: {firms.emp_per_est.sum()}')
+
+        #Here i need to enrich the firm file with SUSB data for problabil assign of enterprises (also use employ)
+
+
+        pairs = []
+        for r in costar_data.iloc[:30].itertuples(index=False):
+            FAF_select = r.FAF_Zone
+            n6_select = r.naics6d
+            n3_select = r.n3
+            N_select = r.N
+
+            pool = firms[(firms["FAFZONE"] == FAF_select) & (firms["n3"] == n3_select) & (~firms["BusID"].isin(pd.concat(pairs)["BusID"]) if pairs else True)]
+            print(f'# of possible Synthfirm firms = {len(pool)}')
+            #Here i need to insert the probabilistic assignment
+            pick = pool.sample(n=min(r.N, len(pool)), replace=False, random_state=1)
+            pairs.append(pick[["BusID"]].assign(CoStarEntpID=r.firm_id))
+
+        pairs = pd.concat(pairs, ignore_index=True)          # BusID -> FirmID
+        firms  = firms.merge(pairs, on="BusID", how="left")
+        firms["CoStarEntpID"] = firms["CoStarEntpID"].fillna(0).astype(np.int64)
+#         print(firms)
+        pairs.to_csv(firm_enterprise_file, index = False)
+
     ########################################################################
     # Step 3 - Allocating commodity and location for each establishment ####
     ########################################################################
@@ -254,6 +322,9 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     
     essential_attr = ['CBPZONE', 'FAFZONE',	'esizecat', 'Industry_NAICS6_Make', 'COUNTY', 'ZIPCODE',
                     'Commodity_SCTG', 'emp_per_est', 'BusID', 'industry']
+    if assign_enterprises:
+        essential_attr.append('CoStarEntpID')
+
     firms_out_boundary = \
         firms.loc[~firms['CBPZONE'].isin(cbpzone_in_region), essential_attr]
     
@@ -437,6 +508,8 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
     final_missing = final_missing.dropna(subset = ['emp_lehd']) 
     essential_attr = ['CBPZONE', 'FAFZONE',	'esizecat', 'Industry_NAICS6_Make', 'COUNTY', 'ZIPCODE',
                     'Commodity_SCTG', 'emp_per_est', 'BusID']
+    if assign_enterprises:
+        essential_attr.append('CoStarEntpID')
     final_missing = \
                 final_missing.groupby(essential_attr).sample(1,
                                                      weights = final_missing['emp_lehd'],
@@ -458,6 +531,8 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         
     output_attr = ['CBPZONE', 'FAFZONE',	'esizecat', 'Industry_NAICS6_Make',
                     'Commodity_SCTG', 'emp_per_est', 'BusID', 'MESOZONE', 'ZIPCODE']
+    if assign_enterprises:
+        output_attr.append('CoStarEntpID')
     
     firms = firms[output_attr]
     firms = firms.rename(columns = {'emp_per_est': 'Emp'})

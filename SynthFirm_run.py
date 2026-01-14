@@ -144,6 +144,7 @@ def main():
     # load module to run
 
     run_firm_generation = config.getboolean('ENVIRONMENT', 'enable_firm_generation') 
+    assign_enterprises = config.getboolean('ENVIRONMENT', 'assign_enterprises')
     if run_firm_generation:
         print('including synthetic firm generation in the pipeline...')
         
@@ -205,6 +206,11 @@ def main():
     employment_per_firm_gapfill_file = os.path.join(param_path, config['PARAMETERS']['employment_per_firm_gapfill_file'])
     zip_to_tract_file = os.path.join(param_path, config['PARAMETERS']['zip_to_tract_file'])
     synthetic_firms_no_location_file = os.path.join(output_path, config['OUTPUTS']['synthetic_firms_no_location_file'])
+    if assign_enterprises:
+        susb_file = os.path.join(param_path, config['PARAMETERS']['susb_file'])
+        county_to_msa_file = os.path.join(param_path, config['PARAMETERS']['county_to_msa_file'])
+        costar_file = os.path.join(param_path, config['PARAMETERS']['costar_file'])
+        firm_enterprise_file = os.path.join(output_path, config['OUTPUTS']['firm_enterprise_file'])
 
     
     # inputs/outputs first appear in producer and consumer generation
@@ -427,11 +433,18 @@ def main():
 
     ##### Step 1 -  synthetic firm generation
     if run_firm_generation:
-        
-        # subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
-        synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, c_n6_n6io_sctg_file, 
-                                  employment_per_firm_file, employment_per_firm_gapfill_file, 
-                                  zip_to_tract_file, synthetic_firms_no_location_file, output_path)
+        if assign_enterprises:
+            # subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
+            synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, c_n6_n6io_sctg_file,
+                                      employment_per_firm_file, employment_per_firm_gapfill_file,
+                                      zip_to_tract_file, synthetic_firms_no_location_file, output_path,
+                                      assign_enterprises, susb_file, costar_file, county_to_msa_file, firm_enterprise_file)
+        else:
+            # subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
+            synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, c_n6_n6io_sctg_file,
+                                      employment_per_firm_file, employment_per_firm_gapfill_file,
+                                      zip_to_tract_file, synthetic_firms_no_location_file, output_path,
+                                      assign_enterprises)
 
     ##### Steps 2 and 3 -  synthetic producer and consumer generation        
     if run_producer_consumer_generation:
