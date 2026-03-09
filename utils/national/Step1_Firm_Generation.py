@@ -22,10 +22,10 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 ########################################################
 
 scenario_name = 'national'
-out_scenario_name = 'national'
-file_path = 'C:\SynthFirm'
+out_scenario_name = 'national_enter'
+file_path = '/Users/cpoliziani/Documents/repo/SynthFirm_input_parameter_111125'
 parameter_dir = 'SynthFirm_parameters'
-number_of_processes = 4
+number_of_processes = 16
 input_dir = 'inputs_' + scenario_name
 output_path = 'outputs_' + out_scenario_name
 
