@@ -210,6 +210,7 @@ def main():
         susb_file = os.path.join(param_path, config['PARAMETERS']['susb_file'])
         county_to_msa_file = os.path.join(param_path, config['PARAMETERS']['county_to_msa_file'])
         costar_file = os.path.join(param_path, config['PARAMETERS']['costar_file'])
+        naics_crosswalk_file = os.path.join(param_path, config['PARAMETERS']['naics_crosswalk_file'])
         firm_enterprise_file = os.path.join(output_path, config['OUTPUTS']['firm_enterprise_file'])
 
     
@@ -438,7 +439,8 @@ def main():
             synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, c_n6_n6io_sctg_file,
                                       employment_per_firm_file, employment_per_firm_gapfill_file,
                                       zip_to_tract_file, synthetic_firms_no_location_file, output_path,
-                                      assign_enterprises, susb_file, costar_file, county_to_msa_file, firm_enterprise_file)
+                                      assign_enterprises, susb_file, costar_file, county_to_msa_file, naics_crosswalk_file,
+                                      firm_enterprise_file, plot_path, us_county_map_file)
         else:
             # subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
             synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, c_n6_n6io_sctg_file,
