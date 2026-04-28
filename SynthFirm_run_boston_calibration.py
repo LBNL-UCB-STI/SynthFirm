@@ -209,8 +209,10 @@ def main():
 #         geography_table_name = config['CALIBRATION']['geography_table_name']
 #         cleaned_parcel_file = os.path.join(input_path, config['CALIBRATION']['cleaned_parcel_file'])
         boston_employment_ma_2019 = os.path.join(input_path, config['CALIBRATION']['boston_employment_ma_2019'])
+        boston_employment_ma_2024 = os.path.join(input_path, config['CALIBRATION']['boston_employment_ma_2024'])
         boston_employment_ma_2050 = os.path.join(input_path, config['CALIBRATION']['boston_employment_ma_2050'])
         boston_employment_nhri_2020 = os.path.join(input_path, config['CALIBRATION']['boston_employment_nhri_2020'])
+        boston_employment_nhri_2024 = os.path.join(input_path, config['CALIBRATION']['boston_employment_nhri_2024'])
         boston_employment_nhri_2050 = os.path.join(input_path, config['CALIBRATION']['boston_employment_nhri_2050'])
 
 
@@ -337,7 +339,7 @@ def main():
             location_from = [int(num) for num in location_from_str.split(',')]
             location_to_str = config['INPUTS']['location_to']
             location_to = [int(num) for num in location_to_str.split(',')]
-        if forecast_analysis and forecast_year != '2017':
+        if forecast_analysis and forecast_year not in ('2017', '2023'):
             import_forecast_factor = os.path.join(param_path,\
                                                   config['PARAMETERS']['import_forecast_filehead'] + forecast_year + '.csv')
             export_forecast_factor = os.path.join(param_path,\
@@ -438,7 +440,7 @@ def main():
     
     parcel_max_cost = float(config['MC_CONSTANTS']['parcel_max_cost'])
     mode_choice_spec['parcel_max_cost'] = parcel_max_cost
-    
+
 
     
     # print(mode_choice_spec)
@@ -451,8 +453,8 @@ def main():
     if run_boston_pre_process:
 
         boston_employment_calibration(taz_file,
-                                        boston_employment_ma_2019 , boston_employment_ma_2050,
-                                        boston_employment_nhri_2020, boston_employment_nhri_2050,
+                                        boston_employment_ma_2019 , boston_employment_ma_2024 ,boston_employment_ma_2050,
+                                        boston_employment_nhri_2020, boston_employment_nhri_2024,boston_employment_nhri_2050,
                                         forecast_year,
                                         uncalibrated_mzemp_file,
                                         mzemp_file)
@@ -575,7 +577,7 @@ def main():
         # international commodity flow
         if need_domestic_adjustment:
             print('Use international flow generation with destination adjustment...')
-            if forecast_analysis and forecast_year != '2017':
+            if forecast_analysis and forecast_year not in ('2017', '2023'):
                 international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                                     sctg_group_file, int_shipment_size_file,
                                                     regional_import_file, regional_export_file, 
@@ -598,7 +600,7 @@ def main():
                 # skipping forecast
         else:
             print('Use international flow generation without destination adjustment...')
-            if forecast_analysis and forecast_year != '2017':
+            if forecast_analysis and forecast_year not in ('2017', '2023'):
                 international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                                     sctg_group_file, int_shipment_size_file,
                                                     regional_import_file, regional_export_file, 
@@ -692,4 +694,3 @@ def main():
     return
 if __name__ == '__main__':
 	main()
-

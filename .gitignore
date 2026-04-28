@@ -45,3 +45,15 @@ vignettes/*.pdf
 # Intellij Idea
 .idea
 *.iml
+# IntelliJ / PyCharm
+.idea/
+*.iml
+
+# Local environment / AI tools
+.venv/
+.claude/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo

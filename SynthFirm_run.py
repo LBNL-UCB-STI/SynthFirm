@@ -418,7 +418,7 @@ def main():
     
     parcel_max_cost = float(config['MC_CONSTANTS']['parcel_max_cost'])
     mode_choice_spec['parcel_max_cost'] = parcel_max_cost
-    
+
 
     
     # print(mode_choice_spec)
@@ -655,4 +655,3 @@ def main():
     return
 if __name__ == '__main__':
 	main()
-

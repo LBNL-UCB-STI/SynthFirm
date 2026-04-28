@@ -20,8 +20,8 @@ import numpy as np
 warnings.filterwarnings("ignore")
 
 def boston_employment_calibration(taz_file,
-                                 boston_employment_ma_2019 , boston_employment_ma_2050,
-                                 boston_employment_nhri_2020, boston_employment_nhri_2050,
+                                 boston_employment_ma_2019 , boston_employment_ma_2024 ,boston_employment_ma_2050,
+                                 boston_employment_nhri_2020, boston_employment_nhri_2024,boston_employment_nhri_2050,
                                  forecast_year,
                                  uncalibrated_mzemp_file,
                                  mzemp_file):
@@ -33,6 +33,10 @@ def boston_employment_calibration(taz_file,
     if forecast_year == '2050':
         boston_employment_ma = read_csv(boston_employment_ma_2050)
         boston_employment_nhri = read_csv(boston_employment_nhri_2050)
+        boston_employment_nhri = boston_employment_nhri[boston_employment_nhri["block_id"]<1000000]
+    elif forecast_year == '2023':
+        boston_employment_ma = read_csv(boston_employment_ma_2024)
+        boston_employment_nhri = read_csv(boston_employment_nhri_2024)
         boston_employment_nhri = boston_employment_nhri[boston_employment_nhri["block_id"]<1000000]
     else:
         boston_employment_ma = read_csv(boston_employment_ma_2019)
@@ -377,4 +381,3 @@ def boston_employment_calibration(taz_file,
     # Save calibrated mzemp file for the rest of SynthFirm
     emp_ranking_output.to_csv(mzemp_file, index=False)
     print("Calibrated mzemp written to:", mzemp_file)
-

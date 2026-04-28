@@ -17,5 +17,3 @@ dependencies:
   - pip:
     - biogeme==3.3.1
     - factor_analyzer==0.5.1
-
-

@@ -102,7 +102,7 @@ def choice_model_variable_generator(data, mode_choice_spec, distance_travel_time
     data.loc[:, 'mode_available'] = 1
     data.loc[(data['Alternative'] == 'Air') & (data['TruckLoad'] > 550), 'mode_available'] = 0 
     data.loc[(data['Alternative'] == 'Parcel') & (data['TruckLoad'] > 0.15), 'mode_available'] = 0  
-    data.loc[(data['Alternative'] == 'Private Truck') & (data['Distance'] > 500), 'mode_available'] = 0 
+    data.loc[(data['Alternative'] == 'Private Truck') & (data['Distance'] > 750), 'mode_available'] = 0 
     data.loc[(data['Distance'].isna()) | (data['Travel_time'].isna()), 'mode_available'] = 0         
     return(data)        
 
@@ -130,7 +130,7 @@ def mode_choice_utility_generator(data, mode_choice_param, list_of_alternative):
     data.loc[:, 'TW_val'] * data.loc[:, 'Ind_tw'] 
     # utility= sum of (variable * parameter)
         
-        #will add new items once we have the coeff
+    #will add new items once we have the coeff
     data.loc[:, 'Utility'].fillna(0, inplace = True)   
     data.loc[:, 'Utility'] = data.loc[:, 'Utility'].astype(float)
 
