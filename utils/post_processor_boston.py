@@ -73,6 +73,7 @@ def boston_bus_location_calibration(taz_file, mzemp_file,
     # 4. Overwrite original firms file
     # -------------------------------------------------------
     df_out = firms_with_taz.drop(columns="geometry")
+    df_out["taz_id"] = df_out["taz_id"].fillna(-1).astype(int)
     print(f"[POST] Total number of firms after adding TAZ ID: {len(df_out)}")
 
     df_out.to_csv(synthetic_firms_with_location_file, index=False)
