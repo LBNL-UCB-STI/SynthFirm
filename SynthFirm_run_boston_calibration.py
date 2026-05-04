@@ -339,7 +339,7 @@ def main():
             location_from = [int(num) for num in location_from_str.split(',')]
             location_to_str = config['INPUTS']['location_to']
             location_to = [int(num) for num in location_to_str.split(',')]
-        if forecast_analysis and forecast_year not in ('2017', '2023'):
+        if forecast_analysis and forecast_year != '2017':
             import_forecast_factor = os.path.join(param_path,\
                                                   config['PARAMETERS']['import_forecast_filehead'] + forecast_year + '.csv')
             export_forecast_factor = os.path.join(param_path,\
@@ -577,7 +577,7 @@ def main():
         # international commodity flow
         if need_domestic_adjustment:
             print('Use international flow generation with destination adjustment...')
-            if forecast_analysis and forecast_year not in ('2017', '2023'):
+            if forecast_analysis and forecast_year != '2017':
                 international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                                     sctg_group_file, int_shipment_size_file,
                                                     regional_import_file, regional_export_file, 
@@ -600,7 +600,7 @@ def main():
                 # skipping forecast
         else:
             print('Use international flow generation without destination adjustment...')
-            if forecast_analysis and forecast_year not in ('2017', '2023'):
+            if forecast_analysis and forecast_year != '2017':
                 international_demand_generation(c_n6_n6io_sctg_file, sctg_by_port_file,
                                                     sctg_group_file, int_shipment_size_file,
                                                     regional_import_file, regional_export_file, 
