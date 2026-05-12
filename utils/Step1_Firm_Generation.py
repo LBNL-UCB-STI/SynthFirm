@@ -15,6 +15,7 @@ import time
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import geopandas as gpd
+from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 
 
 
@@ -64,6 +65,10 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         os.mkdir(output_path)
     else:
       print("Output directory exists!")
+
+    ent_assign_output_path = os.path.join(output_path, 'enterprise_assignment')
+    if not os.path.exists(ent_assign_output_path):
+        os.mkdir(ent_assign_output_path)
         
         
         # <codecell>
@@ -175,6 +180,9 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
 
         print('Assign Enterprises...')
 
+        # SUSB is the control dataset and provides the
+        # target number of unique firms by MSA and NAICS3
+        # it is not the source of observed enterprise identities.
         #SUSB
         # This file comes from /Users/cpoliziani/Documents/repo/SynthFirm/input_generation/national/susb_costar_firm_and_est_data.ipynb
         susb_data = read_csv(susb_file)
@@ -188,6 +196,9 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         print(f'# of firms from SUSB Data: {susb_data.ESTB.sum()}')
         print(f'# of total employees from SUSB: {susb_data.EMPL.sum()}')
 
+        # CoStar provides the observed GT5 enterprises that need to be assigned
+        # onto the synthetic establishments, including enterprise size (N) and
+        # coarse FAF geography.
         #CoStar
         # This file comes from /Users/cpoliziani/Documents/repo/SynthFirm/input_generation/national/susb_costar_firm_and_est_data.ipynb
 
@@ -226,6 +237,10 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         print(f'# of firms from GT5 Costar Data: {costar_data.N.sum()}')
         print(f'# of total employees from GT5 Costar Data: {costar_data.employees.sum()}')
 
+        # SynthFirm provides the establishment universe that can host the CoStar
+        # enterprises. The assignment keeps each establishment's FAF geography
+        # and adds an MSA code where the CBPZONE -> county -> MSA crosswalk is
+        # meaningful.
         #SynthFirm
         firms.loc[:, 'n3'] = firms.loc[:, 'Industry_NAICS6_CBP'].astype(str).str[0:3]
         county_to_msa = read_csv(county_to_msa_file)
@@ -261,12 +276,18 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
 # #         print(firms)
 #         pairs.to_csv(firm_enterprise_file, index = False)
 
+        # Target number of unique firms for each (MSA, NAICS3) cell after
+        # assignment. Positive gaps between current_assigned and this target
+        # indicate where more consolidation is still useful.
         # --- Build SUSB target lookup: (MSA Code, n3) -> enterprise count ---
         susb_target = dict(zip(
             zip(susb_data['MSA Code'], susb_data['n3']),
             susb_data['FIRM'].astype(int)
         ))
 
+        # Candidate pools are defined at FAF + NAICS3. FAF is the hard geography
+        # constraint from CoStar; MSA is used only as a steering signal within
+        # the feasible pool through SUSB-based weights.
         # --- Pre-build firm index: (FAFZONE, n3) -> arrays + availability mask ---
         firms_for_index = firms[['BusID', 'FAFZONE', 'n3', 'MSA Code']].copy()
         firms_for_index['FAFZONE'] = firms_for_index['FAFZONE'].astype(int)
@@ -280,9 +301,14 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
             }
         print(f'Firm index built: {len(firm_index):,} (FAFZONE, n3) buckets')
 
+        # Place the largest enterprises first because they are the most
+        # constrained and are most likely to hit pool exhaustion.
         # --- Sort CoStar: largest enterprises first (hardest to place) ---
         costar_sorted = costar_data.sort_values('employees_total', ascending=False).reset_index(drop=True)
 
+        # Before assignment, each establishment effectively behaves like a
+        # standalone firm. Assigning multiple BusIDs to one CoStarEntpID reduces
+        # the unique-firm count in that (MSA, n3) cell toward the SUSB target.
         # --- Running state: start from total SynthFirm establishments per (MSA, n3) ---
         current_assigned = defaultdict(int)
         for (msa, n3_val), cnt in firms_for_index.groupby(['MSA Code', 'n3']).size().items():
@@ -292,6 +318,11 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         pairs_list = []
         n_unmatched = 0
         total_rows = len(costar_sorted)
+        # Main assignment loop:
+        # 1. CoStar tells us which enterprise to place and how many member
+        #    establishments it needs.
+        # 2. FAF + NAICS3 defines the feasible SynthFirm pool.
+        # 3. SUSB-by-MSA weights decide where consolidation is most useful.
         # --- Main probabilistic assignment loop ---
         print(f'Starting probabilistic assignment for {total_rows:,} CoStar rows...')
         n_no_bucket = 0       # CoStar row has no matching (FAF, n3) bucket at all
@@ -332,6 +363,9 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
             avail_msas   = bucket['msas'][avail_idx]
             n3_val       = str(r.n3)
 
+            # Positive weight means this MSA/NAICS3 cell still has more
+            # standalone firms than the SUSB target, so assigning enterprise
+            # members here helps close the gap.
             weights = np.array([
                 max(0, current_assigned[(msa, n3_val)] - susb_target.get((msa, n3_val), 0))
 
@@ -339,6 +373,9 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
                 for msa in avail_msas
             ], dtype=float)
 
+            # If SUSB provides no positive signal inside the current FAF/NAICS3
+            # pool, fall back to a neutral uniform draw over the remaining
+            # establishments in that bucket.
             if weights.sum() == 0:
                 weights = np.ones(len(avail_busids), dtype=float)
 
@@ -378,6 +415,9 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
                 if pd.notna(msa):
                     msa_counts[msa] += 1
                 pairs_list.append({'BusID': int(avail_busids[ci]), 'CoStarEntpID': int(r.firm_id)})
+            # One selected establishment still corresponds to one firm; each
+            # additional establishment assigned to the same enterprise reduces
+            # the unique-firm count by one.
             # Subtract (N_picked - 1) per MSA: 1 firm stays as unique, rest are enterprise estabs
             for msa, cnt in msa_counts.items():
                 current_assigned[(msa, n3_val)] -= max(0, cnt - 1)
@@ -420,10 +460,10 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
             print(top_pa.to_string())
 
         # Save diagnostics to CSV
-        df_no_bucket.to_csv(os.path.join(output_path, 'diag_no_bucket.csv'), index=False)
-        df_pool_empty.to_csv(os.path.join(output_path, 'diag_pool_empty.csv'), index=False)
-        df_partial.to_csv(os.path.join(output_path, 'diag_partial.csv'), index=False)
-        print(f'\n  Diagnostic CSVs saved to {output_path}')
+        df_no_bucket.to_csv(os.path.join(ent_assign_output_path, 'diag_no_bucket.csv'), index=False)
+        df_pool_empty.to_csv(os.path.join(ent_assign_output_path, 'diag_pool_empty.csv'), index=False)
+        df_partial.to_csv(os.path.join(ent_assign_output_path, 'diag_partial.csv'), index=False)
+        print(f'\n  Diagnostic CSVs saved to {ent_assign_output_path}')
 
         elapsed = time.time() - t0
         print(f'\n--- Assignment Summary ---')
@@ -451,19 +491,38 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         assigned_firms = firms.loc[firms['CoStarEntpID'] > 0,
                                    ['MSA Code', 'n3', 'CoStarEntpID', 'FAFZONE']].copy()
 
+        # Build plotting geometries once. Run-geography maps use the scenario
+        # inputs, while the CoStar national map explicitly uses the national FAF
+        # lookup so a regional scenario can still render a true national view.
         # ---- Build geometries (once) ----
         faf_geo = None
+        faf_geo_national = None
         msa_geo = None
         if us_county_map_file and os.path.exists(us_county_map_file):
             counties = gpd.read_file(us_county_map_file)
             counties['FIPS'] = counties['STATEFP'] + counties['COUNTYFP']
 
-            # FAF geometry (national): county -> FAF from cbp
+            # FAF geometry for the current run geography from cbp
             county_faf = cbp[['CBPZONE', 'FAFZONE']].drop_duplicates()
             county_faf['FIPS'] = county_faf['CBPZONE'].astype(int).astype(str).str.zfill(5)
             county_faf['FAFZONE'] = county_faf['FAFZONE'].astype(int)
             counties_faf = counties.merge(county_faf[['FIPS', 'FAFZONE']], on='FIPS', how='inner')
             faf_geo = counties_faf.dissolve(by='FAFZONE', as_index=False)
+
+            # National FAF geometry from the national zonal lookup
+            national_lookup = os.path.join(
+                os.path.dirname(os.path.dirname(mesozone_to_faf_file)),
+                'inputs_national',
+                os.path.basename(mesozone_to_faf_file))
+            if os.path.exists(national_lookup):
+                mesozone_to_faf_national = read_csv(national_lookup)
+                county_faf_national = mesozone_to_faf_national[['CBPZONE', 'FAFID']].drop_duplicates().copy()
+                county_faf_national['FIPS'] = county_faf_national['CBPZONE'].astype(int).astype(str).str.zfill(5)
+                county_faf_national = county_faf_national.rename(columns={'FAFID': 'FAFZONE'})
+                county_faf_national['FAFZONE'] = county_faf_national['FAFZONE'].astype(int)
+                counties_faf_national = counties.merge(
+                    county_faf_national[['FIPS', 'FAFZONE']], on='FIPS', how='inner')
+                faf_geo_national = counties_faf_national.dissolve(by='FAFZONE', as_index=False)
 
             # MSA geometry (study area)
             cty_msa = pd.read_csv(county_to_msa_file, dtype=str)
@@ -473,18 +532,24 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
 
             print(f'  Study counties: {len(study_counties)}, Study MSAs: {len(study_msas)}')
 
-            counties_msa = counties.merge(cty_msa[['County Code', 'MSA Code']],
-                                          left_on='FIPS', right_on='County Code', how='inner')
+            counties_msa = counties.merge(
+                cty_msa[['County Code', 'MSA Code']],
+                left_on='FIPS', right_on='County Code', how='inner')
             counties_msa = counties_msa[counties_msa['MSA Code'].isin(study_msas)]
             msa_geo = counties_msa.dissolve(by='MSA Code', as_index=False)
 
-            print(f'  Geometries: {len(faf_geo)} FAF zones, {len(msa_geo)} MSAs (study area)')
+            print(f'  Geometries: {len(faf_geo)} FAF zones in run, '
+                  f'{len(faf_geo_national)} FAF zones nationally, '
+                  f'{len(msa_geo)} study-area MSAs')
 
         # ============================================================
-        # BLOCK 1: CoStar (GT5 enterprises, national, per FAF + NAICS3)
+        # BLOCK 1: CoStar validation asks whether the observed enterprise
+        # identities and aggregate enterprise counts were preserved.
         # ============================================================
         print('\n--- CoStar Validation (GT5 Enterprises) ---')
 
+        # Requested vs assigned establishments per enterprise is the most direct
+        # check that each CoStar enterprise was transferred successfully.
         # 1a. Enterprise coverage
         costar_requested = costar_data.groupby('firm_id')['N'].sum().reset_index()
         costar_requested.columns = ['CoStarEntpID', 'N_requested']
@@ -503,6 +568,8 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         print(f'  Not assigned:       {n_zero:,}')
         print(f'  Overall match rate: {costar_match.N_assigned.sum() / max(1, costar_match.N_requested.sum()) * 100:.1f}%')
 
+        # These aggregate checks validate whether enterprise counts are
+        # preserved across freight geography and broad industry groups.
         # 1b. Per-FAF unique enterprises
         costar_ent_faf = (costar_data.groupby('FAF_Zone')['firm_id'].nunique()
                           .reset_index().rename(columns={'FAF_Zone': 'FAFZONE', 'firm_id': 'ENT_costar'}))
@@ -525,12 +592,19 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         val_ent_n3['ent_ratio'] = np.where(val_ent_n3['ENT_costar'] > 0,
                                            val_ent_n3['ENT_modeled'] / val_ent_n3['ENT_costar'], 0)
 
-        costar_match.to_csv(os.path.join(output_path, 'validation_costar_enterprise.csv'), index=False)
-        val_ent_faf.to_csv(os.path.join(output_path, 'validation_costar_by_faf.csv'), index=False)
-        val_ent_n3.to_csv(os.path.join(output_path, 'validation_costar_by_naics3.csv'), index=False)
+        costar_match.to_csv(os.path.join(ent_assign_output_path, 'validation_costar_enterprise.csv'), index=False)
+        val_ent_faf.to_csv(os.path.join(ent_assign_output_path, 'validation_costar_by_faf.csv'), index=False)
+        val_ent_n3.to_csv(os.path.join(ent_assign_output_path, 'validation_costar_by_naics3.csv'), index=False)
 
         # CoStar plots
         if plot_path:
+            ratio_cmap = LinearSegmentedColormap.from_list(
+                'ratio_target',
+                ['#f2c94c', '#6abf69', '#d95c4f']
+            )
+            ratio_norm = TwoSlopeNorm(vmin=0.5, vcenter=1.0, vmax=1.5)
+            absolute_cmap = 'Blues'
+
             fig, axes = plt.subplots(2, 3, figsize=(20, 12))
 
             # Requested vs Assigned
@@ -591,38 +665,67 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
 
             plt.suptitle('CoStar GT5 Enterprise Validation', fontsize=16)
             plt.tight_layout()
-            plt.savefig(os.path.join(plot_path, 'validation_costar.png'), dpi=200, bbox_inches='tight')
+            plt.savefig(os.path.join(ent_assign_output_path, 'validation_costar.png'), dpi=200, bbox_inches='tight')
             plt.close()
             print('  CoStar plots saved')
 
-            # CoStar FAF map (national)
+            # CoStar FAF map for the current run geography
             if faf_geo is not None:
                 faf_map = faf_geo.merge(val_ent_faf, on='FAFZONE', how='inner')
                 fig, axes = plt.subplots(1, 2, figsize=(20, 8))
 
                 ax = axes[0]
                 faf_map.plot(column='ENT_modeled', ax=ax, legend=True,
-                             cmap='YlOrRd', edgecolor='grey', linewidth=0.3,
+                             cmap=absolute_cmap, edgecolor='grey', linewidth=0.3,
                              legend_kwds={'label': 'Modeled Enterprises', 'shrink': 0.5})
                 ax.set_title('Modeled GT5 Enterprises per FAF Zone')
                 ax.set_axis_off()
 
                 ax = axes[1]
                 faf_map.plot(column='ent_ratio', ax=ax, legend=True,
-                             cmap='RdYlGn', edgecolor='grey', linewidth=0.3,
-                             vmin=0, vmax=1.5,
+                             cmap=ratio_cmap, norm=ratio_norm,
+                             edgecolor='grey', linewidth=0.3,
                              legend_kwds={'label': 'Modeled / CoStar', 'shrink': 0.5})
                 ax.set_title('GT5 Enterprise Coverage Ratio per FAF Zone')
                 ax.set_axis_off()
 
-                plt.suptitle('CoStar GT5 Enterprise Validation Maps', fontsize=16)
+                plt.suptitle('CoStar GT5 Enterprise Validation Maps (Run Geography)', fontsize=16)
                 plt.tight_layout()
-                plt.savefig(os.path.join(plot_path, 'validation_costar_faf_map.png'), dpi=200, bbox_inches='tight')
+                plt.savefig(os.path.join(ent_assign_output_path, 'validation_costar_faf_map.png'), dpi=200, bbox_inches='tight')
                 plt.close()
                 print('  CoStar FAF map saved')
 
+            # National CoStar FAF map
+            if faf_geo_national is not None:
+                faf_map_national = faf_geo_national.merge(val_ent_faf, on='FAFZONE', how='inner')
+                fig, axes = plt.subplots(1, 2, figsize=(20, 8))
+
+                ax = axes[0]
+                faf_map_national.plot(column='ENT_modeled', ax=ax, legend=True,
+                                      cmap=absolute_cmap, edgecolor='grey', linewidth=0.3,
+                                      legend_kwds={'label': 'Modeled Enterprises', 'shrink': 0.5})
+                ax.set_title('Modeled GT5 Enterprises per FAF Zone')
+                ax.set_axis_off()
+
+                ax = axes[1]
+                faf_map_national.plot(column='ent_ratio', ax=ax, legend=True,
+                                      cmap=ratio_cmap, norm=ratio_norm,
+                                      edgecolor='grey', linewidth=0.3,
+                                      legend_kwds={'label': 'Modeled / CoStar', 'shrink': 0.5})
+                ax.set_title('GT5 Enterprise Coverage Ratio per FAF Zone')
+                ax.set_axis_off()
+
+                plt.suptitle('CoStar GT5 Enterprise Validation Maps (National)', fontsize=16)
+                plt.tight_layout()
+                plt.savefig(os.path.join(ent_assign_output_path, 'validation_costar_faf_map_national.png'),
+                            dpi=200, bbox_inches='tight')
+                plt.close()
+                print('  National CoStar FAF map saved')
+
         # ============================================================
-        # BLOCK 2: SUSB Validation (study area only, per MSA + NAICS3)
+        # BLOCK 2: SUSB validation asks whether enterprise consolidation moved
+        # the modeled firm structure toward the target number of unique firms.
+        # In regional runs this is interpreted on the study area only.
         # ============================================================
         print('\n--- SUSB Validation (Study Area) ---')
 
@@ -644,15 +747,21 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         susb_bkt.rename(columns={'ESTB': 'ESTB_SUSB', 'FIRM': 'FIRM_SUSB'}, inplace=True)
         susb_bkt = susb_bkt[susb_bkt['MSA Code'].isin(study_msas)]
 
+        # Firms without a CoStarEntpID count as standalone firms. Firms sharing
+        # the same CoStarEntpID count as one unique firm.
         # Count unique firms per bucket
         def _count_unique_firms(g):
             return g['CoStarEntpID'].dropna().nunique() + g['CoStarEntpID'].isna().sum()
 
+        # Establishment totals are mainly a sanity check that the base
+        # establishment universe is still aligned with SUSB.
         # Per (MSA, n3): establishments
         synth_estab = firms_val.groupby(['MSA Code', 'n3']).size().reset_index(name='ESTB_SYNTH')
         comp_estab = synth_estab.merge(susb_bkt, on=['MSA Code', 'n3'], how='outer')
         comp_estab['estab_ratio'] = comp_estab['ESTB_SYNTH'] / comp_estab['ESTB_SUSB']
 
+        # Unique-firm totals are the key metric for this method because they
+        # measure the effect of enterprise consolidation directly.
         # Per (MSA, n3): unique firms
         synth_firm = (firms_val.groupby(['MSA Code', 'n3'])
                       .apply(_count_unique_firms).reset_index(name='FIRM_SYNTH'))
@@ -681,8 +790,8 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
         val_all = comp_estab.merge(
             comp_firm[['MSA Code', 'n3', 'FIRM_SYNTH', 'FIRM_SUSB', 'firm_ratio']],
             on=['MSA Code', 'n3'], how='outer')
-        val_all.to_csv(os.path.join(output_path, 'validation_susb.csv'), index=False)
-#         comp_n3.to_csv(os.path.join(output_path, 'validation_susb_by_naics3.csv'), index=False)
+        val_all.to_csv(os.path.join(ent_assign_output_path, 'validation_susb.csv'), index=False)
+
         print('  CSVs saved')
 
         # SUSB plots
@@ -690,7 +799,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
             fig, axes = plt.subplots(1, 2, figsize=(16, 14))
 
             # Scatter: estabs per (MSA, n3) bucket
-            ax = axes[0, 0]
+            ax = axes[0]
             ax.scatter(me['ESTB_SUSB'], me['ESTB_SYNTH'], alpha=0.3, s=10)
             lim = max(me['ESTB_SUSB'].max(), me['ESTB_SYNTH'].max()) * 1.05
             ax.plot([0, lim], [0, lim], 'r--', lw=1)
@@ -699,7 +808,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
             ax.set_title('Establishments per (MSA, NAICS3)')
 
             # Scatter: unique firms per (MSA, n3) bucket
-            ax = axes[0, 1]
+            ax = axes[1]
             ax.scatter(mf['FIRM_SUSB'], mf['FIRM_SYNTH'], alpha=0.3, s=10)
             lim = max(mf['FIRM_SUSB'].max(), mf['FIRM_SYNTH'].max()) * 1.05
             ax.plot([0, lim], [0, lim], 'r--', lw=1)
@@ -735,7 +844,7 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
 
             plt.suptitle('SUSB Validation (Study Area)', fontsize=16)
             plt.tight_layout()
-            plt.savefig(os.path.join(plot_path, 'validation_susb.png'), dpi=200, bbox_inches='tight')
+            plt.savefig(os.path.join(ent_assign_output_path, 'validation_susb.png'), dpi=200, bbox_inches='tight')
             plt.close()
             print('  SUSB plots saved')
 
@@ -755,23 +864,25 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
 
                 ax = axes[0]
                 msa_geo.merge(msa_estab, on='MSA Code', how='inner').plot(
-                    column='estab_ratio', ax=ax, legend=True, cmap='RdYlGn',
-                    edgecolor='grey', linewidth=0.3, vmin=0.5, vmax=1.5,
+                    column='estab_ratio', ax=ax, legend=True,
+                    cmap=ratio_cmap, norm=ratio_norm,
+                    edgecolor='grey', linewidth=0.3,
                     legend_kwds={'label': 'SynthFirm / SUSB ESTB', 'shrink': 0.5})
                 ax.set_title('Establishment Ratio per MSA')
                 ax.set_axis_off()
 
                 ax = axes[1]
                 msa_geo.merge(msa_firm, on='MSA Code', how='inner').plot(
-                    column='firm_ratio', ax=ax, legend=True, cmap='RdYlGn',
-                    edgecolor='grey', linewidth=0.3, vmin=0.5, vmax=1.5,
+                    column='firm_ratio', ax=ax, legend=True,
+                    cmap=ratio_cmap, norm=ratio_norm,
+                    edgecolor='grey', linewidth=0.3,
                     legend_kwds={'label': 'SynthFirm / SUSB FIRM', 'shrink': 0.5})
                 ax.set_title('Unique Firm Ratio per MSA')
                 ax.set_axis_off()
 
                 plt.suptitle('SUSB Validation Maps (Study Area)', fontsize=16)
                 plt.tight_layout()
-                plt.savefig(os.path.join(plot_path, 'validation_susb_maps.png'), dpi=200, bbox_inches='tight')
+                plt.savefig(os.path.join(ent_assign_output_path, 'validation_susb_maps.png'), dpi=200, bbox_inches='tight')
                 plt.close()
                 print('  SUSB maps saved')
 
