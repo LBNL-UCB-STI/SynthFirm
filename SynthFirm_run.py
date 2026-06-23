@@ -9,6 +9,7 @@ import datetime
 from pathlib import Path
 
 from utils.consist_tracking import (
+    build_synthfirm_config_payload,
     build_step1_consist_spec,
     build_step2_consist_spec,
     build_step3_consist_spec,
@@ -83,6 +84,7 @@ def main():
     conf_file = options.config
     config = configparser.ConfigParser()
     config.read(conf_file)
+    synthfirm_config = build_synthfirm_config_payload(config, conf_file)
     # print(list(config.keys()))
     file_path = os.fspath(resolve_config_path(config['ENVIRONMENT']['file_path'], conf_file))
     print(file_path)
@@ -459,7 +461,7 @@ def main():
             employment_per_firm_file=employment_per_firm_file,
             employment_per_firm_gapfill_file=employment_per_firm_gapfill_file,
             zip_to_tract_file=zip_to_tract_file,
-            config_file=conf_file,
+            synthfirm_config=synthfirm_config,
             assign_enterprises=assign_enterprises,
             susb_file=susb_file if assign_enterprises else "",
             costar_file=costar_file if assign_enterprises else "",
@@ -516,7 +518,7 @@ def main():
             agg_unit_cost_file=agg_unit_cost_file,
             prod_by_zone_file=prod_by_zone_file,
             sctg_group_file=sctg_group_file,
-            config_file=conf_file,
+            synthfirm_config=synthfirm_config,
             producer_by_sctg_filehead=producer_by_sctg_filehead,
         )
         step2_state = {}
@@ -564,7 +566,7 @@ def main():
             wholesaler_file=wholesaler_file,
             producer_file=producer_file,
             io_filtered_file=io_filtered_file,
-            config_file=conf_file,
+            synthfirm_config=synthfirm_config,
             consumer_by_sctg_filehead=consumer_by_sctg_filehead,
             wholesalecostfactor=wholesalecostfactor,
         )

@@ -10,7 +10,7 @@ Consist ``OutputSet`` artifacts.
 import os
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from consist import CacheOptions, ExecutionOptions, OutputSet, Tracker
 
@@ -154,6 +154,59 @@ def create_consist_tracker(
     return tracker
 
 
+def build_synthfirm_config_payload(
+    config: Any,
+    config_file: str | os.PathLike[str] | Path,
+) -> dict[str, Any]:
+    """Convert a parsed SynthFirm config into Consist run configuration.
+
+    Parameters
+    ----------
+    config
+        Parsed ``configparser.ConfigParser``-style object from ``SynthFirm_run``.
+    config_file
+        Config file used to start the run. Only the file name is recorded so
+        local absolute paths do not leak into portable run config.
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-serializable run configuration payload for Consist.
+    """
+    return {
+        "source_name": _as_path(config_file).name,
+        "sections": {
+            section: dict(config.items(section))
+            for section in config.sections()
+        },
+    }
+
+
+def _step_config(
+    synthfirm_config: Mapping[str, Any],
+    extra_config: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build the per-step Consist config payload.
+
+    Parameters
+    ----------
+    synthfirm_config
+        Parsed SynthFirm configuration payload shared across tracked steps.
+    extra_config
+        Small step-specific values that should appear next to the shared
+        SynthFirm config.
+
+    Returns
+    -------
+    dict[str, Any]
+        Consist run config for one tracked step.
+    """
+    payload: dict[str, Any] = {"synthfirm_config": dict(synthfirm_config)}
+    if extra_config:
+        payload.update(dict(extra_config))
+    return payload
+
+
 def build_step1_consist_spec(
     *,
     output_path: str | os.PathLike[str] | Path,
@@ -166,7 +219,7 @@ def build_step1_consist_spec(
     employment_per_firm_file: str | os.PathLike[str] | Path,
     employment_per_firm_gapfill_file: str | os.PathLike[str] | Path,
     zip_to_tract_file: str | os.PathLike[str] | Path,
-    config_file: str | os.PathLike[str] | Path,
+    synthfirm_config: Mapping[str, Any],
     assign_enterprises: bool,
     susb_file: str | os.PathLike[str] | Path = "",
     costar_file: str | os.PathLike[str] | Path = "",
@@ -190,8 +243,8 @@ def build_step1_consist_spec(
         Parameter files used to synthesize firms.
     employment_per_firm_gapfill_file, zip_to_tract_file
         Additional parameter files used by firm synthesis.
-    config_file
-        Config file used for this SynthFirm run.
+    synthfirm_config
+        Parsed SynthFirm configuration payload stored as Consist run config.
     assign_enterprises
         Whether enterprise assignment is enabled.
     susb_file, costar_file, county_to_msa_file
@@ -215,7 +268,6 @@ def build_step1_consist_spec(
             employment_per_firm_gapfill_file
         ),
         "zip_to_tract_file": _as_path(zip_to_tract_file),
-        "config_file": _as_path(config_file),
     }
     if assign_enterprises:
         inputs["susb_file"] = _as_path(susb_file)
@@ -252,7 +304,10 @@ def build_step1_consist_spec(
         "inputs": inputs,
         "output_paths": output_paths,
         "output_sets": output_sets,
-        "config": {"assign_enterprises": assign_enterprises},
+        "config": _step_config(
+            synthfirm_config,
+            {"assign_enterprises": assign_enterprises},
+        ),
         "cache_options": CacheOptions(cache_mode="overwrite"),
         "execution_options": ExecutionOptions(input_binding="paths"),
     }
@@ -272,7 +327,7 @@ def build_step2_consist_spec(
     agg_unit_cost_file: str | os.PathLike[str] | Path,
     prod_by_zone_file: str | os.PathLike[str] | Path,
     sctg_group_file: str | os.PathLike[str] | Path,
-    config_file: str | os.PathLike[str] | Path,
+    synthfirm_config: Mapping[str, Any],
     producer_by_sctg_filehead: str | os.PathLike[str] | Path,
 ) -> dict[str, Any]:
     """Declare Consist inputs and outputs for Step 2 producer generation.
@@ -289,8 +344,8 @@ def build_step2_consist_spec(
         Additional Step 2 input files.
     prod_by_zone_file, sctg_group_file
         Producer allocation and SCTG lookup inputs.
-    config_file
-        Config file used for this SynthFirm run.
+    synthfirm_config
+        Parsed SynthFirm configuration payload stored as Consist run config.
     producer_by_sctg_filehead
         File prefix used by Step 2 to write SCTG-group CSVs.
 
@@ -312,7 +367,6 @@ def build_step2_consist_spec(
             "agg_unit_cost_file": _as_path(agg_unit_cost_file),
             "prod_by_zone_file": _as_path(prod_by_zone_file),
             "sctg_group_file": _as_path(sctg_group_file),
-            "config_file": _as_path(config_file),
         },
         "output_paths": {
             "io_summary": (
@@ -343,7 +397,7 @@ def build_step2_consist_spec(
                 kind="producer-by-sctg",
             )
         },
-        "config": {},
+        "config": _step_config(synthfirm_config),
         "cache_options": CacheOptions(cache_mode="overwrite"),
         "execution_options": ExecutionOptions(input_binding="paths"),
     }
@@ -363,7 +417,7 @@ def build_step3_consist_spec(
     wholesaler_file: str | os.PathLike[str] | Path,
     producer_file: str | os.PathLike[str] | Path,
     io_filtered_file: str | os.PathLike[str] | Path,
-    config_file: str | os.PathLike[str] | Path,
+    synthfirm_config: Mapping[str, Any],
     consumer_by_sctg_filehead: str | os.PathLike[str] | Path,
     wholesalecostfactor: float,
 ) -> dict[str, Any]:
@@ -383,8 +437,8 @@ def build_step3_consist_spec(
         SCTG lookup input.
     wholesaler_file, producer_file, io_filtered_file
         Step 2 outputs consumed by Step 3.
-    config_file
-        Config file used for this SynthFirm run.
+    synthfirm_config
+        Parsed SynthFirm configuration payload stored as Consist run config.
     consumer_by_sctg_filehead
         File prefix used by Step 3 to write SCTG-group CSVs.
     wholesalecostfactor
@@ -410,7 +464,6 @@ def build_step3_consist_spec(
             "wholesaler_file": _as_path(wholesaler_file),
             "producer_file": _as_path(producer_file),
             "io_filtered_file": _as_path(io_filtered_file),
-            "config_file": _as_path(config_file),
         },
         "output_paths": {
             "consumer": (
@@ -433,5 +486,8 @@ def build_step3_consist_spec(
         },
         "cache_options": CacheOptions(cache_mode="overwrite"),
         "execution_options": ExecutionOptions(input_binding="paths"),
-        "config": {"wholesalecostfactor": wholesalecostfactor},
+        "config": _step_config(
+            synthfirm_config,
+            {"wholesalecostfactor": wholesalecostfactor},
+        ),
     }

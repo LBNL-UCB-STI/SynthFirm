@@ -1,4 +1,5 @@
 from pathlib import Path
+import configparser
 import inspect
 
 from consist import CacheOptions
@@ -83,7 +84,25 @@ def test_consist_tracker_profiles_input_and_output_schemas(tmp_path):
     assert {observation.source for observation in observations} == {"file"}
 
 
+def test_synthfirm_config_payload_uses_config_contents_not_absolute_path(tmp_path):
+    config_file = tmp_path / "Austin_local.conf"
+    config_file.write_text(
+        "[ENVIRONMENT]\nfile_path = .\nscenario_name = Austin\n",
+        encoding="utf-8",
+    )
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    payload = consist_tracking.build_synthfirm_config_payload(config, config_file)
+
+    assert payload["source_name"] == "Austin_local.conf"
+    assert payload["sections"]["ENVIRONMENT"]["file_path"] == "."
+    assert payload["sections"]["ENVIRONMENT"]["scenario_name"] == "Austin"
+    assert str(tmp_path) not in str(payload)
+
+
 def test_step1_consist_spec_without_enterprises(tmp_path):
+    synthfirm_config = {"source_name": "test.conf", "sections": {}}
     spec = consist_tracking.build_step1_consist_spec(
         output_path=tmp_path,
         cbp_file=tmp_path / "cbp.csv",
@@ -93,7 +112,7 @@ def test_step1_consist_spec_without_enterprises(tmp_path):
         employment_per_firm_file=tmp_path / "emp.csv",
         employment_per_firm_gapfill_file=tmp_path / "gapfill.csv",
         zip_to_tract_file=tmp_path / "zip.csv",
-        config_file=tmp_path / "config.ini",
+        synthfirm_config=synthfirm_config,
         assign_enterprises=False,
     )
 
@@ -105,8 +124,9 @@ def test_step1_consist_spec_without_enterprises(tmp_path):
         "employment_per_firm_file",
         "employment_per_firm_gapfill_file",
         "zip_to_tract_file",
-        "config_file",
     }
+    assert spec["config"]["synthfirm_config"] == synthfirm_config
+    assert spec["config"]["assign_enterprises"] is False
     assert set(spec["output_paths"]) == {"synthetic_firms"}
     assert "synthetic_enterprise" not in spec["output_paths"]
     assert spec["output_sets"] == {}
@@ -115,6 +135,7 @@ def test_step1_consist_spec_without_enterprises(tmp_path):
 
 
 def test_step1_consist_spec_with_enterprises(tmp_path):
+    synthfirm_config = {"source_name": "test.conf", "sections": {}}
     spec = consist_tracking.build_step1_consist_spec(
         output_path=tmp_path,
         cbp_file=tmp_path / "cbp.csv",
@@ -124,7 +145,7 @@ def test_step1_consist_spec_with_enterprises(tmp_path):
         employment_per_firm_file=tmp_path / "emp.csv",
         employment_per_firm_gapfill_file=tmp_path / "gapfill.csv",
         zip_to_tract_file=tmp_path / "zip.csv",
-        config_file=tmp_path / "config.ini",
+        synthfirm_config=synthfirm_config,
         assign_enterprises=True,
         susb_file=tmp_path / "susb.csv",
         costar_file=tmp_path / "costar.csv",
@@ -141,7 +162,6 @@ def test_step1_consist_spec_with_enterprises(tmp_path):
         "employment_per_firm_file",
         "employment_per_firm_gapfill_file",
         "zip_to_tract_file",
-        "config_file",
         "susb_file",
         "costar_file",
         "county_to_msa_file",
@@ -156,6 +176,7 @@ def test_step1_consist_spec_with_enterprises(tmp_path):
 
 
 def test_step2_consist_spec_includes_producer_by_sctg_output_set(tmp_path):
+    synthfirm_config = {"source_name": "test.conf", "sections": {}}
     spec = consist_tracking.build_step2_consist_spec(
         output_path=tmp_path,
         c_n6_n6io_sctg_file=tmp_path / "crosswalk.csv",
@@ -165,7 +186,7 @@ def test_step2_consist_spec_includes_producer_by_sctg_output_set(tmp_path):
         agg_unit_cost_file=tmp_path / "unitcost.csv",
         prod_by_zone_file=tmp_path / "prod_by_zone.csv",
         sctg_group_file=tmp_path / "sctg.csv",
-        config_file=tmp_path / "config.ini",
+        synthfirm_config=synthfirm_config,
         producer_by_sctg_filehead=tmp_path / "nested" / "prods_sctg",
     )
 
@@ -178,9 +199,11 @@ def test_step2_consist_spec_includes_producer_by_sctg_output_set(tmp_path):
     output_set = spec["output_sets"]["producer_by_sctg"]
     assert output_set.root == tmp_path / "nested"
     assert output_set.include == "prods_sctg*.csv"
+    assert spec["config"]["synthfirm_config"] == synthfirm_config
 
 
 def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
+    synthfirm_config = {"source_name": "test.conf", "sections": {}}
     spec = consist_tracking.build_step3_consist_spec(
         output_path=tmp_path,
         synthetic_firms_no_location_file=tmp_path / "synthetic_firms.csv",
@@ -192,7 +215,7 @@ def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
         wholesaler_file=tmp_path / "wholesaler.csv",
         producer_file=tmp_path / "producer.csv",
         io_filtered_file=tmp_path / "io_filtered.csv",
-        config_file=tmp_path / "config.ini",
+        synthfirm_config=synthfirm_config,
         consumer_by_sctg_filehead=tmp_path / "nested" / "consumers_sctg",
         wholesalecostfactor=1.25,
     )
@@ -204,13 +227,15 @@ def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
     output_set = spec["output_sets"]["consumer_by_sctg"]
     assert output_set.root == tmp_path / "nested"
     assert output_set.include == "consumers_sctg*.csv"
-    assert spec["config"] == {"wholesalecostfactor": 1.25}
+    assert spec["config"]["synthfirm_config"] == synthfirm_config
+    assert spec["config"]["wholesalecostfactor"] == 1.25
 
 
 def test_public_consist_helpers_have_docstrings():
     public_helpers = [
         consist_tracking.get_consist_storage_paths,
         consist_tracking.create_consist_tracker,
+        consist_tracking.build_synthfirm_config_payload,
         consist_tracking.build_step1_consist_spec,
         consist_tracking.build_step2_consist_spec,
         consist_tracking.build_step3_consist_spec,

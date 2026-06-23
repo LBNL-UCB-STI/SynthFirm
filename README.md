@@ -325,6 +325,8 @@ produced which outputs. In the first teaching slice, it tracks Step 1 firm
 generation, Step 2 producer generation, and Step 3 consumer generation so you
 can inspect lineage, output artifacts, output sets, and file schemas when
 debugging or learning the run flow.
+The parsed SynthFirm config is stored as Consist run config, not as a normal
+input artifact.
 
 By default, Consist writes state under the run output directory:
 
@@ -359,8 +361,8 @@ consist schema export --artifact-id <artifact_id> --db-path <output_path>/.consi
 ```
 
 Use `artifacts <run_id>` to find the artifact ID for the specific output you
-want to export. Exporting by artifact ID avoids ambiguity when the same key,
-such as `config_file`, appears in multiple steps.
+want to export. Exporting by artifact ID avoids ambiguity when similar artifact
+keys appear in multiple steps.
 
 If you inspect an older run that was created before automatic profiling was
 enabled, use `consist schema capture-file ...` to backfill a file schema while
