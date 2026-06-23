@@ -6,25 +6,15 @@ import warnings
 import configparser
 import sys
 import datetime
-import utils.visualkit as vk
+from pathlib import Path
 
-# import SynthFirm modules
-from utils.Step1_Firm_Generation import synthetic_firm_generation
-from utils.Step2_Producer_Generation import producer_generation
-from utils.Step3_Consumer_Generation import consumer_generation
-from utils.Step4_production_and_consumption_forecast import prod_cons_demand_forecast
-from utils.Step5_Firm_Location_Generation import firm_location_generation
-from utils.Step6_Supplier_Selection import supplier_selection
-from utils.Step7_Shipment_Size_Generation import shipment_size_generation
-from utils.Step8_Freight_Mode_Choice_Model import mode_choice_model
-from utils.Step9_Post_Process_B2B_Flow import post_mode_choice
-from utils.Step11_firm_fleet_generation import firm_fleet_generator
-from utils.Step12_firm_fleet_adjustment_post_mc import firm_fleet_generator_post_mc
-from utils.Step13_international_shipment import international_demand_generation
-from utils.Step14_international_mode_assignment import international_mode_choice
-from utils.Step15_international_B2B_flow_generator import domestic_receiver_assignment
-from utils.firm_emp_validation import validate_firm_employment
-from utils.commodity_flow_validation import validate_commodity_flow
+from utils.consist_tracking import (
+    build_step1_consist_spec,
+    build_step2_consist_spec,
+    build_step3_consist_spec,
+    create_consist_tracker,
+)
+from utils.config_paths import resolve_config_path
 
 warnings.filterwarnings("ignore")
 
@@ -47,7 +37,7 @@ class Logger:
     def flush(self):
         self.terminal.flush()
         self.log.flush()
-            
+
 
 def main():
     des = """
@@ -64,6 +54,24 @@ def main():
 
     # if options.verbose:
     #     print("MeowMeowMeow~~~~")
+
+    # import SynthFirm modules lazily so the runtime module stays importable in tests
+    from utils.Step1_Firm_Generation import synthetic_firm_generation
+    from utils.Step2_Producer_Generation import producer_generation
+    from utils.Step3_Consumer_Generation import consumer_generation
+    from utils.Step4_production_and_consumption_forecast import prod_cons_demand_forecast
+    from utils.Step5_Firm_Location_Generation import firm_location_generation
+    from utils.Step6_Supplier_Selection import supplier_selection
+    from utils.Step7_Shipment_Size_Generation import shipment_size_generation
+    from utils.Step8_Freight_Mode_Choice_Model import mode_choice_model
+    from utils.Step9_Post_Process_B2B_Flow import post_mode_choice
+    from utils.Step11_firm_fleet_generation import firm_fleet_generator
+    from utils.Step12_firm_fleet_adjustment_post_mc import firm_fleet_generator_post_mc
+    from utils.Step13_international_shipment import international_demand_generation
+    from utils.Step14_international_mode_assignment import international_mode_choice
+    from utils.Step15_international_B2B_flow_generator import domestic_receiver_assignment
+    from utils.firm_emp_validation import validate_firm_employment
+    from utils.commodity_flow_validation import validate_commodity_flow
         
 
     # load config
@@ -76,10 +84,10 @@ def main():
     config = configparser.ConfigParser()
     config.read(conf_file)
     # print(list(config.keys()))
-    print(config['ENVIRONMENT']['file_path'])
+    file_path = os.fspath(resolve_config_path(config['ENVIRONMENT']['file_path'], conf_file))
+    print(file_path)
     scenario_name = config['ENVIRONMENT']['scenario_name']
     out_scenario_name = config['ENVIRONMENT']['out_scenario_name']
-    file_path = config['ENVIRONMENT']['file_path']
     parameter_dir = config['ENVIRONMENT']['parameter_path']
     number_of_processes = config['ENVIRONMENT'].get('number_of_processes')
     number_of_processes = int(number_of_processes) if number_of_processes else 0
@@ -229,6 +237,12 @@ def main():
     consumer_by_sctg_filehead = os.path.join(output_path, config['OUTPUTS']['consumer_by_sctg_filehead'])
     sample_consumer_file = os.path.join(output_path, config['OUTPUTS']['sample_consumer_file'])
     io_filtered_file = os.path.join(output_path, config['OUTPUTS']['io_filtered_file'])
+
+    tracker = create_consist_tracker(
+        output_path,
+        data_root=file_path,
+        code_root=Path(__file__).resolve().parent,
+    )
     
 
     # inputs/outputs first appear in demand forecast (optional)
@@ -434,37 +448,155 @@ def main():
 
     ##### Step 1 -  synthetic firm generation
     if run_firm_generation:
-        if assign_enterprises:
-            # subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
-            synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, c_n6_n6io_sctg_file,
-                                      employment_per_firm_file, employment_per_firm_gapfill_file,
-                                      zip_to_tract_file, synthetic_firms_no_location_file, output_path,
-                                      assign_enterprises, susb_file, costar_file, county_to_msa_file, naics_crosswalk_file,
-                                      firm_enterprise_file, plot_path, us_county_map_file)
-        else:
-            # subprocess.call ("Rscript --vanilla utils/run_firm_generation_master_R.R", shell=True)
-            synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file, c_n6_n6io_sctg_file,
-                                      employment_per_firm_file, employment_per_firm_gapfill_file,
-                                      zip_to_tract_file, synthetic_firms_no_location_file, output_path,
-                                      assign_enterprises)
+        step1_spec = build_step1_consist_spec(
+            output_path=output_path,
+            synthetic_firms_no_location_file=synthetic_firms_no_location_file,
+            synthetic_enterprise_file=firm_enterprise_file if assign_enterprises else None,
+            cbp_file=cbp_file,
+            mzemp_file=mzemp_file,
+            mesozone_to_faf_file=mesozone_to_faf_file,
+            c_n6_n6io_sctg_file=c_n6_n6io_sctg_file,
+            employment_per_firm_file=employment_per_firm_file,
+            employment_per_firm_gapfill_file=employment_per_firm_gapfill_file,
+            zip_to_tract_file=zip_to_tract_file,
+            config_file=conf_file,
+            assign_enterprises=assign_enterprises,
+            susb_file=susb_file if assign_enterprises else "",
+            costar_file=costar_file if assign_enterprises else "",
+            county_to_msa_file=county_to_msa_file if assign_enterprises else "",
+            naics_crosswalk_file=naics_crosswalk_file if assign_enterprises else "",
+            us_county_map_file=us_county_map_file if assign_enterprises else "",
+        )
+
+        def run_step1() -> None:
+            synthetic_firm_generation(
+                cbp_file,
+                mzemp_file,
+                mesozone_to_faf_file,
+                c_n6_n6io_sctg_file,
+                employment_per_firm_file,
+                employment_per_firm_gapfill_file,
+                zip_to_tract_file,
+                synthetic_firms_no_location_file,
+                output_path,
+                assign_enterprises,
+                susb_file if assign_enterprises else "",
+                costar_file if assign_enterprises else "",
+                county_to_msa_file if assign_enterprises else "",
+                naics_crosswalk_file if assign_enterprises else "",
+                firm_enterprise_file if assign_enterprises else "",
+                plot_path,
+                us_county_map_file if assign_enterprises else "",
+            )
+
+        tracker.run(
+            run_step1,
+            inputs=step1_spec["inputs"],
+            config=step1_spec["config"],
+            outputs=list(step1_spec["output_paths"]),
+            output_paths=step1_spec["output_paths"],
+            output_sets=step1_spec["output_sets"],
+            cache_options=step1_spec["cache_options"],
+            execution_options=step1_spec["execution_options"],
+        )
 
     ##### Steps 2 and 3 -  synthetic producer and consumer generation        
     if run_producer_consumer_generation:
         # producer generation
-        
-        # wholesale cost factor is the ratio between wholesale output/input (1+revenue/cost)
-        wholesalecostfactor = producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
-                                mesozone_to_faf_file, BEA_io_2017_file, agg_unit_cost_file,
-                                prod_by_zone_file, sctg_group_file, io_summary_file,
-                                wholesaler_file, producer_file, producer_by_sctg_filehead,
-                                io_filtered_file, output_path)
-        # consumer generation
-        consumer_generation(synthetic_firms_no_location_file, mesozone_to_faf_file,
-                                c_n6_n6io_sctg_file, agg_unit_cost_file, cons_by_zone_file,
-                                sctg_group_file, wholesaler_file,
-                                producer_file, io_filtered_file, consumer_file,
-                                sample_consumer_file, consumer_by_sctg_filehead, 
-                                wholesalecostfactor, output_path)
+        step2_spec = build_step2_consist_spec(
+            output_path=output_path,
+            io_summary_file=io_summary_file,
+            wholesaler_file=wholesaler_file,
+            producer_file=producer_file,
+            io_filtered_file=io_filtered_file,
+            c_n6_n6io_sctg_file=c_n6_n6io_sctg_file,
+            synthetic_firms_no_location_file=synthetic_firms_no_location_file,
+            mesozone_to_faf_file=mesozone_to_faf_file,
+            BEA_io_2017_file=BEA_io_2017_file,
+            agg_unit_cost_file=agg_unit_cost_file,
+            prod_by_zone_file=prod_by_zone_file,
+            sctg_group_file=sctg_group_file,
+            config_file=conf_file,
+            producer_by_sctg_filehead=producer_by_sctg_filehead,
+        )
+        step2_state = {}
+
+        def run_step2() -> None:
+            step2_state["wholesalecostfactor"] = producer_generation(
+                c_n6_n6io_sctg_file,
+                synthetic_firms_no_location_file,
+                mesozone_to_faf_file,
+                BEA_io_2017_file,
+                agg_unit_cost_file,
+                prod_by_zone_file,
+                sctg_group_file,
+                io_summary_file,
+                wholesaler_file,
+                producer_file,
+                producer_by_sctg_filehead,
+                io_filtered_file,
+                output_path,
+            )
+
+        tracker.run(
+            run_step2,
+            inputs=step2_spec["inputs"],
+            config=step2_spec["config"],
+            outputs=list(step2_spec["output_paths"]),
+            output_paths=step2_spec["output_paths"],
+            output_sets=step2_spec["output_sets"],
+            cache_options=step2_spec["cache_options"],
+            execution_options=step2_spec["execution_options"],
+        )
+
+        wholesalecostfactor = step2_state["wholesalecostfactor"]
+
+        step3_spec = build_step3_consist_spec(
+            output_path=output_path,
+            consumer_file=consumer_file,
+            sample_consumer_file=sample_consumer_file,
+            synthetic_firms_no_location_file=synthetic_firms_no_location_file,
+            mesozone_to_faf_file=mesozone_to_faf_file,
+            c_n6_n6io_sctg_file=c_n6_n6io_sctg_file,
+            agg_unit_cost_file=agg_unit_cost_file,
+            cons_by_zone_file=cons_by_zone_file,
+            sctg_group_file=sctg_group_file,
+            wholesaler_file=wholesaler_file,
+            producer_file=producer_file,
+            io_filtered_file=io_filtered_file,
+            config_file=conf_file,
+            consumer_by_sctg_filehead=consumer_by_sctg_filehead,
+            wholesalecostfactor=wholesalecostfactor,
+        )
+
+        def run_step3() -> None:
+            consumer_generation(
+                synthetic_firms_no_location_file,
+                mesozone_to_faf_file,
+                c_n6_n6io_sctg_file,
+                agg_unit_cost_file,
+                cons_by_zone_file,
+                sctg_group_file,
+                wholesaler_file,
+                producer_file,
+                io_filtered_file,
+                consumer_file,
+                sample_consumer_file,
+                consumer_by_sctg_filehead,
+                wholesalecostfactor,
+                output_path,
+            )
+
+        tracker.run(
+            run_step3,
+            inputs=step3_spec["inputs"],
+            config=step3_spec["config"],
+            outputs=list(step3_spec["output_paths"]),
+            output_paths=step3_spec["output_paths"],
+            output_sets=step3_spec["output_sets"],
+            cache_options=step3_spec["cache_options"],
+            execution_options=step3_spec["execution_options"],
+        )
     
     ##### Steps 4 (optional) -  run demand forecast       
     if run_demand_forecast:
@@ -670,4 +802,3 @@ def main():
     return
 if __name__ == '__main__':
 	main()
-

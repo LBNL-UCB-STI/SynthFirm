@@ -2,6 +2,10 @@
 .Rhistory
 *.ipynb_checkpoints
 
+# Local machine-specific SynthFirm configs
+configs/*local*.conf
+configs/*_local.conf
+
 # History files
 .Rhistory
 .Rapp.history

@@ -44,7 +44,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
 
     ```
     [ENVIRONMENT]
-    file_path = /Users/xiaodanxu/Documents/SynthFirm.nosync # path to project data
+    file_path = . # path to project data; relative paths are resolved from the config file location
     
     scenario_name = BayArea # scenario name must be consistent with input generation to allow for models searching for the I-O paths
     out_scenario_name = BayArea  # scenario name for output, can be different from input scenario name, but must be consistent with firm generation configs
@@ -52,6 +52,35 @@ works, and perform publicly and display publicly, and to permit others to do so.
     number_of_processes = 2 
     # number of cores to be used for parallel computing, zero means all the available cores
     ```
+
+  * Keep downloaded data outside the Git checkout, and keep machine-specific
+    config files beside that data. `file_path` should point to the data root
+    that contains `inputs_<scenario>`, `outputs_<scenario>`,
+    `plots_<scenario>`, and the parameter directory. It may be an absolute
+    path, a `~` or environment-variable path, or a relative path. Relative
+    paths are resolved from the directory that contains the config file, not
+    from the shell's current working directory. For example, a local Austin
+    test can use this layout:
+
+    ```text
+    /Users/zaneedell/Documents/SynthFirm/
+      Austin_local.conf
+      inputs_Austin/
+      SynthFirm_parameters/
+    ```
+
+    To set up a local run, copy a checked-in config such as
+    `configs/Austin_base.conf` to the data root as `Austin_local.conf`, update
+    `scenario_name`, `out_scenario_name`, `parameter_path`, and the step flags
+    as needed, then use `file_path = .`. Run it with an absolute path to the
+    local config:
+
+    ```bash
+    python SynthFirm_run.py --config /Users/zaneedell/Documents/SynthFirm/Austin_local.conf
+    ```
+
+    Do not check in `Austin_local.conf` or other configs containing absolute
+    paths from your machine.
 
   * Define the current run type (the input files vary by types of run, which will be elaborated below):
   
@@ -285,9 +314,70 @@ works, and perform publicly and display publicly, and to permit others to do so.
     ```
     python SynthFirm_run.py --config 'SynthFirm.conf'
     ```
+
+    Local machine-specific configs can live outside the repository, or under
+    `configs/` with `local` in the file name so they are ignored by Git.
+
+### Consist teaching slice
+
+Consist is the provenance layer used here to record which inputs and configs
+produced which outputs. In the first teaching slice, it tracks Step 1 firm
+generation, Step 2 producer generation, and Step 3 consumer generation so you
+can inspect lineage, output artifacts, output sets, and file schemas when
+debugging or learning the run flow.
+
+By default, Consist writes state under the run output directory:
+
+```text
+<output_path>/.consist/runs
+<output_path>/.consist/provenance.duckdb
+```
+
+Recorded artifact paths use Consist mounts. Files under `ENVIRONMENT.file_path`
+are recorded as `data://...`, and files under the SynthFirm checkout are
+recorded as `code://...`. When inspecting on the same machine, `--trust-db`
+lets the CLI use the stored mount roots. On another machine, pass explicit
+mounts such as `--mount data=/path/to/SynthFirm-data`.
+
+Inspect a recorded run with the Consist CLI:
+
+```bash
+consist runs --db-path <output_path>/.consist/provenance.duckdb
+consist show <run_id> --db-path <output_path>/.consist/provenance.duckdb
+consist artifacts <run_id> --db-path <output_path>/.consist/provenance.duckdb
+consist lineage <artifact_key> --db-path <output_path>/.consist/provenance.duckdb
+```
+
+SynthFirm enables Consist file-schema profiling for this teaching slice. During
+each tracked step, Consist captures schemas for tabular inputs and outputs such
+as `synthetic_firms`, `producer`, and `consumer`. That replaces hand-written
+summary files and makes the schema available immediately after the run:
+
+```bash
+consist artifacts <run_id> --db-path <output_path>/.consist/provenance.duckdb
+consist schema export --artifact-id <artifact_id> --db-path <output_path>/.consist/provenance.duckdb --out schemas/<schema_name>.py
+```
+
+Use `artifacts <run_id>` to find the artifact ID for the specific output you
+want to export. Exporting by artifact ID avoids ambiguity when the same key,
+such as `config_file`, appears in multiple steps.
+
+If you inspect an older run that was created before automatic profiling was
+enabled, use `consist schema capture-file ...` to backfill a file schema while
+the original file is still accessible.
+
+For interactive inspection, open the shell and run `artifacts <run_id>`, then
+`schema_profile @<n>` or `schema_stub @<n>` for the artifact reference you want
+to inspect:
+
+```bash
+consist shell --trust-db --db-path <output_path>/.consist/provenance.duckdb
+```
+
+Cache reuse is intentionally off in this first slice. The goal is clear
+lineage and inspection, not reuse tuning.
   
   * Check output following the prompt on screen
   * The log file will be created for each run under the output directory, with file name '{out_scenario_name}_run_{date}.log'
   
 * You are done, cheers!
-
