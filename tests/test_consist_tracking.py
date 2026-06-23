@@ -26,6 +26,17 @@ def test_consist_storage_paths_default_and_env_override(monkeypatch, tmp_path):
     assert db_path == Path("/tmp/custom.duckdb")
 
 
+def test_consist_shell_command_quotes_db_path_with_spaces():
+    command = consist_tracking.build_consist_shell_command(
+        Path("/tmp/SynthFirm outputs/provenance.duckdb")
+    )
+
+    assert command == (
+        "consist shell --trust-db --db-path "
+        "'/tmp/SynthFirm outputs/provenance.duckdb'"
+    )
+
+
 def test_consist_tracker_uses_data_and_code_mounts(tmp_path):
     data_root = tmp_path / "data"
     code_root = tmp_path / "code"
@@ -252,6 +263,7 @@ def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
 def test_public_consist_helpers_have_docstrings():
     public_helpers = [
         consist_tracking.get_consist_storage_paths,
+        consist_tracking.build_consist_shell_command,
         consist_tracking.create_consist_tracker,
         consist_tracking.build_synthfirm_config_payload,
         consist_tracking.build_step1_consist_spec,

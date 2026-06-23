@@ -9,11 +9,13 @@ import datetime
 from pathlib import Path
 
 from utils.consist_tracking import (
+    build_consist_shell_command,
     build_synthfirm_config_payload,
     build_step1_consist_spec,
     build_step2_consist_spec,
     build_step3_consist_spec,
     create_consist_tracker,
+    get_consist_storage_paths,
 )
 from utils.config_paths import resolve_config_path
 
@@ -244,6 +246,11 @@ def main():
         output_path,
         data_root=file_path,
         code_root=Path(__file__).resolve().parent,
+    )
+    _, consist_db_path = get_consist_storage_paths(output_path)
+    print(
+        "Consist shell command: "
+        f"{build_consist_shell_command(consist_db_path)}"
     )
     
 

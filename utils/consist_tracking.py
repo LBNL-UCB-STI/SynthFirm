@@ -8,6 +8,7 @@ Consist ``OutputSet`` artifacts.
 """
 
 import os
+import shlex
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, Mapping
@@ -96,6 +97,25 @@ def get_consist_storage_paths(
         base_path / ".consist" / "provenance.duckdb"
     )
     return run_dir, db_path
+
+
+def build_consist_shell_command(db_path: str | os.PathLike[str] | Path) -> str:
+    """Build a pasteable command for inspecting the Consist database.
+
+    Parameters
+    ----------
+    db_path
+        Path to the Consist DuckDB provenance database.
+
+    Returns
+    -------
+    str
+        Shell command that opens the database in Consist's interactive shell.
+    """
+    return (
+        "consist shell --trust-db --db-path "
+        f"{shlex.quote(os.fspath(db_path))}"
+    )
 
 
 def create_consist_tracker(
