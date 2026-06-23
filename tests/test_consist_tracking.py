@@ -7,6 +7,7 @@ from consist.models.artifact_schema import ArtifactSchemaObservation
 from sqlmodel import Session, select
 
 from utils import consist_tracking
+from utils.consist_schemas import SYNTHFIRM_CONSIST_SCHEMAS
 
 
 def test_consist_storage_paths_default_and_env_override(monkeypatch, tmp_path):
@@ -50,6 +51,23 @@ def test_consist_tracker_uses_data_and_code_mounts(tmp_path):
     assert tracker.fs.virtualize_path(code_root / "SynthFirm_run.py") == (
         "code://SynthFirm_run.py"
     )
+
+
+def test_consist_tracker_registers_teaching_slice_schemas(tmp_path):
+    output_path = tmp_path / "outputs_Austin"
+    output_path.mkdir()
+
+    tracker = consist_tracking.create_consist_tracker(
+        output_path,
+        data_root=tmp_path,
+        code_root=tmp_path,
+    )
+
+    expected_schema_names = {
+        schema.__name__ for schema in SYNTHFIRM_CONSIST_SCHEMAS
+    }
+
+    assert expected_schema_names.issubset(tracker.registered_schemas)
 
 
 def test_consist_tracker_profiles_input_and_output_schemas(tmp_path):

@@ -364,6 +364,15 @@ Use `artifacts <run_id>` to find the artifact ID for the specific output you
 want to export. Exporting by artifact ID avoids ambiguity when similar artifact
 keys appear in multiple steps.
 
+The repository also includes curated teaching-slice schemas in
+`utils/consist_schemas.py`. These classes started from Austin run schema stubs
+and add beginner-oriented descriptions plus conservative foreign keys for the
+main Step 1-3 outputs. `utils.consist_tracking.create_consist_tracker`
+registers those schemas with the Consist tracker so they are available for
+views and future schema-aware output declarations. Until Consist supports
+schemas directly on `output_paths`, SynthFirm still relies on automatic file
+schema profiles for the actual run artifacts.
+
 If you inspect an older run that was created before automatic profiling was
 enabled, use `consist schema capture-file ...` to backfill a file schema while
 the original file is still accessible.

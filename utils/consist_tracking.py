@@ -14,6 +14,8 @@ from typing import Any, Mapping
 
 from consist import CacheOptions, ExecutionOptions, OutputSet, Tracker
 
+from utils.consist_schemas import SYNTHFIRM_CONSIST_SCHEMAS
+
 
 def _as_path(value: str | os.PathLike[str] | Path) -> Path:
     """Return ``value`` as a ``Path`` without changing existing ``Path`` objects.
@@ -127,7 +129,9 @@ def create_consist_tracker(
     -------
     consist.Tracker
         Tracker configured with storage paths and named ``data``/``code``
-        mounts so recorded artifact URIs are portable.
+        mounts so recorded artifact URIs are portable. The tracker also
+        registers SynthFirm's checked-in teaching-slice schemas so they are
+        available for Consist views and future artifact schema tagging.
     """
     output_root = _as_path(output_path).resolve()
     resolved_data_root = (
@@ -145,6 +149,7 @@ def create_consist_tracker(
             "code": str(resolved_code_root),
         },
         project_root=str(resolved_code_root),
+        schemas=list(SYNTHFIRM_CONSIST_SCHEMAS),
     )
     tracker.settings = replace(
         tracker.settings,
