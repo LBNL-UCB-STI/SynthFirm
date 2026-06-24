@@ -53,34 +53,33 @@ works, and perform publicly and display publicly, and to permit others to do so.
     # number of cores to be used for parallel computing, zero means all the available cores
     ```
 
-  * Keep downloaded data outside the Git checkout, and keep machine-specific
-    config files beside that data. `file_path` should point to the data root
+  * Keep downloaded data outside the Git checkout. Machine-specific config
+    files can live beside that data. `file_path` should point to the data root
     that contains `inputs_<scenario>`, `outputs_<scenario>`,
     `plots_<scenario>`, and the parameter directory. It may be an absolute
     path, a `~` or environment-variable path, or a relative path. Relative
-    paths are resolved from the directory that contains the config file, not
-    from the shell's current working directory. For example, a local Austin
-    test can use this layout:
+    paths are resolved from the directory that contains the config file rather
+    than from the shell's current working directory. A local Austin test can use
+    this layout:
 
     ```text
-    /Users/zaneedell/Documents/SynthFirm/
+    /path/to/SynthFirm-data/
       Austin_local.conf
       inputs_Austin/
       SynthFirm_parameters/
     ```
 
-    To set up a local run, copy a checked-in config such as
-    `configs/Austin_base.conf` to the data root as `Austin_local.conf`, update
-    `scenario_name`, `out_scenario_name`, `parameter_path`, and the step flags
-    as needed, then use `file_path = .`. Run it with an absolute path to the
-    local config:
+    For a local run, copy a checked-in config such as `configs/Austin_base.conf`
+    to the data root as `Austin_local.conf`, update `scenario_name`,
+    `out_scenario_name`, `parameter_path`, and the step flags as needed, then
+    use `file_path = .`. Run it with an absolute path to the local config:
 
     ```bash
-    python SynthFirm_run.py --config /Users/zaneedell/Documents/SynthFirm/Austin_local.conf
+    python SynthFirm_run.py --config /path/to/SynthFirm-data/Austin_local.conf
     ```
 
-    Do not check in `Austin_local.conf` or other configs containing absolute
-    paths from your machine.
+    Leave `Austin_local.conf` and other configs with local absolute paths out of
+    version control.
 
   * Define the current run type (the input files vary by types of run, which will be elaborated below):
   
@@ -318,32 +317,35 @@ works, and perform publicly and display publicly, and to permit others to do so.
     Local machine-specific configs can live outside the repository, or under
     `configs/` with `local` in the file name so they are ignored by Git.
 
-### Consist teaching slice
+### Consist provenance tracking
 
-Consist is the provenance layer used here to record which inputs and configs
-produced which outputs. In the first teaching slice, it tracks Step 1 firm
-generation, Step 2 producer generation, and Step 3 consumer generation so you
-can inspect lineage, output artifacts, output sets, and file schemas when
-debugging or learning the run flow.
-The parsed SynthFirm config is stored as Consist run config, not as a normal
-input artifact.
-Each script execution also creates a Consist scenario header tagged
-`full-execution`. Steps 1-3 are recorded as child runs under that scenario;
-later enabled model steps still run inside the scenario block but are not yet
-tracked as individual Consist steps.
+This integration is the first Consist wiring for SynthFirm. Consist records the
+inputs, config, and outputs for selected model steps so a run can be inspected
+afterward without reconstructing the file flow by hand. The current integration
+tracks Step 1 firm generation, Step 2 producer generation, and Step 3 consumer
+generation. Later enabled model steps still run normally, but they are not yet
+recorded as individual Consist steps.
 
+The intent is to establish a small, concrete template for the rest of the
+pipeline. The tracked steps show how to declare real file inputs, attach
+important output artifacts, group multi-file outputs with `OutputSet`, and add
+schema metadata where it is useful. The parsed SynthFirm config is stored as
+Consist run config rather than as a normal input artifact.
+
+Each script execution creates a Consist scenario header tagged
+`full-execution`, with Steps 1-3 recorded as child runs under that scenario.
 By default, Consist writes state under the data root named by
-`ENVIRONMENT.file_path`, not under an individual scenario output directory.
-That gives local serial runs one centralized provenance database:
+`ENVIRONMENT.file_path`, not under an individual scenario output directory. This
+keeps local serial runs in one provenance database:
 
 ```text
 <data_root>/database/runs
 <data_root>/database/provenance.duckdb
 ```
 
-The run log prints a pasteable `consist shell --trust-db --db-path ...`
-command for the active database. Advanced users can override these locations
-with `SYNTHFIRM_CONSIST_RUN_DIR` and `SYNTHFIRM_CONSIST_DB_PATH`.
+The run log prints a pasteable `consist shell --trust-db --db-path ...` command
+for the active database. These default paths can be overridden with
+`SYNTHFIRM_CONSIST_RUN_DIR` and `SYNTHFIRM_CONSIST_DB_PATH`.
 
 Recorded artifact paths use Consist mounts. Files under `ENVIRONMENT.file_path`
 are recorded as `data://...`, and files under the SynthFirm checkout are
@@ -351,7 +353,7 @@ recorded as `code://...`. When inspecting on the same machine, `--trust-db`
 lets the CLI use the stored mount roots. On another machine, pass explicit
 mounts such as `--mount data=/path/to/SynthFirm-data`.
 
-Inspect a recorded run with the Consist CLI:
+Inspect recorded runs with the Consist CLI:
 
 ```bash
 consist runs --db-path <data_root>/database/provenance.duckdb
@@ -360,10 +362,10 @@ consist artifacts <run_id> --db-path <data_root>/database/provenance.duckdb
 consist lineage <artifact_key> --db-path <data_root>/database/provenance.duckdb
 ```
 
-SynthFirm enables Consist file-schema profiling for this teaching slice. During
-each tracked step, Consist captures schemas for tabular inputs and outputs such
-as `synthetic_firms`, `producer`, and `consumer`. That replaces hand-written
-summary files and makes the schema available immediately after the run:
+SynthFirm enables Consist file-schema profiling for the tracked steps. During a
+run, Consist captures lightweight schemas for tabular inputs and outputs such as
+`synthetic_firms`, `producer`, and `consumer`. That makes the observed schema
+available immediately after the run:
 
 ```bash
 consist artifacts <run_id> --db-path <data_root>/database/provenance.duckdb
@@ -374,19 +376,34 @@ Use `artifacts <run_id>` to find the artifact ID for the specific output you
 want to export. Exporting by artifact ID avoids ambiguity when similar artifact
 keys appear in multiple steps.
 
-The repository also includes curated teaching-slice schemas in
-`utils/consist_schemas.py`. These classes started from Austin run schema stubs
-and add beginner-oriented descriptions plus conservative foreign keys for the
-main Step 1-3 outputs. `utils.consist_tracking.create_consist_tracker`
-registers those schemas with the Consist tracker so they are available for
-views. The Step 1-3 Consist specs also attach those schemas to the main
-declared outputs with `ArtifactSpec`, including `synthetic_firms`, `producer`,
-`wholesaler`, `consumer`, and the producer/consumer SCTG output sets. Untyped
-inputs and secondary outputs still rely on automatic file-schema profiling.
+The repository also includes curated schema classes in
+`utils/consist_schemas.py`. These started from Austin run schema stubs and add
+column descriptions plus conservative relationships for the main Step 1-3
+outputs. `utils.consist_tracking.create_consist_tracker` registers those
+schemas with the Consist tracker so they are available for Consist views. The
+Step 1-3 Consist specs attach the schemas to the main declared outputs with
+`ArtifactSpec`, including `synthetic_firms`, `producer`, `wholesaler`,
+`consumer`, and the producer/consumer SCTG output sets. Untyped inputs and
+secondary outputs still rely on automatic file-schema profiling.
 
-If you inspect an older run that was created before automatic profiling was
-enabled, use `consist schema capture-file ...` to backfill a file schema while
-the original file is still accessible.
+To promote another artifact to a first-class schema:
+
+1. Run the step once with profiling enabled.
+2. Use `consist artifacts <run_id>` or the interactive shell to find the
+   artifact.
+3. Export or inspect a stub with `consist schema export --artifact-id ...` or
+   `schema_stub @<n>`.
+4. Add the reviewed SQLModel class to `utils/consist_schemas.py`, preserving
+   the observed CSV column names and adding only relationships or descriptions
+   that are clear from the model.
+5. Add the class to `SYNTHFIRM_CONSIST_SCHEMAS`.
+6. Attach it to the relevant `ArtifactSpec` or `OutputSet` in
+   `utils/consist_tracking.py`.
+
+Doing this gives the artifact a stable schema name, documented columns, and
+explicit relationships for Consist views and downstream run inspection. It also
+makes shared run archives easier to interpret because the important outputs
+carry more structure than a filename and an observed CSV profile.
 
 For interactive inspection, open the shell and run `artifacts <run_id>`, then
 `schema_profile @<n>` or `schema_stub @<n>` for the artifact reference you want
@@ -396,10 +413,6 @@ to inspect:
 consist shell --trust-db --db-path <data_root>/database/provenance.duckdb
 ```
 
-Cache reuse is intentionally off in this first slice. The goal is clear
-lineage and inspection, not reuse tuning.
-  
-  * Check output following the prompt on screen
-  * The log file will be created for each run under the output directory, with file name '{out_scenario_name}_run_{date}.log'
-  
-* You are done, cheers!
+Cache reuse is intentionally off in this first integration pass. The goal is
+clear lineage and inspection; cache-hit behavior can be enabled later once the
+step identity and seed policy are explicit.
