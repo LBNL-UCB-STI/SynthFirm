@@ -14,6 +14,7 @@ from utils.consist_tracking import (
     build_step1_consist_spec,
     build_step2_consist_spec,
     build_step3_consist_spec,
+    build_step4_consist_spec,
     create_consist_tracker,
     get_consist_storage_paths,
 )
@@ -640,10 +641,44 @@ def main():
     
         ##### Steps 4 (optional) -  run demand forecast       
         if run_demand_forecast:
-            prod_cons_demand_forecast(forecast_year, synthetic_firms_no_location_file,
-                                          producer_file, consumer_file, prod_forecast_file,
-                                          cons_forecast_file, mesozone_to_faf_file, sctg_group_file,
-                                          consumer_by_sctg_filehead, output_path)
+            step4_spec = build_step4_consist_spec(
+                output_path=output_path,
+                synthetic_firms_no_location_file=synthetic_firms_no_location_file,
+                producer_file=producer_file,
+                consumer_file=consumer_file,
+                prod_forecast_file=prod_forecast_file,
+                cons_forecast_file=cons_forecast_file,
+                mesozone_to_faf_file=mesozone_to_faf_file,
+                sctg_group_file=sctg_group_file,
+                synthfirm_config=synthfirm_config,
+                consumer_by_sctg_filehead=consumer_by_sctg_filehead,
+                forecast_year=forecast_year,
+            )
+
+            def run_step4() -> None:
+                prod_cons_demand_forecast(
+                    forecast_year,
+                    synthetic_firms_no_location_file,
+                    producer_file,
+                    consumer_file,
+                    prod_forecast_file,
+                    cons_forecast_file,
+                    mesozone_to_faf_file,
+                    sctg_group_file,
+                    consumer_by_sctg_filehead,
+                    output_path,
+                )
+
+            synthfirm_scenario.run(
+                run_step4,
+                inputs=step4_spec["inputs"],
+                config=step4_spec["config"],
+                output_paths=step4_spec["output_paths"],
+                output_sets=step4_spec["output_sets"],
+                profile_file_schema=True,
+                cache_options=step4_spec["cache_options"],
+                execution_options=step4_spec["execution_options"],
+            )
     
         ##### Step 5 -  synthetic firm location generation
         if enable_firm_loc_generation:

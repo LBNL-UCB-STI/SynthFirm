@@ -333,7 +333,10 @@ schema metadata where it is useful. The parsed SynthFirm config is stored as
 Consist run config rather than as a normal input artifact.
 
 Each script execution creates a Consist scenario header tagged
-`full-execution`, with Steps 1-3 recorded as child runs under that scenario.
+`full-execution`, with Steps 1-4 recorded as child runs under that scenario.
+Step 4 is useful as a small configuration example: `forecast_year` is recorded
+as run config because it changes the forecast calculation and the forecast
+input files used by that step.
 By default, Consist writes state under the data root named by
 `ENVIRONMENT.file_path`, not under an individual scenario output directory. This
 keeps local serial runs in one provenance database:
@@ -346,6 +349,9 @@ keeps local serial runs in one provenance database:
 The run log prints a pasteable `consist shell --trust-db --db-path ...` command
 for the active database. These default paths can be overridden with
 `SYNTHFIRM_CONSIST_RUN_DIR` and `SYNTHFIRM_CONSIST_DB_PATH`.
+Tracked steps use `CacheOptions(cache_mode="overwrite")` by default so first
+teaching-slice runs are easy to inspect. To test cache-hit skip behavior
+locally, rerun the same config with `SYNTHFIRM_CONSIST_CACHE_MODE=reuse`.
 
 Recorded artifact paths use Consist mounts. Files under `ENVIRONMENT.file_path`
 are recorded as `data://...`, and files under the SynthFirm checkout are
@@ -378,13 +384,14 @@ keys appear in multiple steps.
 
 The repository also includes curated schema classes in
 `utils/consist_schemas.py`. These started from Austin run schema stubs and add
-column descriptions plus conservative relationships for the main Step 1-3
+column descriptions plus conservative relationships for the main Step 1-4
 outputs. `utils.consist_tracking.create_consist_tracker` registers those
 schemas with the Consist tracker so they are available for Consist views. The
-Step 1-3 Consist specs attach the schemas to the main declared outputs with
+Step 1-4 Consist specs attach the schemas to the main declared outputs with
 `ArtifactSpec`, including `synthetic_firms`, `producer`, `wholesaler`,
-`consumer`, and the producer/consumer SCTG output sets. Untyped inputs and
-secondary outputs still rely on automatic file-schema profiling.
+`consumer`, forecasted firm/producer/consumer outputs, and the
+producer/consumer SCTG output sets. Untyped inputs and secondary outputs still
+rely on automatic file-schema profiling.
 
 To promote another artifact to a first-class schema:
 

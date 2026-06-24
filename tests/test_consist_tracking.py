@@ -209,7 +209,8 @@ def test_synthfirm_config_payload_uses_config_contents_not_absolute_path(tmp_pat
     assert str(tmp_path) not in str(payload)
 
 
-def test_step1_consist_spec_without_enterprises(tmp_path):
+def test_step1_consist_spec_without_enterprises(monkeypatch, tmp_path):
+    monkeypatch.delenv("SYNTHFIRM_CONSIST_CACHE_MODE", raising=False)
     synthfirm_config = {"source_name": "test.conf", "sections": {}}
     spec = consist_tracking.build_step1_consist_spec(
         output_path=tmp_path,
@@ -352,6 +353,72 @@ def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
     assert spec["config"]["wholesalecostfactor"] == 1.25
 
 
+def test_step4_consist_spec_includes_forecast_year_config(monkeypatch, tmp_path):
+    monkeypatch.delenv("SYNTHFIRM_CONSIST_CACHE_MODE", raising=False)
+    synthfirm_config = {"source_name": "test.conf", "sections": {}}
+    spec = consist_tracking.build_step4_consist_spec(
+        output_path=tmp_path,
+        synthetic_firms_no_location_file=tmp_path / "synthetic_firms.csv",
+        producer_file=tmp_path / "synthetic_producers.csv",
+        consumer_file=tmp_path / "synthetic_consumers.csv",
+        prod_forecast_file=tmp_path / "total_commodity_production_2030.csv",
+        cons_forecast_file=tmp_path / "total_commodity_attraction_2030.csv",
+        mesozone_to_faf_file=tmp_path / "mesozone_to_faf.csv",
+        sctg_group_file=tmp_path / "sctg.csv",
+        synthfirm_config=synthfirm_config,
+        consumer_by_sctg_filehead=tmp_path / "nested" / "consumers_sctg",
+        forecast_year="2030",
+    )
+
+    assert set(spec["inputs"]) == {
+        "synthetic_firms",
+        "producer",
+        "consumer",
+        "prod_forecast_file",
+        "cons_forecast_file",
+        "mesozone_to_faf_file",
+        "sctg_group_file",
+    }
+    assert spec["config"]["synthfirm_config"] == synthfirm_config
+    assert spec["config"]["forecast_year"] == "2030"
+    assert spec["config"]["forecast_tonnage_column"] == "tons_2030"
+    assert set(spec["output_paths"]) == {
+        "forecasted_synthetic_firms",
+        "forecasted_producer",
+        "forecasted_consumer",
+    }
+    assert spec["output_paths"]["forecasted_synthetic_firms"].schema is SyntheticFirms
+    assert spec["output_paths"]["forecasted_producer"].schema is SyntheticProducers
+    assert spec["output_paths"]["forecasted_consumer"].schema is SyntheticConsumers
+    output_set = spec["output_sets"]["forecasted_consumer_by_sctg"]
+    assert output_set.root == tmp_path / "nested"
+    assert output_set.include == "consumers_sctg*.csv"
+    assert output_set.schema is ConsumersBySctg
+    assert spec["execution_options"].input_binding == "paths"
+    assert spec["cache_options"].cache_mode == "overwrite"
+
+
+def test_consist_cache_mode_env_override(monkeypatch, tmp_path):
+    monkeypatch.setenv("SYNTHFIRM_CONSIST_CACHE_MODE", "reuse")
+    synthfirm_config = {"source_name": "test.conf", "sections": {}}
+
+    spec = consist_tracking.build_step1_consist_spec(
+        output_path=tmp_path,
+        cbp_file=tmp_path / "cbp.csv",
+        mzemp_file=tmp_path / "mzemp.csv",
+        mesozone_to_faf_file=tmp_path / "mesozone_to_faf.csv",
+        c_n6_n6io_sctg_file=tmp_path / "crosswalk.csv",
+        employment_per_firm_file=tmp_path / "emp.csv",
+        employment_per_firm_gapfill_file=tmp_path / "gapfill.csv",
+        zip_to_tract_file=tmp_path / "zip.csv",
+        synthfirm_config=synthfirm_config,
+        assign_enterprises=False,
+    )
+
+    assert spec["cache_options"].cache_mode == "reuse"
+    assert spec["cache_options"].cache_hydration == "outputs-requested"
+
+
 def test_public_consist_helpers_have_docstrings():
     public_helpers = [
         consist_tracking.get_consist_storage_paths,
@@ -361,6 +428,7 @@ def test_public_consist_helpers_have_docstrings():
         consist_tracking.build_step1_consist_spec,
         consist_tracking.build_step2_consist_spec,
         consist_tracking.build_step3_consist_spec,
+        consist_tracking.build_step4_consist_spec,
     ]
 
     for helper in public_helpers:

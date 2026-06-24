@@ -79,6 +79,16 @@ def _nonempty(value: Any) -> bool:
     return bool(value) and str(value).strip() != ""
 
 
+def _cache_options() -> CacheOptions:
+    """Build cache options for tracked SynthFirm steps."""
+    cache_mode = os.environ.get("SYNTHFIRM_CONSIST_CACHE_MODE", "overwrite")
+    cache_hydration = "outputs-requested" if cache_mode == "reuse" else None
+    return CacheOptions(
+        cache_mode=cache_mode,
+        cache_hydration=cache_hydration,
+    )
+
+
 def get_consist_storage_paths(
     output_path: str | os.PathLike[str] | Path,
     *,
@@ -360,7 +370,7 @@ def build_step1_consist_spec(
             synthfirm_config,
             {"assign_enterprises": assign_enterprises},
         ),
-        "cache_options": CacheOptions(cache_mode="overwrite"),
+        "cache_options": _cache_options(),
         "execution_options": ExecutionOptions(input_binding="paths"),
     }
 
@@ -463,7 +473,7 @@ def build_step2_consist_spec(
             )
         },
         "config": _step_config(synthfirm_config),
-        "cache_options": CacheOptions(cache_mode="overwrite"),
+        "cache_options": _cache_options(),
         "execution_options": ExecutionOptions(input_binding="paths"),
     }
 
@@ -558,10 +568,98 @@ def build_step3_consist_spec(
                 schema=ConsumersBySctg,
             )
         },
-        "cache_options": CacheOptions(cache_mode="overwrite"),
+        "cache_options": _cache_options(),
         "execution_options": ExecutionOptions(input_binding="paths"),
         "config": _step_config(
             synthfirm_config,
             {"wholesalecostfactor": wholesalecostfactor},
+        ),
+    }
+
+
+def build_step4_consist_spec(
+    *,
+    output_path: str | os.PathLike[str] | Path,
+    synthetic_firms_no_location_file: str | os.PathLike[str] | Path,
+    producer_file: str | os.PathLike[str] | Path,
+    consumer_file: str | os.PathLike[str] | Path,
+    prod_forecast_file: str | os.PathLike[str] | Path,
+    cons_forecast_file: str | os.PathLike[str] | Path,
+    mesozone_to_faf_file: str | os.PathLike[str] | Path,
+    sctg_group_file: str | os.PathLike[str] | Path,
+    synthfirm_config: Mapping[str, Any],
+    consumer_by_sctg_filehead: str | os.PathLike[str] | Path,
+    forecast_year: str,
+) -> dict[str, Any]:
+    """Declare Consist inputs, config, and outputs for Step 4 demand forecast.
+
+    Parameters
+    ----------
+    output_path
+        Active SynthFirm output directory.
+    synthetic_firms_no_location_file, producer_file, consumer_file
+        Step 1-3 outputs that Step 4 reads and then overwrites with forecasted
+        firm, producer, and consumer records.
+    prod_forecast_file, cons_forecast_file
+        Production and consumption forecast inputs for ``forecast_year``.
+    mesozone_to_faf_file, sctg_group_file
+        Lookup inputs used to allocate and split forecasted consumers.
+    synthfirm_config
+        Parsed SynthFirm configuration payload stored as Consist run config.
+    consumer_by_sctg_filehead
+        File prefix used by Step 4 to write forecasted SCTG-group consumer CSVs.
+    forecast_year
+        Forecast year passed to the demand forecast model. This is stored as
+        run config because it changes model behavior and cache identity.
+
+    Returns
+    -------
+    dict[str, Any]
+        Consist run specification pieces consumed by ``ScenarioContext.run``.
+    """
+    consumer_head = _as_path(consumer_by_sctg_filehead)
+    return {
+        "inputs": {
+            "synthetic_firms": _as_path(synthetic_firms_no_location_file),
+            "producer": _as_path(producer_file),
+            "consumer": _as_path(consumer_file),
+            "prod_forecast_file": _as_path(prod_forecast_file),
+            "cons_forecast_file": _as_path(cons_forecast_file),
+            "mesozone_to_faf_file": _as_path(mesozone_to_faf_file),
+            "sctg_group_file": _as_path(sctg_group_file),
+        },
+        "output_paths": {
+            "forecasted_synthetic_firms": ArtifactSpec(
+                path=_as_path(synthetic_firms_no_location_file),
+                schema=SyntheticFirms,
+                profile_file_schema=True,
+            ),
+            "forecasted_producer": ArtifactSpec(
+                path=_as_path(producer_file),
+                schema=SyntheticProducers,
+                profile_file_schema=True,
+            ),
+            "forecasted_consumer": ArtifactSpec(
+                path=_as_path(consumer_file),
+                schema=SyntheticConsumers,
+                profile_file_schema=True,
+            ),
+        },
+        "output_sets": {
+            "forecasted_consumer_by_sctg": OutputSet(
+                root=consumer_head.parent,
+                include=f"{consumer_head.name}*.csv",
+                kind="forecasted-consumer-by-sctg",
+                schema=ConsumersBySctg,
+            )
+        },
+        "cache_options": _cache_options(),
+        "execution_options": ExecutionOptions(input_binding="paths"),
+        "config": _step_config(
+            synthfirm_config,
+            {
+                "forecast_year": forecast_year,
+                "forecast_tonnage_column": f"tons_{forecast_year}",
+            },
         ),
     }
