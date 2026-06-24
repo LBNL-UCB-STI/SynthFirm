@@ -538,8 +538,11 @@ def synthetic_firm_generation(cbp_file, mzemp_file, mesozone_to_faf_file,
             counties_msa = counties_msa[counties_msa['MSA Code'].isin(study_msas)]
             msa_geo = counties_msa.dissolve(by='MSA Code', as_index=False)
 
+            national_faf_count = (
+                len(faf_geo_national) if faf_geo_national is not None else 'not available'
+            )
             print(f'  Geometries: {len(faf_geo)} FAF zones in run, '
-                  f'{len(faf_geo_national)} FAF zones nationally, '
+                  f'{national_faf_count} FAF zones nationally, '
                   f'{len(msa_geo)} study-area MSAs')
 
         # ============================================================
