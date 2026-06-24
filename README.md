@@ -349,9 +349,8 @@ keeps local serial runs in one provenance database:
 The run log prints a pasteable `consist shell --trust-db --db-path ...` command
 for the active database. These default paths can be overridden with
 `SYNTHFIRM_CONSIST_RUN_DIR` and `SYNTHFIRM_CONSIST_DB_PATH`.
-Tracked steps use `CacheOptions(cache_mode="overwrite")` by default so first
-teaching-slice runs are easy to inspect. To test cache-hit skip behavior
-locally, rerun the same config with `SYNTHFIRM_CONSIST_CACHE_MODE=reuse`.
+Tracked steps use `CacheOptions(cache_mode="overwrite")` so teaching-slice runs
+are easy to inspect and do not depend on cache reuse.
 
 Recorded artifact paths use Consist mounts. Files under `ENVIRONMENT.file_path`
 are recorded as `data://...`, and files under the SynthFirm checkout are

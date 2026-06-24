@@ -81,12 +81,7 @@ def _nonempty(value: Any) -> bool:
 
 def _cache_options() -> CacheOptions:
     """Build cache options for tracked SynthFirm steps."""
-    cache_mode = os.environ.get("SYNTHFIRM_CONSIST_CACHE_MODE", "overwrite")
-    cache_hydration = "outputs-requested" if cache_mode == "reuse" else None
-    return CacheOptions(
-        cache_mode=cache_mode,
-        cache_hydration=cache_hydration,
-    )
+    return CacheOptions(cache_mode="overwrite")
 
 
 def get_consist_storage_paths(
