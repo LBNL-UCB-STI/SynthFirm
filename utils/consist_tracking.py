@@ -13,9 +13,18 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Mapping
 
-from consist import CacheOptions, ExecutionOptions, OutputSet, Tracker
+from consist import ArtifactSpec, CacheOptions, ExecutionOptions, OutputSet, Tracker
 
-from utils.consist_schemas import SYNTHFIRM_CONSIST_SCHEMAS
+from utils.consist_schemas import (
+    SYNTHFIRM_CONSIST_SCHEMAS,
+    ConsumersBySctg,
+    IoSummary,
+    ProducersBySctg,
+    SyntheticConsumers,
+    SyntheticFirms,
+    SyntheticProducers,
+    SyntheticWholesalers,
+)
 
 
 def _as_path(value: str | os.PathLike[str] | Path) -> Path:
@@ -72,29 +81,40 @@ def _nonempty(value: Any) -> bool:
 
 def get_consist_storage_paths(
     output_path: str | os.PathLike[str] | Path,
+    *,
+    storage_root: str | os.PathLike[str] | Path | None = None,
 ) -> tuple[Path, Path]:
     """Resolve the Consist run directory and provenance database path.
 
-    By default, Consist state lives under the active SynthFirm output
-    directory. Operators can override those locations when they need to place
-    provenance on a different disk or shared filesystem.
+    By default, Consist state lives under the SynthFirm data root that contains
+    scenario input, output, plot, and parameter directories. Operators can
+    override those locations when they need to place provenance on a different
+    disk or shared filesystem.
 
     Parameters
     ----------
     output_path
-        SynthFirm output directory for the active scenario.
+        SynthFirm output directory for the active scenario. When
+        ``storage_root`` is omitted, the parent of this directory is used as the
+        centralized Consist storage root.
+    storage_root
+        Optional directory for centralized Consist state.
 
     Returns
     -------
     tuple[pathlib.Path, pathlib.Path]
         Run directory and DuckDB provenance database path.
     """
-    base_path = _as_path(output_path)
+    base_path = (
+        _as_path(storage_root)
+        if storage_root is not None
+        else _as_path(output_path).parent
+    )
     run_dir = _env_path("SYNTHFIRM_CONSIST_RUN_DIR") or (
-        base_path / ".consist" / "runs"
+        base_path / "database" / "runs"
     )
     db_path = _env_path("SYNTHFIRM_CONSIST_DB_PATH") or (
-        base_path / ".consist" / "provenance.duckdb"
+        base_path / "database" / "provenance.duckdb"
     )
     return run_dir, db_path
 
@@ -160,7 +180,10 @@ def create_consist_tracker(
     resolved_code_root = (
         _as_path(code_root).resolve() if code_root is not None else Path.cwd().resolve()
     )
-    run_dir, db_path = get_consist_storage_paths(output_path)
+    run_dir, db_path = get_consist_storage_paths(
+        output_path,
+        storage_root=resolved_data_root,
+    )
     tracker = Tracker(
         run_dir=run_dir,
         db_path=db_path,
@@ -303,11 +326,15 @@ def build_step1_consist_spec(
         if _nonempty(us_county_map_file):
             inputs["us_county_map_file"] = _as_path(us_county_map_file)
 
-    output_paths: dict[str, Path] = {
-        "synthetic_firms": (
-            _as_path(synthetic_firms_no_location_file)
-            if synthetic_firms_no_location_file
-            else output_root / "synthetic_firms.csv"
+    output_paths: dict[str, Path | ArtifactSpec] = {
+        "synthetic_firms": ArtifactSpec(
+            path=(
+                _as_path(synthetic_firms_no_location_file)
+                if synthetic_firms_no_location_file
+                else output_root / "synthetic_firms.csv"
+            ),
+            schema=SyntheticFirms,
+            profile_file_schema=True,
         ),
     }
     if assign_enterprises:
@@ -394,20 +421,32 @@ def build_step2_consist_spec(
             "sctg_group_file": _as_path(sctg_group_file),
         },
         "output_paths": {
-            "io_summary": (
-                _as_path(io_summary_file)
-                if io_summary_file
-                else output_root / "io_summary.csv"
+            "io_summary": ArtifactSpec(
+                path=(
+                    _as_path(io_summary_file)
+                    if io_summary_file
+                    else output_root / "io_summary.csv"
+                ),
+                schema=IoSummary,
+                profile_file_schema=True,
             ),
-            "wholesaler": (
-                _as_path(wholesaler_file)
-                if wholesaler_file
-                else output_root / "wholesaler.csv"
+            "wholesaler": ArtifactSpec(
+                path=(
+                    _as_path(wholesaler_file)
+                    if wholesaler_file
+                    else output_root / "wholesaler.csv"
+                ),
+                schema=SyntheticWholesalers,
+                profile_file_schema=True,
             ),
-            "producer": (
-                _as_path(producer_file)
-                if producer_file
-                else output_root / "producer.csv"
+            "producer": ArtifactSpec(
+                path=(
+                    _as_path(producer_file)
+                    if producer_file
+                    else output_root / "producer.csv"
+                ),
+                schema=SyntheticProducers,
+                profile_file_schema=True,
             ),
             "io_filtered": (
                 _as_path(io_filtered_file)
@@ -420,6 +459,7 @@ def build_step2_consist_spec(
                 root=producer_head.parent,
                 include=f"{producer_head.name}*.csv",
                 kind="producer-by-sctg",
+                schema=ProducersBySctg,
             )
         },
         "config": _step_config(synthfirm_config),
@@ -491,15 +531,23 @@ def build_step3_consist_spec(
             "io_filtered_file": _as_path(io_filtered_file),
         },
         "output_paths": {
-            "consumer": (
-                _as_path(consumer_file)
-                if consumer_file
-                else output_root / "consumer.csv"
+            "consumer": ArtifactSpec(
+                path=(
+                    _as_path(consumer_file)
+                    if consumer_file
+                    else output_root / "consumer.csv"
+                ),
+                schema=SyntheticConsumers,
+                profile_file_schema=True,
             ),
-            "sample_consumer": (
-                _as_path(sample_consumer_file)
-                if sample_consumer_file
-                else output_root / "sample_consumer.csv"
+            "sample_consumer": ArtifactSpec(
+                path=(
+                    _as_path(sample_consumer_file)
+                    if sample_consumer_file
+                    else output_root / "sample_consumer.csv"
+                ),
+                schema=SyntheticConsumers,
+                profile_file_schema=True,
             ),
         },
         "output_sets": {
@@ -507,6 +555,7 @@ def build_step3_consist_spec(
                 root=consumer_head.parent,
                 include=f"{consumer_head.name}*.csv",
                 kind="consumer-by-sctg",
+                schema=ConsumersBySctg,
             )
         },
         "cache_options": CacheOptions(cache_mode="overwrite"),

@@ -327,13 +327,23 @@ can inspect lineage, output artifacts, output sets, and file schemas when
 debugging or learning the run flow.
 The parsed SynthFirm config is stored as Consist run config, not as a normal
 input artifact.
+Each script execution also creates a Consist scenario header tagged
+`full-execution`. Steps 1-3 are recorded as child runs under that scenario;
+later enabled model steps still run inside the scenario block but are not yet
+tracked as individual Consist steps.
 
-By default, Consist writes state under the run output directory:
+By default, Consist writes state under the data root named by
+`ENVIRONMENT.file_path`, not under an individual scenario output directory.
+That gives local serial runs one centralized provenance database:
 
 ```text
-<output_path>/.consist/runs
-<output_path>/.consist/provenance.duckdb
+<data_root>/database/runs
+<data_root>/database/provenance.duckdb
 ```
+
+The run log prints a pasteable `consist shell --trust-db --db-path ...`
+command for the active database. Advanced users can override these locations
+with `SYNTHFIRM_CONSIST_RUN_DIR` and `SYNTHFIRM_CONSIST_DB_PATH`.
 
 Recorded artifact paths use Consist mounts. Files under `ENVIRONMENT.file_path`
 are recorded as `data://...`, and files under the SynthFirm checkout are
@@ -344,10 +354,10 @@ mounts such as `--mount data=/path/to/SynthFirm-data`.
 Inspect a recorded run with the Consist CLI:
 
 ```bash
-consist runs --db-path <output_path>/.consist/provenance.duckdb
-consist show <run_id> --db-path <output_path>/.consist/provenance.duckdb
-consist artifacts <run_id> --db-path <output_path>/.consist/provenance.duckdb
-consist lineage <artifact_key> --db-path <output_path>/.consist/provenance.duckdb
+consist runs --db-path <data_root>/database/provenance.duckdb
+consist show <run_id> --db-path <data_root>/database/provenance.duckdb
+consist artifacts <run_id> --db-path <data_root>/database/provenance.duckdb
+consist lineage <artifact_key> --db-path <data_root>/database/provenance.duckdb
 ```
 
 SynthFirm enables Consist file-schema profiling for this teaching slice. During
@@ -356,8 +366,8 @@ as `synthetic_firms`, `producer`, and `consumer`. That replaces hand-written
 summary files and makes the schema available immediately after the run:
 
 ```bash
-consist artifacts <run_id> --db-path <output_path>/.consist/provenance.duckdb
-consist schema export --artifact-id <artifact_id> --db-path <output_path>/.consist/provenance.duckdb --out schemas/<schema_name>.py
+consist artifacts <run_id> --db-path <data_root>/database/provenance.duckdb
+consist schema export --artifact-id <artifact_id> --db-path <data_root>/database/provenance.duckdb --out schemas/<schema_name>.py
 ```
 
 Use `artifacts <run_id>` to find the artifact ID for the specific output you
@@ -369,9 +379,10 @@ The repository also includes curated teaching-slice schemas in
 and add beginner-oriented descriptions plus conservative foreign keys for the
 main Step 1-3 outputs. `utils.consist_tracking.create_consist_tracker`
 registers those schemas with the Consist tracker so they are available for
-views and future schema-aware output declarations. Until Consist supports
-schemas directly on `output_paths`, SynthFirm still relies on automatic file
-schema profiles for the actual run artifacts.
+views. The Step 1-3 Consist specs also attach those schemas to the main
+declared outputs with `ArtifactSpec`, including `synthetic_firms`, `producer`,
+`wholesaler`, `consumer`, and the producer/consumer SCTG output sets. Untyped
+inputs and secondary outputs still rely on automatic file-schema profiling.
 
 If you inspect an older run that was created before automatic profiling was
 enabled, use `consist schema capture-file ...` to backfill a file schema while
@@ -382,7 +393,7 @@ For interactive inspection, open the shell and run `artifacts <run_id>`, then
 to inspect:
 
 ```bash
-consist shell --trust-db --db-path <output_path>/.consist/provenance.duckdb
+consist shell --trust-db --db-path <data_root>/database/provenance.duckdb
 ```
 
 Cache reuse is intentionally off in this first slice. The goal is clear
