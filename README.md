@@ -338,6 +338,15 @@ that file instead of receiving the value through Python state. This keeps the
 handoff visible in Consist: the cost factor is a normal Step 2 output and a
 normal Step 3 input.
 
+The Consist specs distinguish artifact roles from live file paths. A path such
+as `synthetic_firms.csv` is where bytes currently live; an artifact role such as
+`synthetic_firms` or `forecasted_synthetic_firms` is what those bytes mean in
+the pipeline. Because Step 4 overwrites some Step 1-3 CSV paths with forecasted
+outputs, later tracked steps bind their Consist inputs to upstream artifact refs
+whenever those refs are available. The legacy SynthFirm functions still receive
+ordinary path arguments, but those paths are now resolved by Consist runtime
+input binding from the same `inputs` mapping used for lineage.
+
 Each script execution creates a Consist scenario header tagged
 `full-execution`, with Steps 1-4 recorded as child runs under that scenario.
 Step 4 is useful as a small configuration example: `forecast_year` is recorded
@@ -446,3 +455,29 @@ Input hydration runs only when a step has a cache miss and needs to execute. A
 full all-hit replay can remain metadata-only, so recreating deleted terminal
 files after every step cache-hits should be handled with an explicit Consist
 output hydration or export step.
+
+When the rest of the pipeline is instrumented, treat the last tracked step that
+produces user-facing deliverables as the terminal materialization boundary.
+That step should declare every final file and final grouped directory as a
+Consist output, using `output_paths={...}` for named files and `OutputSet(...)`
+for grouped files. Intermediate steps can keep using
+`cache_hydration="inputs-missing"` so cache misses can restore their declared
+inputs before execution.
+
+Final deliverables need one additional rule: if the terminal step is a cache
+hit and its Python body is skipped, the integration must still ask Consist to
+put the cached deliverables back on disk. There are two acceptable patterns:
+
+- Use Consist's cached-output hydration policy for the terminal step, for
+  example `cache_hydration="outputs-requested"` with the final `output_paths`
+  and final `OutputSet` declarations.
+- Or, after the terminal step returns, call Consist's historical output
+  hydration API for the cache-hit run, selecting the final output keys and
+  hydrating them under the data root.
+
+In either pattern, the key idea is that the final products must be declared as
+Consist outputs at the terminal boundary. Cache hits then mean "skip
+recomputing, but still materialize the final deliverables," instead of
+"metadata only." The current Step 1-4 teaching slice does not do this for the
+whole SynthFirm model yet because later downstream outputs are still outside
+the tracked Consist boundary.

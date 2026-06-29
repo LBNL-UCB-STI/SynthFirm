@@ -2,7 +2,12 @@ from pathlib import Path
 import configparser
 import inspect
 
-from consist import ArtifactSpec, CacheOptions
+from consist import (
+    ArtifactSpec,
+    CacheOptions,
+    ExecutionOptions,
+    ref as consist_ref,
+)
 from consist.models.artifact_schema import ArtifactSchemaObservation
 from sqlmodel import Session, select
 
@@ -469,6 +474,7 @@ def test_step2_consist_spec_includes_producer_by_sctg_output_set(tmp_path):
         producer_by_sctg_filehead=tmp_path / "nested" / "prods_sctg",
     )
 
+    assert spec["inputs"]["synthetic_firms"] == tmp_path / "synthetic_firms.csv"
     assert set(spec["output_paths"]) == {
         "io_summary",
         "wholesaler",
@@ -491,6 +497,120 @@ def test_step2_consist_spec_includes_producer_by_sctg_output_set(tmp_path):
     assert spec["config"]["synthfirm_config"] == synthfirm_config
 
 
+def test_consist_input_binding_restores_stale_same_path_artifact(tmp_path):
+    data_root = tmp_path / "data"
+    output_path = data_root / "outputs_Austin"
+    synthetic_firms = output_path / "synthetic_firms.csv"
+    observed = output_path / "observed.csv"
+    output_path.mkdir(parents=True)
+
+    tracker = consist_tracking.create_consist_tracker(
+        output_path,
+        data_root=data_root,
+        code_root=tmp_path,
+    )
+
+    def write_baseline() -> None:
+        synthetic_firms.write_text("id,value\n1,baseline\n", encoding="utf-8")
+
+    baseline = tracker.run(
+        write_baseline,
+        output_paths={"synthetic_firms": synthetic_firms},
+        cache_options=CacheOptions(cache_mode="overwrite"),
+    )
+    recovery_root = consist_tracking.get_consist_recovery_root(
+        output_path,
+        storage_root=data_root,
+    )
+    consist_tracking.archive_consist_run_outputs(
+        tracker,
+        baseline.run.id,
+        recovery_root,
+        output_keys=["synthetic_firms"],
+    )
+    baseline_outputs = tracker.get_run_outputs(baseline.run.id)
+
+    synthetic_firms.write_text("id,value\n1,forecasted\n", encoding="utf-8")
+
+    def read_bound_input(synthetic_firms: Path) -> None:
+        observed.write_text(synthetic_firms.read_text(encoding="utf-8"))
+
+    tracker.run(
+        read_bound_input,
+        inputs={"synthetic_firms": baseline_outputs["synthetic_firms"]},
+        output_paths={"observed": observed},
+        cache_options=CacheOptions(
+            cache_mode="overwrite",
+            cache_hydration="inputs-missing",
+            validate_materialized_inputs=True,
+        ),
+        execution_options=ExecutionOptions(input_binding="paths"),
+    )
+
+    assert observed.read_text(encoding="utf-8") == "id,value\n1,baseline\n"
+
+
+def test_step2_consist_spec_accepts_synthetic_firms_artifact_input(tmp_path):
+    synthfirm_config = {"source_name": "test.conf", "sections": {}}
+    synthetic_firms_input = tmp_path / "archive" / "baseline_firms.csv"
+
+    spec = consist_tracking.build_step2_consist_spec(
+        output_path=tmp_path,
+        c_n6_n6io_sctg_file=tmp_path / "crosswalk.csv",
+        synthetic_firms_no_location_file=tmp_path / "synthetic_firms.csv",
+        upstream_artifacts={"synthetic_firms": synthetic_firms_input},
+        mesozone_to_faf_file=tmp_path / "mesozone_to_faf.csv",
+        BEA_io_2017_file=tmp_path / "bea.csv",
+        agg_unit_cost_file=tmp_path / "unitcost.csv",
+        prod_by_zone_file=tmp_path / "prod_by_zone.csv",
+        sctg_group_file=tmp_path / "sctg.csv",
+        synthfirm_config=synthfirm_config,
+        producer_by_sctg_filehead=tmp_path / "nested" / "prods_sctg",
+    )
+
+    assert spec["inputs"]["synthetic_firms"] == synthetic_firms_input
+    assert "synthetic_firms_no_location_file" not in spec["inputs"]
+
+
+def test_step2_consist_spec_uses_artifact_input_without_resolving_path(
+    tmp_path,
+):
+    data_root = tmp_path / "data"
+    output_path = data_root / "outputs_Austin"
+    output_csv = output_path / "synthetic_firms.csv"
+    output_path.mkdir(parents=True)
+    tracker = consist_tracking.create_consist_tracker(
+        output_path,
+        data_root=data_root,
+        code_root=tmp_path,
+    )
+
+    def write_output() -> None:
+        output_csv.write_text("id,value\n1,baseline\n", encoding="utf-8")
+
+    step1_result = tracker.run(
+        write_output,
+        output_paths={"synthetic_firms": output_csv},
+        cache_options=CacheOptions(cache_mode="overwrite"),
+    )
+    synthetic_firms_input = consist_ref(step1_result, "synthetic_firms")
+
+    spec = consist_tracking.build_step2_consist_spec(
+        output_path=output_path,
+        c_n6_n6io_sctg_file=tmp_path / "crosswalk.csv",
+        upstream_artifacts={"synthetic_firms": synthetic_firms_input},
+        mesozone_to_faf_file=tmp_path / "mesozone_to_faf.csv",
+        BEA_io_2017_file=tmp_path / "bea.csv",
+        agg_unit_cost_file=tmp_path / "unitcost.csv",
+        prod_by_zone_file=tmp_path / "prod_by_zone.csv",
+        sctg_group_file=tmp_path / "sctg.csv",
+        synthfirm_config={"source_name": "test.conf", "sections": {}},
+        producer_by_sctg_filehead=output_path / "nested" / "prods_sctg",
+    )
+
+    assert spec["inputs"]["synthetic_firms"] == synthetic_firms_input
+
+
 def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
     synthfirm_config = {"source_name": "test.conf", "sections": {}}
     spec = consist_tracking.build_step3_consist_spec(
@@ -509,7 +629,10 @@ def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
         consumer_by_sctg_filehead=tmp_path / "nested" / "consumers_sctg",
     )
 
-    assert "wholesale_cost_factor_file" in spec["inputs"]
+    assert spec["inputs"]["synthetic_firms"] == tmp_path / "synthetic_firms.csv"
+    assert spec["inputs"]["wholesale_cost_factor"] == (
+        tmp_path / "wholesale_cost_factor.csv"
+    )
     assert set(spec["output_paths"]) == {
         "consumer",
         "sample_consumer",
@@ -522,6 +645,46 @@ def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
     assert output_set.schema is ConsumersBySctg
     assert spec["config"]["synthfirm_config"] == synthfirm_config
     assert "wholesalecostfactor" not in spec["config"]
+
+
+def test_step3_consist_spec_accepts_upstream_artifact_inputs(tmp_path):
+    synthfirm_config = {"source_name": "test.conf", "sections": {}}
+    synthetic_firms_input = tmp_path / "archive" / "synthetic_firms.csv"
+    wholesaler_input = tmp_path / "archive" / "wholesaler.csv"
+    producer_input = tmp_path / "archive" / "producer.csv"
+    io_filtered_input = tmp_path / "archive" / "io_filtered.csv"
+    wholesale_cost_factor_input = tmp_path / "archive" / "wholesale_cost_factor.csv"
+
+    spec = consist_tracking.build_step3_consist_spec(
+        output_path=tmp_path,
+        synthetic_firms_no_location_file=tmp_path / "synthetic_firms.csv",
+        mesozone_to_faf_file=tmp_path / "mesozone_to_faf.csv",
+        c_n6_n6io_sctg_file=tmp_path / "crosswalk.csv",
+        agg_unit_cost_file=tmp_path / "unitcost.csv",
+        cons_by_zone_file=tmp_path / "cons_by_zone.csv",
+        sctg_group_file=tmp_path / "sctg.csv",
+        wholesaler_file=tmp_path / "wholesaler.csv",
+        producer_file=tmp_path / "producer.csv",
+        io_filtered_file=tmp_path / "io_filtered.csv",
+        wholesale_cost_factor_file=tmp_path / "wholesale_cost_factor.csv",
+        upstream_artifacts={
+            "synthetic_firms": synthetic_firms_input,
+            "wholesaler": wholesaler_input,
+            "producer": producer_input,
+            "io_filtered": io_filtered_input,
+            "wholesale_cost_factor": wholesale_cost_factor_input,
+        },
+        synthfirm_config=synthfirm_config,
+        consumer_by_sctg_filehead=tmp_path / "nested" / "consumers_sctg",
+    )
+
+    assert spec["inputs"]["synthetic_firms"] == synthetic_firms_input
+    assert spec["inputs"]["wholesaler"] == wholesaler_input
+    assert spec["inputs"]["producer"] == producer_input
+    assert spec["inputs"]["io_filtered"] == io_filtered_input
+    assert spec["inputs"]["wholesale_cost_factor"] == wholesale_cost_factor_input
+    assert "synthetic_firms_no_location_file" not in spec["inputs"]
+    assert "wholesale_cost_factor_file" not in spec["inputs"]
 
 
 def test_step4_consist_spec_includes_forecast_year_config(tmp_path):
@@ -569,6 +732,36 @@ def test_step4_consist_spec_includes_forecast_year_config(tmp_path):
     assert spec["cache_options"].cache_hydration == "inputs-missing"
     assert spec["cache_options"].validate_materialized_inputs is True
     assert spec["cache_options"].cache_epoch == 2
+
+
+def test_step4_consist_spec_accepts_baseline_artifact_inputs(tmp_path):
+    synthfirm_config = {"source_name": "test.conf", "sections": {}}
+    synthetic_firms_input = tmp_path / "archive" / "baseline_firms.csv"
+    producer_input = tmp_path / "archive" / "baseline_producer.csv"
+    consumer_input = tmp_path / "archive" / "baseline_consumer.csv"
+
+    spec = consist_tracking.build_step4_consist_spec(
+        output_path=tmp_path,
+        synthetic_firms_no_location_file=tmp_path / "synthetic_firms.csv",
+        producer_file=tmp_path / "producer.csv",
+        consumer_file=tmp_path / "consumer.csv",
+        upstream_artifacts={
+            "synthetic_firms": synthetic_firms_input,
+            "producer": producer_input,
+            "consumer": consumer_input,
+        },
+        prod_forecast_file=tmp_path / "prod_forecast.csv",
+        cons_forecast_file=tmp_path / "cons_forecast.csv",
+        mesozone_to_faf_file=tmp_path / "mesozone_to_faf.csv",
+        sctg_group_file=tmp_path / "sctg.csv",
+        synthfirm_config=synthfirm_config,
+        consumer_by_sctg_filehead=tmp_path / "nested" / "consumers_sctg",
+        forecast_year="2040",
+    )
+
+    assert spec["inputs"]["synthetic_firms"] == synthetic_firms_input
+    assert spec["inputs"]["producer"] == producer_input
+    assert spec["inputs"]["consumer"] == consumer_input
 
 
 def test_public_consist_helpers_have_docstrings():

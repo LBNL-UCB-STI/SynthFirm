@@ -45,6 +45,20 @@ class Logger:
         self.log.flush()
 
 
+def log_consist_step_status(step_name, result):
+    """Print whether a tracked Consist step executed or reused cached outputs."""
+    if result.cache_hit:
+        print(
+            f"Consist {step_name}: cache hit; skipped execution "
+            f"(run_id={result.run.id})"
+        )
+    else:
+        print(
+            f"Consist {step_name}: cache miss; executed "
+            f"(run_id={result.run.id})"
+        )
+
+
 def main():
     des = """
     SynthFirm Business-to-business (B2B) flow generation"
@@ -494,6 +508,13 @@ def main():
         config=synthfirm_scenario_config,
         tags=["synthfirm", "full-execution"],
     ) as synthfirm_scenario:
+        baseline_synthetic_firms = None
+        synthetic_wholesaler = None
+        synthetic_producer = None
+        io_filtered = None
+        wholesale_cost_factor = None
+        synthetic_consumer = None
+
         ##### Step 1 -  synthetic firm generation
         if run_firm_generation:
             step1_spec = build_step1_consist_spec(
@@ -547,12 +568,15 @@ def main():
                 cache_options=step1_spec["cache_options"],
                 execution_options=step1_spec["execution_options"],
             )
+            log_consist_step_status("Step 1 firm generation", step1_result)
             archive_consist_run_outputs(
                 tracker,
                 step1_result.run.id,
                 consist_recovery_root,
                 output_keys=step1_spec["output_paths"],
             )
+            step1_outputs = tracker.get_run_outputs(step1_result.run.id)
+            baseline_synthetic_firms = step1_outputs["synthetic_firms"]
 
         ##### Steps 2 and 3 -  synthetic producer and consumer generation        
         if run_producer_consumer_generation:
@@ -566,6 +590,11 @@ def main():
                 wholesale_cost_factor_file=wholesale_cost_factor_file,
                 c_n6_n6io_sctg_file=c_n6_n6io_sctg_file,
                 synthetic_firms_no_location_file=synthetic_firms_no_location_file,
+                upstream_artifacts=(
+                    {"synthetic_firms": baseline_synthetic_firms}
+                    if baseline_synthetic_firms is not None
+                    else None
+                ),
                 mesozone_to_faf_file=mesozone_to_faf_file,
                 BEA_io_2017_file=BEA_io_2017_file,
                 agg_unit_cost_file=agg_unit_cost_file,
@@ -575,10 +604,10 @@ def main():
                 producer_by_sctg_filehead=producer_by_sctg_filehead,
             )
 
-            def run_step2() -> None:
+            def run_step2(synthetic_firms: Path) -> None:
                 producer_generation(
                     c_n6_n6io_sctg_file,
-                    synthetic_firms_no_location_file,
+                    synthetic_firms,
                     mesozone_to_faf_file,
                     BEA_io_2017_file,
                     agg_unit_cost_file,
@@ -603,12 +632,18 @@ def main():
                 cache_options=step2_spec["cache_options"],
                 execution_options=step2_spec["execution_options"],
             )
+            log_consist_step_status("Step 2 producer generation", step2_result)
             archive_consist_run_outputs(
                 tracker,
                 step2_result.run.id,
                 consist_recovery_root,
                 output_keys=step2_spec["output_paths"],
             )
+            step2_outputs = tracker.get_run_outputs(step2_result.run.id)
+            synthetic_wholesaler = step2_outputs["wholesaler"]
+            synthetic_producer = step2_outputs["producer"]
+            io_filtered = step2_outputs["io_filtered"]
+            wholesale_cost_factor = step2_outputs["wholesale_cost_factor"]
 
             step3_spec = build_step3_consist_spec(
                 output_path=output_path,
@@ -624,25 +659,42 @@ def main():
                 producer_file=producer_file,
                 io_filtered_file=io_filtered_file,
                 wholesale_cost_factor_file=wholesale_cost_factor_file,
+                upstream_artifacts={
+                    key: value
+                    for key, value in {
+                        "synthetic_firms": baseline_synthetic_firms,
+                        "wholesaler": synthetic_wholesaler,
+                        "producer": synthetic_producer,
+                        "io_filtered": io_filtered,
+                        "wholesale_cost_factor": wholesale_cost_factor,
+                    }.items()
+                    if value is not None
+                },
                 synthfirm_config=synthfirm_config,
                 consumer_by_sctg_filehead=consumer_by_sctg_filehead,
             )
 
-            def run_step3() -> None:
+            def run_step3(
+                synthetic_firms: Path,
+                wholesaler: Path,
+                producer: Path,
+                io_filtered: Path,
+                wholesale_cost_factor: Path,
+            ) -> None:
                 consumer_generation(
-                    synthetic_firms_no_location_file,
+                    synthetic_firms,
                     mesozone_to_faf_file,
                     c_n6_n6io_sctg_file,
                     agg_unit_cost_file,
                     cons_by_zone_file,
                     sctg_group_file,
-                    wholesaler_file,
-                    producer_file,
-                    io_filtered_file,
+                    wholesaler,
+                    producer,
+                    io_filtered,
                     consumer_file,
                     sample_consumer_file,
                     consumer_by_sctg_filehead,
-                    wholesale_cost_factor_file,
+                    wholesale_cost_factor,
                     output_path,
                 )
 
@@ -656,12 +708,15 @@ def main():
                 cache_options=step3_spec["cache_options"],
                 execution_options=step3_spec["execution_options"],
             )
+            log_consist_step_status("Step 3 consumer generation", step3_result)
             archive_consist_run_outputs(
                 tracker,
                 step3_result.run.id,
                 consist_recovery_root,
                 output_keys=step3_spec["output_paths"],
             )
+            step3_outputs = tracker.get_run_outputs(step3_result.run.id)
+            synthetic_consumer = step3_outputs["consumer"]
     
         ##### Steps 4 (optional) -  run demand forecast       
         if run_demand_forecast:
@@ -670,6 +725,15 @@ def main():
                 synthetic_firms_no_location_file=synthetic_firms_no_location_file,
                 producer_file=producer_file,
                 consumer_file=consumer_file,
+                upstream_artifacts={
+                    key: value
+                    for key, value in {
+                        "synthetic_firms": baseline_synthetic_firms,
+                        "producer": synthetic_producer,
+                        "consumer": synthetic_consumer,
+                    }.items()
+                    if value is not None
+                },
                 prod_forecast_file=prod_forecast_file,
                 cons_forecast_file=cons_forecast_file,
                 mesozone_to_faf_file=mesozone_to_faf_file,
@@ -679,12 +743,16 @@ def main():
                 forecast_year=forecast_year,
             )
 
-            def run_step4() -> None:
+            def run_step4(
+                synthetic_firms: Path,
+                producer: Path,
+                consumer: Path,
+            ) -> None:
                 prod_cons_demand_forecast(
                     forecast_year,
-                    synthetic_firms_no_location_file,
-                    producer_file,
-                    consumer_file,
+                    synthetic_firms,
+                    producer,
+                    consumer,
                     prod_forecast_file,
                     cons_forecast_file,
                     mesozone_to_faf_file,
@@ -703,6 +771,7 @@ def main():
                 cache_options=step4_spec["cache_options"],
                 execution_options=step4_spec["execution_options"],
             )
+            log_consist_step_status("Step 4 demand forecast", step4_result)
             archive_consist_run_outputs(
                 tracker,
                 step4_result.run.id,

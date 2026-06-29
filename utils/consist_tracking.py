@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from consist import ArtifactSpec, CacheOptions, ExecutionOptions, OutputSet, Tracker
+from consist.types import ArtifactRef
 
 from utils.consist_schemas import (
     SYNTHFIRM_CONSIST_SCHEMAS,
@@ -41,6 +42,23 @@ def _as_path(value: str | os.PathLike[str] | Path) -> Path:
         The normalized path object.
     """
     return value if isinstance(value, Path) else Path(value)
+
+
+def _input_ref(
+    upstream_artifacts: Mapping[str, ArtifactRef] | None,
+    role: str,
+    fallback_path: str | os.PathLike[str] | Path | None,
+    *,
+    label: str,
+) -> ArtifactRef:
+    """Return the Consist input reference for an upstream artifact role."""
+    if upstream_artifacts is not None and role in upstream_artifacts:
+        return upstream_artifacts[role]
+    if fallback_path is None:
+        raise ValueError(
+            f"{label} needs either an upstream artifact input or a fallback path."
+        )
+    return _as_path(fallback_path)
 
 
 def _env_path(name: str) -> Path | None:
@@ -456,7 +474,8 @@ def build_step2_consist_spec(
     io_filtered_file: str | os.PathLike[str] | Path | None = None,
     wholesale_cost_factor_file: str | os.PathLike[str] | Path | None = None,
     c_n6_n6io_sctg_file: str | os.PathLike[str] | Path,
-    synthetic_firms_no_location_file: str | os.PathLike[str] | Path,
+    synthetic_firms_no_location_file: str | os.PathLike[str] | Path | None = None,
+    upstream_artifacts: Mapping[str, ArtifactRef] | None = None,
     mesozone_to_faf_file: str | os.PathLike[str] | Path,
     BEA_io_2017_file: str | os.PathLike[str] | Path,
     agg_unit_cost_file: str | os.PathLike[str] | Path,
@@ -476,6 +495,10 @@ def build_step2_consist_spec(
         Single-file Step 2 output artifacts.
     c_n6_n6io_sctg_file, synthetic_firms_no_location_file
         Step 2 inputs from parameters and Step 1.
+    upstream_artifacts
+        Optional mapping of upstream Consist artifact roles to artifact refs.
+        When ``synthetic_firms`` is present, it is used for Consist lineage and
+        runtime path binding instead of ``synthetic_firms_no_location_file``.
     mesozone_to_faf_file, BEA_io_2017_file, agg_unit_cost_file
         Additional Step 2 input files.
     prod_by_zone_file, sctg_group_file
@@ -492,12 +515,16 @@ def build_step2_consist_spec(
     """
     output_root = _as_path(output_path)
     producer_head = _as_path(producer_by_sctg_filehead)
+    synthetic_firms_ref = _input_ref(
+        upstream_artifacts,
+        "synthetic_firms",
+        synthetic_firms_no_location_file,
+        label="synthetic_firms",
+    )
     return {
         "inputs": {
             "c_n6_n6io_sctg_file": _as_path(c_n6_n6io_sctg_file),
-            "synthetic_firms_no_location_file": _as_path(
-                synthetic_firms_no_location_file
-            ),
+            "synthetic_firms": synthetic_firms_ref,
             "mesozone_to_faf_file": _as_path(mesozone_to_faf_file),
             "BEA_io_2017_file": _as_path(BEA_io_2017_file),
             "agg_unit_cost_file": _as_path(agg_unit_cost_file),
@@ -562,16 +589,17 @@ def build_step3_consist_spec(
     output_path: str | os.PathLike[str] | Path,
     consumer_file: str | os.PathLike[str] | Path | None = None,
     sample_consumer_file: str | os.PathLike[str] | Path | None = None,
-    synthetic_firms_no_location_file: str | os.PathLike[str] | Path,
+    synthetic_firms_no_location_file: str | os.PathLike[str] | Path | None = None,
     mesozone_to_faf_file: str | os.PathLike[str] | Path,
     c_n6_n6io_sctg_file: str | os.PathLike[str] | Path,
     agg_unit_cost_file: str | os.PathLike[str] | Path,
     cons_by_zone_file: str | os.PathLike[str] | Path,
     sctg_group_file: str | os.PathLike[str] | Path,
-    wholesaler_file: str | os.PathLike[str] | Path,
-    producer_file: str | os.PathLike[str] | Path,
-    io_filtered_file: str | os.PathLike[str] | Path,
-    wholesale_cost_factor_file: str | os.PathLike[str] | Path,
+    wholesaler_file: str | os.PathLike[str] | Path | None = None,
+    producer_file: str | os.PathLike[str] | Path | None = None,
+    io_filtered_file: str | os.PathLike[str] | Path | None = None,
+    wholesale_cost_factor_file: str | os.PathLike[str] | Path | None = None,
+    upstream_artifacts: Mapping[str, ArtifactRef] | None = None,
     synthfirm_config: Mapping[str, Any],
     consumer_by_sctg_filehead: str | os.PathLike[str] | Path,
 ) -> dict[str, Any]:
@@ -585,6 +613,11 @@ def build_step3_consist_spec(
         Single-file Step 3 output artifacts.
     synthetic_firms_no_location_file, mesozone_to_faf_file
         Step 3 inputs from Step 1 and scenario inputs.
+    upstream_artifacts
+        Optional mapping of upstream Consist artifact roles to artifact refs.
+        Entries such as ``synthetic_firms``, ``producer``, and
+        ``wholesale_cost_factor`` are used for Consist lineage and runtime path
+        binding instead of the corresponding fallback ``*_file`` paths.
     c_n6_n6io_sctg_file, agg_unit_cost_file, cons_by_zone_file
         Parameter files used by consumer generation.
     sctg_group_file
@@ -602,20 +635,48 @@ def build_step3_consist_spec(
     """
     output_root = _as_path(output_path)
     consumer_head = _as_path(consumer_by_sctg_filehead)
+    synthetic_firms_ref = _input_ref(
+        upstream_artifacts,
+        "synthetic_firms",
+        synthetic_firms_no_location_file,
+        label="synthetic_firms",
+    )
+    wholesaler_ref = _input_ref(
+        upstream_artifacts,
+        "wholesaler",
+        wholesaler_file,
+        label="wholesaler",
+    )
+    producer_ref = _input_ref(
+        upstream_artifacts,
+        "producer",
+        producer_file,
+        label="producer",
+    )
+    io_filtered_ref = _input_ref(
+        upstream_artifacts,
+        "io_filtered",
+        io_filtered_file,
+        label="io_filtered",
+    )
+    wholesale_cost_factor_ref = _input_ref(
+        upstream_artifacts,
+        "wholesale_cost_factor",
+        wholesale_cost_factor_file,
+        label="wholesale_cost_factor",
+    )
     return {
         "inputs": {
-            "synthetic_firms_no_location_file": _as_path(
-                synthetic_firms_no_location_file
-            ),
+            "synthetic_firms": synthetic_firms_ref,
             "mesozone_to_faf_file": _as_path(mesozone_to_faf_file),
             "c_n6_n6io_sctg_file": _as_path(c_n6_n6io_sctg_file),
             "agg_unit_cost_file": _as_path(agg_unit_cost_file),
             "cons_by_zone_file": _as_path(cons_by_zone_file),
             "sctg_group_file": _as_path(sctg_group_file),
-            "wholesaler_file": _as_path(wholesaler_file),
-            "producer_file": _as_path(producer_file),
-            "io_filtered_file": _as_path(io_filtered_file),
-            "wholesale_cost_factor_file": _as_path(wholesale_cost_factor_file),
+            "wholesaler": wholesaler_ref,
+            "producer": producer_ref,
+            "io_filtered": io_filtered_ref,
+            "wholesale_cost_factor": wholesale_cost_factor_ref,
         },
         "output_paths": {
             "consumer": ArtifactSpec(
@@ -654,9 +715,10 @@ def build_step3_consist_spec(
 def build_step4_consist_spec(
     *,
     output_path: str | os.PathLike[str] | Path,
-    synthetic_firms_no_location_file: str | os.PathLike[str] | Path,
-    producer_file: str | os.PathLike[str] | Path,
-    consumer_file: str | os.PathLike[str] | Path,
+    synthetic_firms_no_location_file: str | os.PathLike[str] | Path | None = None,
+    producer_file: str | os.PathLike[str] | Path | None = None,
+    consumer_file: str | os.PathLike[str] | Path | None = None,
+    upstream_artifacts: Mapping[str, ArtifactRef] | None = None,
     prod_forecast_file: str | os.PathLike[str] | Path,
     cons_forecast_file: str | os.PathLike[str] | Path,
     mesozone_to_faf_file: str | os.PathLike[str] | Path,
@@ -674,6 +736,11 @@ def build_step4_consist_spec(
     synthetic_firms_no_location_file, producer_file, consumer_file
         Step 1-3 outputs that Step 4 reads and then overwrites with forecasted
         firm, producer, and consumer records.
+    upstream_artifacts
+        Optional mapping of upstream Consist artifact roles to artifact refs.
+        Entries for ``synthetic_firms``, ``producer``, and ``consumer``
+        preserve baseline artifact roles even though Step 4 writes forecasted
+        outputs back to the same live paths.
     prod_forecast_file, cons_forecast_file
         Production and consumption forecast inputs for ``forecast_year``.
     mesozone_to_faf_file, sctg_group_file
@@ -692,11 +759,29 @@ def build_step4_consist_spec(
         Consist run specification pieces consumed by ``ScenarioContext.run``.
     """
     consumer_head = _as_path(consumer_by_sctg_filehead)
+    synthetic_firms_ref = _input_ref(
+        upstream_artifacts,
+        "synthetic_firms",
+        synthetic_firms_no_location_file,
+        label="synthetic_firms",
+    )
+    producer_ref = _input_ref(
+        upstream_artifacts,
+        "producer",
+        producer_file,
+        label="producer",
+    )
+    consumer_ref = _input_ref(
+        upstream_artifacts,
+        "consumer",
+        consumer_file,
+        label="consumer",
+    )
     return {
         "inputs": {
-            "synthetic_firms": _as_path(synthetic_firms_no_location_file),
-            "producer": _as_path(producer_file),
-            "consumer": _as_path(consumer_file),
+            "synthetic_firms": synthetic_firms_ref,
+            "producer": producer_ref,
+            "consumer": consumer_ref,
             "prod_forecast_file": _as_path(prod_forecast_file),
             "cons_forecast_file": _as_path(cons_forecast_file),
             "mesozone_to_faf_file": _as_path(mesozone_to_faf_file),
