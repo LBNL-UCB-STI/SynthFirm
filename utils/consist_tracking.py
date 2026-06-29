@@ -193,9 +193,10 @@ def archive_consist_run_outputs(
     if run is not None and run.meta and run.meta.get("cache_hit") is True:
         return {}
 
+    run_recovery_root = _as_path(recovery_root) / run_id
     return tracker.archive_run_outputs(
         run_id,
-        _as_path(recovery_root),
+        run_recovery_root,
         keys=list(output_keys),
     )
 

@@ -366,14 +366,14 @@ stale. The tracked-step cache epoch is set to `2` so runs created before this
 archive-aware policy are not reused accidentally.
 
 After each tracked step, SynthFirm asks Consist to archive the declared
-single-file outputs under `<data_root>/database/archive`. This is what makes the
-Step 4 same-path forecast pattern recoverable: the baseline `synthetic_firms`,
-`producer`, and `consumer` files are copied to a recovery root before Step 4
-overwrites those live filenames with forecasted versions. Supporting tracked
-outputs such as `wholesale_cost_factor.csv` are archived the same way so later
-cache misses can recover the exact Step 2 handoff file. Output sets are still
-recorded as Consist `OutputSet` artifacts, but this first cache-aware pass only
-archives the main single-file outputs.
+single-file outputs under `<data_root>/database/archive/<run_id>/`. This is
+what makes the Step 4 same-path forecast pattern recoverable: the baseline
+`synthetic_firms`, `producer`, and `consumer` files are copied to a run-specific
+recovery root before Step 4 overwrites those live filenames with forecasted
+versions. Supporting tracked outputs such as `wholesale_cost_factor.csv` are
+archived the same way so later cache misses can recover the exact Step 2
+handoff file. Output sets are still recorded as Consist `OutputSet` artifacts,
+but this first cache-aware pass only archives the main single-file outputs.
 
 Recorded artifact paths use Consist mounts. Files under `ENVIRONMENT.file_path`
 are recorded as `data://...`, and files under the SynthFirm checkout are

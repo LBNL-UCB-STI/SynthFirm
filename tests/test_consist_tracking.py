@@ -186,11 +186,71 @@ def test_archive_consist_run_outputs_records_recovery_root(tmp_path):
         output_keys=["synthetic_firms"],
     )
 
-    archived_path = recovery_root / "outputs_Austin" / "synthetic_firms.csv"
+    archived_path = (
+        recovery_root
+        / result.run.id
+        / "outputs_Austin"
+        / "synthetic_firms.csv"
+    )
     assert archived == {"synthetic_firms": archived_path.resolve()}
     assert archived_path.read_text(encoding="utf-8") == "id,value\n1,baseline\n"
     artifact = tracker.get_run_outputs(result.run.id)["synthetic_firms"]
-    assert artifact.recovery_roots == [str(recovery_root.resolve())]
+    assert artifact.recovery_roots == [
+        str((recovery_root / result.run.id).resolve())
+    ]
+
+
+def test_archive_consist_run_outputs_namespaces_same_path_outputs_by_run(tmp_path):
+    data_root = tmp_path / "data"
+    output_path = data_root / "outputs_Austin"
+    output_csv = output_path / "synthetic_firms.csv"
+    output_path.mkdir(parents=True)
+
+    tracker = consist_tracking.create_consist_tracker(
+        output_path,
+        data_root=data_root,
+        code_root=tmp_path,
+    )
+
+    def write_baseline() -> None:
+        output_csv.write_text("id,value\n1,baseline\n", encoding="utf-8")
+
+    def write_forecast() -> None:
+        output_csv.write_text("id,value\n1,forecasted\n", encoding="utf-8")
+
+    baseline = tracker.run(
+        write_baseline,
+        output_paths={"synthetic_firms": output_csv},
+        cache_options=CacheOptions(cache_mode="overwrite"),
+    )
+    recovery_root = consist_tracking.get_consist_recovery_root(
+        output_path,
+        storage_root=data_root,
+    )
+    baseline_archive = consist_tracking.archive_consist_run_outputs(
+        tracker,
+        baseline.run.id,
+        recovery_root,
+        output_keys=["synthetic_firms"],
+    )
+
+    forecast = tracker.run(
+        write_forecast,
+        output_paths={"synthetic_firms": output_csv},
+        cache_options=CacheOptions(cache_mode="overwrite"),
+    )
+    forecast_archive = consist_tracking.archive_consist_run_outputs(
+        tracker,
+        forecast.run.id,
+        recovery_root,
+        output_keys=["synthetic_firms"],
+    )
+
+    baseline_path = baseline_archive["synthetic_firms"]
+    forecast_path = forecast_archive["synthetic_firms"]
+    assert baseline_path != forecast_path
+    assert baseline_path.read_text(encoding="utf-8") == "id,value\n1,baseline\n"
+    assert forecast_path.read_text(encoding="utf-8") == "id,value\n1,forecasted\n"
 
 
 def test_archive_consist_run_outputs_skips_cache_hit_runs(tmp_path):
@@ -240,7 +300,9 @@ def test_archive_consist_run_outputs_skips_cache_hit_runs(tmp_path):
 
     assert replay.cache_hit is True
     assert archived == {}
-    archived_path = recovery_root / "outputs_Austin" / "synthetic_firms.csv"
+    archived_path = (
+        recovery_root / first.run.id / "outputs_Austin" / "synthetic_firms.csv"
+    )
     assert archived_path.read_text(encoding="utf-8") == "id,value\n1,baseline\n"
 
 
