@@ -11,7 +11,7 @@ import os
 import shlex
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 from consist import ArtifactSpec, CacheOptions, ExecutionOptions, OutputSet, Tracker
 
@@ -81,7 +81,12 @@ def _nonempty(value: Any) -> bool:
 
 def _cache_options() -> CacheOptions:
     """Build cache options for tracked SynthFirm steps."""
-    return CacheOptions(cache_mode="overwrite")
+    return CacheOptions(
+        cache_mode="reuse",
+        cache_hydration="inputs-missing",
+        cache_epoch=2,
+        validate_materialized_inputs=True,
+    )
 
 
 def get_consist_storage_paths(
@@ -122,6 +127,77 @@ def get_consist_storage_paths(
         base_path / "database" / "provenance.duckdb"
     )
     return run_dir, db_path
+
+
+def get_consist_recovery_root(
+    output_path: str | os.PathLike[str] | Path,
+    *,
+    storage_root: str | os.PathLike[str] | Path | None = None,
+) -> Path:
+    """Resolve the archive root Consist uses to recover overwritten outputs.
+
+    Parameters
+    ----------
+    output_path
+        SynthFirm output directory for the active scenario. When
+        ``storage_root`` is omitted, the parent of this directory is used as the
+        centralized Consist storage root.
+    storage_root
+        Optional directory for centralized Consist state.
+
+    Returns
+    -------
+    pathlib.Path
+        Directory where tracked step outputs are copied after each run so later
+        cache misses can restore the correct lineage version even if SynthFirm
+        has overwritten the live output path.
+    """
+    base_path = (
+        _as_path(storage_root)
+        if storage_root is not None
+        else _as_path(output_path).parent
+    )
+    return base_path / "database" / "archive"
+
+
+def archive_consist_run_outputs(
+    tracker: Tracker,
+    run_id: str,
+    recovery_root: str | os.PathLike[str] | Path,
+    *,
+    output_keys: Iterable[str],
+) -> dict[str, Path]:
+    """Archive declared single-file outputs for a completed Consist run.
+
+    Parameters
+    ----------
+    tracker
+        Consist tracker that recorded the run.
+    run_id
+        Completed Consist run ID whose outputs should be archived.
+    recovery_root
+        Root directory for recoverable output copies.
+    output_keys
+        Output artifact keys to archive. SynthFirm passes the keys from
+        ``output_paths`` and intentionally leaves ``OutputSet`` members to
+        Consist's normal output-set handling.
+
+    Returns
+    -------
+    dict[str, pathlib.Path]
+        Mapping from output key to archived path returned by Consist. Cache-hit
+        runs return an empty mapping because their source run already owns the
+        recovery copy.
+    """
+    run = tracker.get_run(run_id)
+    if run is not None and run.meta and run.meta.get("cache_hit") is True:
+        return {}
+
+    return tracker.archive_run_outputs(
+        run_id,
+        _as_path(recovery_root),
+        keys=list(output_keys),
+    )
 
 
 def build_consist_shell_command(db_path: str | os.PathLike[str] | Path) -> str:
@@ -377,6 +453,7 @@ def build_step2_consist_spec(
     wholesaler_file: str | os.PathLike[str] | Path | None = None,
     producer_file: str | os.PathLike[str] | Path | None = None,
     io_filtered_file: str | os.PathLike[str] | Path | None = None,
+    wholesale_cost_factor_file: str | os.PathLike[str] | Path | None = None,
     c_n6_n6io_sctg_file: str | os.PathLike[str] | Path,
     synthetic_firms_no_location_file: str | os.PathLike[str] | Path,
     mesozone_to_faf_file: str | os.PathLike[str] | Path,
@@ -393,7 +470,8 @@ def build_step2_consist_spec(
     ----------
     output_path
         Active SynthFirm output directory.
-    io_summary_file, wholesaler_file, producer_file, io_filtered_file
+    io_summary_file, wholesaler_file, producer_file, io_filtered_file,
+    wholesale_cost_factor_file
         Single-file Step 2 output artifacts.
     c_n6_n6io_sctg_file, synthetic_firms_no_location_file
         Step 2 inputs from parameters and Step 1.
@@ -458,6 +536,11 @@ def build_step2_consist_spec(
                 if io_filtered_file
                 else output_root / "io_filtered.csv"
             ),
+            "wholesale_cost_factor": (
+                _as_path(wholesale_cost_factor_file)
+                if wholesale_cost_factor_file
+                else output_root / "wholesale_cost_factor.csv"
+            ),
         },
         "output_sets": {
             "producer_by_sctg": OutputSet(
@@ -487,9 +570,9 @@ def build_step3_consist_spec(
     wholesaler_file: str | os.PathLike[str] | Path,
     producer_file: str | os.PathLike[str] | Path,
     io_filtered_file: str | os.PathLike[str] | Path,
+    wholesale_cost_factor_file: str | os.PathLike[str] | Path,
     synthfirm_config: Mapping[str, Any],
     consumer_by_sctg_filehead: str | os.PathLike[str] | Path,
-    wholesalecostfactor: float,
 ) -> dict[str, Any]:
     """Declare Consist inputs and outputs for Step 3 consumer generation.
 
@@ -505,15 +588,12 @@ def build_step3_consist_spec(
         Parameter files used by consumer generation.
     sctg_group_file
         SCTG lookup input.
-    wholesaler_file, producer_file, io_filtered_file
+    wholesaler_file, producer_file, io_filtered_file, wholesale_cost_factor_file
         Step 2 outputs consumed by Step 3.
     synthfirm_config
         Parsed SynthFirm configuration payload stored as Consist run config.
     consumer_by_sctg_filehead
         File prefix used by Step 3 to write SCTG-group CSVs.
-    wholesalecostfactor
-        Wholesale cost factor returned by Step 2 and used by Step 3.
-
     Returns
     -------
     dict[str, Any]
@@ -534,6 +614,7 @@ def build_step3_consist_spec(
             "wholesaler_file": _as_path(wholesaler_file),
             "producer_file": _as_path(producer_file),
             "io_filtered_file": _as_path(io_filtered_file),
+            "wholesale_cost_factor_file": _as_path(wholesale_cost_factor_file),
         },
         "output_paths": {
             "consumer": ArtifactSpec(
@@ -565,10 +646,7 @@ def build_step3_consist_spec(
         },
         "cache_options": _cache_options(),
         "execution_options": ExecutionOptions(input_binding="paths"),
-        "config": _step_config(
-            synthfirm_config,
-            {"wholesalecostfactor": wholesalecostfactor},
-        ),
+        "config": _step_config(synthfirm_config),
     }
 
 

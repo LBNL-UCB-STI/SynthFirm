@@ -322,15 +322,21 @@ works, and perform publicly and display publicly, and to permit others to do so.
 This integration is the first Consist wiring for SynthFirm. Consist records the
 inputs, config, and outputs for selected model steps so a run can be inspected
 afterward without reconstructing the file flow by hand. The current integration
-tracks Step 1 firm generation, Step 2 producer generation, and Step 3 consumer
-generation. Later enabled model steps still run normally, but they are not yet
-recorded as individual Consist steps.
+tracks Step 1 firm generation, Step 2 producer generation, Step 3 consumer
+generation, and Step 4 demand forecasting. Later enabled model steps still run
+normally, but they are not yet recorded as individual Consist steps.
 
 The intent is to establish a small, concrete template for the rest of the
 pipeline. The tracked steps show how to declare real file inputs, attach
 important output artifacts, group multi-file outputs with `OutputSet`, and add
 schema metadata where it is useful. The parsed SynthFirm config is stored as
 Consist run config rather than as a normal input artifact.
+
+Step 2 also writes `wholesale_cost_factor.csv`, a small one-row artifact with
+the wholesale adjustment calculated during producer generation. Step 3 reads
+that file instead of receiving the value through Python state. This keeps the
+handoff visible in Consist: the cost factor is a normal Step 2 output and a
+normal Step 3 input.
 
 Each script execution creates a Consist scenario header tagged
 `full-execution`, with Steps 1-4 recorded as child runs under that scenario.
@@ -343,14 +349,31 @@ keeps local serial runs in one provenance database:
 
 ```text
 <data_root>/database/runs
+<data_root>/database/archive
 <data_root>/database/provenance.duckdb
 ```
 
 The run log prints a pasteable `consist shell --trust-db --db-path ...` command
 for the active database. These default paths can be overridden with
 `SYNTHFIRM_CONSIST_RUN_DIR` and `SYNTHFIRM_CONSIST_DB_PATH`.
-Tracked steps use `CacheOptions(cache_mode="overwrite")` so teaching-slice runs
-are easy to inspect and do not depend on cache reuse.
+Tracked steps use Consist cache reuse with
+`cache_hydration="inputs-missing"` and `validate_materialized_inputs=True`.
+That means Consist may skip a step when the declared inputs, config, and code
+identity match a previous completed run. If a later cache miss needs an earlier
+version of a file that SynthFirm has overwritten, Consist can restore the
+archived version when its recorded full-content hash proves the live file is
+stale. The tracked-step cache epoch is set to `2` so runs created before this
+archive-aware policy are not reused accidentally.
+
+After each tracked step, SynthFirm asks Consist to archive the declared
+single-file outputs under `<data_root>/database/archive`. This is what makes the
+Step 4 same-path forecast pattern recoverable: the baseline `synthetic_firms`,
+`producer`, and `consumer` files are copied to a recovery root before Step 4
+overwrites those live filenames with forecasted versions. Supporting tracked
+outputs such as `wholesale_cost_factor.csv` are archived the same way so later
+cache misses can recover the exact Step 2 handoff file. Output sets are still
+recorded as Consist `OutputSet` artifacts, but this first cache-aware pass only
+archives the main single-file outputs.
 
 Recorded artifact paths use Consist mounts. Files under `ENVIRONMENT.file_path`
 are recorded as `data://...`, and files under the SynthFirm checkout are
@@ -419,6 +442,7 @@ to inspect:
 consist shell --trust-db --db-path <data_root>/database/provenance.duckdb
 ```
 
-Cache reuse is intentionally off in this first integration pass. The goal is
-clear lineage and inspection; cache-hit behavior can be enabled later once the
-step identity and seed policy are explicit.
+Input hydration runs only when a step has a cache miss and needs to execute. A
+full all-hit replay can remain metadata-only, so recreating deleted terminal
+files after every step cache-hits should be handled with an explicit Consist
+output hydration or export step.

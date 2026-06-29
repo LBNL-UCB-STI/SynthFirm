@@ -9,6 +9,7 @@ import datetime
 from pathlib import Path
 
 from utils.consist_tracking import (
+    archive_consist_run_outputs,
     build_consist_shell_command,
     build_synthfirm_config_payload,
     build_step1_consist_spec,
@@ -16,6 +17,7 @@ from utils.consist_tracking import (
     build_step3_consist_spec,
     build_step4_consist_spec,
     create_consist_tracker,
+    get_consist_recovery_root,
     get_consist_storage_paths,
 )
 from utils.config_paths import resolve_config_path
@@ -242,6 +244,7 @@ def main():
     consumer_by_sctg_filehead = os.path.join(output_path, config['OUTPUTS']['consumer_by_sctg_filehead'])
     sample_consumer_file = os.path.join(output_path, config['OUTPUTS']['sample_consumer_file'])
     io_filtered_file = os.path.join(output_path, config['OUTPUTS']['io_filtered_file'])
+    wholesale_cost_factor_file = os.path.join(output_path, "wholesale_cost_factor.csv")
 
     tracker = create_consist_tracker(
         output_path,
@@ -249,6 +252,10 @@ def main():
         code_root=Path(__file__).resolve().parent,
     )
     _, consist_db_path = get_consist_storage_paths(
+        output_path,
+        storage_root=file_path,
+    )
+    consist_recovery_root = get_consist_recovery_root(
         output_path,
         storage_root=file_path,
     )
@@ -530,7 +537,7 @@ def main():
                     us_county_map_file if assign_enterprises else "",
                 )
 
-            synthfirm_scenario.run(
+            step1_result = synthfirm_scenario.run(
                 run_step1,
                 inputs=step1_spec["inputs"],
                 config=step1_spec["config"],
@@ -539,6 +546,12 @@ def main():
                 profile_file_schema=True,
                 cache_options=step1_spec["cache_options"],
                 execution_options=step1_spec["execution_options"],
+            )
+            archive_consist_run_outputs(
+                tracker,
+                step1_result.run.id,
+                consist_recovery_root,
+                output_keys=step1_spec["output_paths"],
             )
 
         ##### Steps 2 and 3 -  synthetic producer and consumer generation        
@@ -550,6 +563,7 @@ def main():
                 wholesaler_file=wholesaler_file,
                 producer_file=producer_file,
                 io_filtered_file=io_filtered_file,
+                wholesale_cost_factor_file=wholesale_cost_factor_file,
                 c_n6_n6io_sctg_file=c_n6_n6io_sctg_file,
                 synthetic_firms_no_location_file=synthetic_firms_no_location_file,
                 mesozone_to_faf_file=mesozone_to_faf_file,
@@ -560,10 +574,9 @@ def main():
                 synthfirm_config=synthfirm_config,
                 producer_by_sctg_filehead=producer_by_sctg_filehead,
             )
-            step2_state = {}
 
             def run_step2() -> None:
-                step2_state["wholesalecostfactor"] = producer_generation(
+                producer_generation(
                     c_n6_n6io_sctg_file,
                     synthetic_firms_no_location_file,
                     mesozone_to_faf_file,
@@ -576,10 +589,11 @@ def main():
                     producer_file,
                     producer_by_sctg_filehead,
                     io_filtered_file,
+                    wholesale_cost_factor_file,
                     output_path,
                 )
 
-            synthfirm_scenario.run(
+            step2_result = synthfirm_scenario.run(
                 run_step2,
                 inputs=step2_spec["inputs"],
                 config=step2_spec["config"],
@@ -589,8 +603,12 @@ def main():
                 cache_options=step2_spec["cache_options"],
                 execution_options=step2_spec["execution_options"],
             )
-
-            wholesalecostfactor = step2_state["wholesalecostfactor"]
+            archive_consist_run_outputs(
+                tracker,
+                step2_result.run.id,
+                consist_recovery_root,
+                output_keys=step2_spec["output_paths"],
+            )
 
             step3_spec = build_step3_consist_spec(
                 output_path=output_path,
@@ -605,9 +623,9 @@ def main():
                 wholesaler_file=wholesaler_file,
                 producer_file=producer_file,
                 io_filtered_file=io_filtered_file,
+                wholesale_cost_factor_file=wholesale_cost_factor_file,
                 synthfirm_config=synthfirm_config,
                 consumer_by_sctg_filehead=consumer_by_sctg_filehead,
-                wholesalecostfactor=wholesalecostfactor,
             )
 
             def run_step3() -> None:
@@ -624,11 +642,11 @@ def main():
                     consumer_file,
                     sample_consumer_file,
                     consumer_by_sctg_filehead,
-                    wholesalecostfactor,
+                    wholesale_cost_factor_file,
                     output_path,
                 )
 
-            synthfirm_scenario.run(
+            step3_result = synthfirm_scenario.run(
                 run_step3,
                 inputs=step3_spec["inputs"],
                 config=step3_spec["config"],
@@ -637,6 +655,12 @@ def main():
                 profile_file_schema=True,
                 cache_options=step3_spec["cache_options"],
                 execution_options=step3_spec["execution_options"],
+            )
+            archive_consist_run_outputs(
+                tracker,
+                step3_result.run.id,
+                consist_recovery_root,
+                output_keys=step3_spec["output_paths"],
             )
     
         ##### Steps 4 (optional) -  run demand forecast       
@@ -669,7 +693,7 @@ def main():
                     output_path,
                 )
 
-            synthfirm_scenario.run(
+            step4_result = synthfirm_scenario.run(
                 run_step4,
                 inputs=step4_spec["inputs"],
                 config=step4_spec["config"],
@@ -678,6 +702,12 @@ def main():
                 profile_file_schema=True,
                 cache_options=step4_spec["cache_options"],
                 execution_options=step4_spec["execution_options"],
+            )
+            archive_consist_run_outputs(
+                tracker,
+                step4_result.run.id,
+                consist_recovery_root,
+                output_keys=step4_spec["output_paths"],
             )
     
         ##### Step 5 -  synthetic firm location generation

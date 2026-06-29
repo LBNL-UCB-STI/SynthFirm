@@ -19,12 +19,18 @@ warnings.filterwarnings("ignore")
 ########################################################
 
 
+def read_wholesale_cost_factor_file(wholesale_cost_factor_file):
+    """Read the Step 2 wholesale cost factor artifact."""
+    wholesale_cost_factor = read_csv(wholesale_cost_factor_file)
+    return float(wholesale_cost_factor.loc[0, 'wholesalecostfactor'])
+
+
 def consumer_generation(synthetic_firms_no_location_file, mesozone_to_faf_file,
                         c_n6_n6io_sctg_file, agg_unit_cost_file, cons_by_zone_file,
                         sctg_group_file, wholesaler_file,
                         producer_file, io_filtered_file, consumer_file,
                         sample_consumer_file, consumer_by_sctg_filehead,
-                        wholesalecostfactor, output_path):
+                        wholesale_cost_factor_file, output_path):
     print("Generating synthetic consumers...")
     # load inputs
     firms = read_csv(synthetic_firms_no_location_file, low_memory=False) # 8,396, 679 FIRMS
@@ -40,9 +46,11 @@ def consumer_generation(synthetic_firms_no_location_file, mesozone_to_faf_file,
     wholesalers = read_csv(wholesaler_file, low_memory=False) 
     producers = read_csv(producer_file, low_memory=False) 
     io = read_csv(io_filtered_file, low_memory=False) 
+    wholesalecostfactor = read_wholesale_cost_factor_file(
+        wholesale_cost_factor_file
+    )
     
-    # define constant
-    # wholesalecostfactor = 1.376 # in the future, replace this value with output from step 2
+    # define constant from Step 2 output artifact
     
     
     # <codecell>

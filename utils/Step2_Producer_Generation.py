@@ -14,11 +14,25 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
+def write_wholesale_cost_factor_file(
+        wholesale_cost_factor_file,
+        whlcons,
+        whlprod,
+        wholesalecostfactor):
+    """Write the Step 2 wholesale cost factor for downstream steps."""
+    wholesale_cost_factor = pd.DataFrame([{
+        'whlcons': whlcons,
+        'whlprod': whlprod,
+        'wholesalecostfactor': wholesalecostfactor,
+    }])
+    wholesale_cost_factor.to_csv(wholesale_cost_factor_file, index=False)
+
+
 def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
                         mesozone_to_faf_file, BEA_io_2017_file, agg_unit_cost_file,
                         prod_by_zone_file, sctg_group_file, io_summary_file,
                         wholesaler_file, producer_file, producer_by_sctg_filehead,
-                        io_filtered_file, output_path):
+                        io_filtered_file, wholesale_cost_factor_file, output_path):
     
     
     print("Generating synthetic producers...")
@@ -385,6 +399,12 @@ def producer_generation(c_n6_n6io_sctg_file, synthetic_firms_no_location_file,
     wholesalers_with_value.to_csv(wholesaler_file, index = False)
     producers_output.to_csv(producer_file, index = False)
     io_with_wholesale.to_csv(io_filtered_file, index = False)
+    write_wholesale_cost_factor_file(
+        wholesale_cost_factor_file,
+        whlcons,
+        whlprod,
+        wholesalecostfactor,
+    )
     
     sctg_lookup_sel = sctg_lookup[['SCTG_Code', 'SCTG_Group', 'SCTG_Name']] 
     sctg_lookup_sel = sctg_lookup_sel.rename(columns = {'SCTG_Code': 'Commodity_SCTG'})

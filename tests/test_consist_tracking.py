@@ -51,6 +51,16 @@ def test_consist_storage_paths_use_explicit_storage_root(monkeypatch, tmp_path):
     assert db_path == storage_root / "database" / "provenance.duckdb"
 
 
+def test_consist_recovery_root_uses_central_database_dir(monkeypatch, tmp_path):
+    monkeypatch.delenv("SYNTHFIRM_CONSIST_RUN_DIR", raising=False)
+    monkeypatch.delenv("SYNTHFIRM_CONSIST_DB_PATH", raising=False)
+    output_path = tmp_path / "outputs_Austin"
+
+    recovery_root = consist_tracking.get_consist_recovery_root(output_path)
+
+    assert recovery_root == tmp_path / "database" / "archive"
+
+
 def test_consist_shell_command_quotes_db_path_with_spaces():
     command = consist_tracking.build_consist_shell_command(
         Path("/tmp/SynthFirm outputs/provenance.duckdb")
@@ -142,6 +152,96 @@ def test_consist_tracker_profiles_input_and_output_schemas(tmp_path):
 
     assert len(observations) == 2
     assert {observation.source for observation in observations} == {"file"}
+
+
+def test_archive_consist_run_outputs_records_recovery_root(tmp_path):
+    data_root = tmp_path / "data"
+    output_path = data_root / "outputs_Austin"
+    output_csv = output_path / "synthetic_firms.csv"
+    output_path.mkdir(parents=True)
+
+    tracker = consist_tracking.create_consist_tracker(
+        output_path,
+        data_root=data_root,
+        code_root=tmp_path,
+    )
+
+    def write_output() -> None:
+        output_csv.write_text("id,value\n1,baseline\n", encoding="utf-8")
+
+    result = tracker.run(
+        write_output,
+        output_paths={"synthetic_firms": output_csv},
+        cache_options=CacheOptions(cache_mode="overwrite"),
+    )
+    recovery_root = consist_tracking.get_consist_recovery_root(
+        output_path,
+        storage_root=data_root,
+    )
+
+    archived = consist_tracking.archive_consist_run_outputs(
+        tracker,
+        result.run.id,
+        recovery_root,
+        output_keys=["synthetic_firms"],
+    )
+
+    archived_path = recovery_root / "outputs_Austin" / "synthetic_firms.csv"
+    assert archived == {"synthetic_firms": archived_path.resolve()}
+    assert archived_path.read_text(encoding="utf-8") == "id,value\n1,baseline\n"
+    artifact = tracker.get_run_outputs(result.run.id)["synthetic_firms"]
+    assert artifact.recovery_roots == [str(recovery_root.resolve())]
+
+
+def test_archive_consist_run_outputs_skips_cache_hit_runs(tmp_path):
+    data_root = tmp_path / "data"
+    output_path = data_root / "outputs_Austin"
+    output_csv = output_path / "synthetic_firms.csv"
+    output_path.mkdir(parents=True)
+
+    tracker = consist_tracking.create_consist_tracker(
+        output_path,
+        data_root=data_root,
+        code_root=tmp_path,
+    )
+
+    def write_output() -> None:
+        output_csv.write_text("id,value\n1,baseline\n", encoding="utf-8")
+
+    first = tracker.run(
+        write_output,
+        output_paths={"synthetic_firms": output_csv},
+        cache_options=CacheOptions(cache_mode="overwrite"),
+    )
+    recovery_root = consist_tracking.get_consist_recovery_root(
+        output_path,
+        storage_root=data_root,
+    )
+    consist_tracking.archive_consist_run_outputs(
+        tracker,
+        first.run.id,
+        recovery_root,
+        output_keys=["synthetic_firms"],
+    )
+
+    output_csv.write_text("id,value\n1,forecasted\n", encoding="utf-8")
+    replay = tracker.run(
+        write_output,
+        output_paths={"synthetic_firms": output_csv},
+        cache_options=CacheOptions(cache_mode="reuse"),
+    )
+
+    archived = consist_tracking.archive_consist_run_outputs(
+        tracker,
+        replay.run.id,
+        recovery_root,
+        output_keys=["synthetic_firms"],
+    )
+
+    assert replay.cache_hit is True
+    assert archived == {}
+    archived_path = recovery_root / "outputs_Austin" / "synthetic_firms.csv"
+    assert archived_path.read_text(encoding="utf-8") == "id,value\n1,baseline\n"
 
 
 def test_artifact_spec_persists_user_provided_output_schema(tmp_path):
@@ -241,7 +341,10 @@ def test_step1_consist_spec_without_enterprises(tmp_path):
     assert "synthetic_enterprise" not in spec["output_paths"]
     assert spec["output_sets"] == {}
     assert spec["execution_options"].input_binding == "paths"
-    assert spec["cache_options"].cache_mode == "overwrite"
+    assert spec["cache_options"].cache_mode == "reuse"
+    assert spec["cache_options"].cache_hydration == "inputs-missing"
+    assert spec["cache_options"].validate_materialized_inputs is True
+    assert spec["cache_options"].cache_epoch == 2
 
 
 def test_step1_consist_spec_with_enterprises(tmp_path):
@@ -299,6 +402,7 @@ def test_step2_consist_spec_includes_producer_by_sctg_output_set(tmp_path):
         agg_unit_cost_file=tmp_path / "unitcost.csv",
         prod_by_zone_file=tmp_path / "prod_by_zone.csv",
         sctg_group_file=tmp_path / "sctg.csv",
+        wholesale_cost_factor_file=tmp_path / "wholesale_cost_factor.csv",
         synthfirm_config=synthfirm_config,
         producer_by_sctg_filehead=tmp_path / "nested" / "prods_sctg",
     )
@@ -308,11 +412,16 @@ def test_step2_consist_spec_includes_producer_by_sctg_output_set(tmp_path):
         "wholesaler",
         "producer",
         "io_filtered",
+        "wholesale_cost_factor",
     }
     assert spec["output_paths"]["io_summary"].schema is IoSummary
     assert spec["output_paths"]["wholesaler"].schema is SyntheticWholesalers
     assert spec["output_paths"]["producer"].schema is SyntheticProducers
     assert not isinstance(spec["output_paths"]["io_filtered"], ArtifactSpec)
+    assert not isinstance(
+        spec["output_paths"]["wholesale_cost_factor"],
+        ArtifactSpec,
+    )
     output_set = spec["output_sets"]["producer_by_sctg"]
     assert output_set.root == tmp_path / "nested"
     assert output_set.include == "prods_sctg*.csv"
@@ -333,11 +442,12 @@ def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
         wholesaler_file=tmp_path / "wholesaler.csv",
         producer_file=tmp_path / "producer.csv",
         io_filtered_file=tmp_path / "io_filtered.csv",
+        wholesale_cost_factor_file=tmp_path / "wholesale_cost_factor.csv",
         synthfirm_config=synthfirm_config,
         consumer_by_sctg_filehead=tmp_path / "nested" / "consumers_sctg",
-        wholesalecostfactor=1.25,
     )
 
+    assert "wholesale_cost_factor_file" in spec["inputs"]
     assert set(spec["output_paths"]) == {
         "consumer",
         "sample_consumer",
@@ -349,7 +459,7 @@ def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
     assert output_set.include == "consumers_sctg*.csv"
     assert output_set.schema is ConsumersBySctg
     assert spec["config"]["synthfirm_config"] == synthfirm_config
-    assert spec["config"]["wholesalecostfactor"] == 1.25
+    assert "wholesalecostfactor" not in spec["config"]
 
 
 def test_step4_consist_spec_includes_forecast_year_config(tmp_path):
@@ -393,12 +503,17 @@ def test_step4_consist_spec_includes_forecast_year_config(tmp_path):
     assert output_set.include == "consumers_sctg*.csv"
     assert output_set.schema is ConsumersBySctg
     assert spec["execution_options"].input_binding == "paths"
-    assert spec["cache_options"].cache_mode == "overwrite"
+    assert spec["cache_options"].cache_mode == "reuse"
+    assert spec["cache_options"].cache_hydration == "inputs-missing"
+    assert spec["cache_options"].validate_materialized_inputs is True
+    assert spec["cache_options"].cache_epoch == 2
 
 
 def test_public_consist_helpers_have_docstrings():
     public_helpers = [
         consist_tracking.get_consist_storage_paths,
+        consist_tracking.get_consist_recovery_root,
+        consist_tracking.archive_consist_run_outputs,
         consist_tracking.build_consist_shell_command,
         consist_tracking.create_consist_tracker,
         consist_tracking.build_synthfirm_config_payload,
