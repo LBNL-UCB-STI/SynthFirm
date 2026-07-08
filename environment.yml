@@ -8,14 +8,15 @@ dependencies:
   - matplotlib==3.10.7
   - numpy==2.3.4
   - pandas==2.3.3
+  - Pillow>=10.0.0
   - pygris==0.2.0
   - Requests==2.32.5
   - scikit_learn==1.7.2
+  - scipy>=1.15.3,<2
   - seaborn==0.13.2
   - Shapely==2.1.2
   - statsmodels==0.14.4
   - pip:
     - biogeme==3.3.1
     - factor_analyzer==0.5.1
-
-
+    - consist>=0.2.3

@@ -44,7 +44,7 @@ works, and perform publicly and display publicly, and to permit others to do so.
 
     ```
     [ENVIRONMENT]
-    file_path = /Users/xiaodanxu/Documents/SynthFirm.nosync # path to project data
+    file_path = . # path to project data; relative paths are resolved from the config file location
     
     scenario_name = BayArea # scenario name must be consistent with input generation to allow for models searching for the I-O paths
     out_scenario_name = BayArea  # scenario name for output, can be different from input scenario name, but must be consistent with firm generation configs
@@ -52,6 +52,34 @@ works, and perform publicly and display publicly, and to permit others to do so.
     number_of_processes = 2 
     # number of cores to be used for parallel computing, zero means all the available cores
     ```
+
+  * Keep downloaded data outside the Git checkout. Machine-specific config
+    files can live beside that data. `file_path` should point to the data root
+    that contains `inputs_<scenario>`, `outputs_<scenario>`,
+    `plots_<scenario>`, and the parameter directory. It may be an absolute
+    path, a `~` or environment-variable path, or a relative path. Relative
+    paths are resolved from the directory that contains the config file rather
+    than from the shell's current working directory. A local Austin test can use
+    this layout:
+
+    ```text
+    /path/to/SynthFirm-data/
+      Austin_local.conf
+      inputs_Austin/
+      SynthFirm_parameters/
+    ```
+
+    For a local run, copy a checked-in config such as `configs/Austin_base.conf`
+    to the data root as `Austin_local.conf`, update `scenario_name`,
+    `out_scenario_name`, `parameter_path`, and the step flags as needed, then
+    use `file_path = .`. Run it with an absolute path to the local config:
+
+    ```bash
+    python SynthFirm_run.py --config /path/to/SynthFirm-data/Austin_local.conf
+    ```
+
+    Leave `Austin_local.conf` and other configs with local absolute paths out of
+    version control.
 
   * Define the current run type (the input files vary by types of run, which will be elaborated below):
   
@@ -285,9 +313,175 @@ works, and perform publicly and display publicly, and to permit others to do so.
     ```
     python SynthFirm_run.py --config 'SynthFirm.conf'
     ```
-  
-  * Check output following the prompt on screen
-  * The log file will be created for each run under the output directory, with file name '{out_scenario_name}_run_{date}.log'
-  
-* You are done, cheers!
 
+    Local machine-specific configs can live outside the repository, or under
+    `configs/` with `local` in the file name so they are ignored by Git.
+
+### Consist provenance tracking
+
+This integration is the first Consist wiring for SynthFirm. Consist records the
+inputs, config, and outputs for selected model steps so a run can be inspected
+afterward without reconstructing the file flow by hand. The current integration
+tracks Step 1 firm generation, Step 2 producer generation, Step 3 consumer
+generation, and Step 4 demand forecasting. Later enabled model steps still run
+normally, but they are not yet recorded as individual Consist steps.
+
+The intent is to establish a small, concrete template for the rest of the
+pipeline. The tracked steps show how to declare real file inputs, attach
+important output artifacts, group multi-file outputs with `OutputSet`, and add
+schema metadata where it is useful. The parsed SynthFirm config is stored as
+Consist run config rather than as a normal input artifact.
+
+Step 2 also writes `wholesale_cost_factor.csv`, a small one-row artifact with
+the wholesale adjustment calculated during producer generation. Step 3 reads
+that file instead of receiving the value through Python state. This keeps the
+handoff visible in Consist: the cost factor is a normal Step 2 output and a
+normal Step 3 input.
+
+The Consist specs distinguish artifact roles from live file paths. A path such
+as `synthetic_firms.csv` is where bytes currently live; an artifact role such as
+`synthetic_firms` or `forecasted_synthetic_firms` is what those bytes mean in
+the pipeline. Because Step 4 overwrites some Step 1-3 CSV paths with forecasted
+outputs, later tracked steps bind their Consist inputs to upstream artifact refs
+whenever those refs are available. The legacy SynthFirm functions still receive
+ordinary path arguments, but those paths are now resolved by Consist runtime
+input binding from the same `inputs` mapping used for lineage.
+
+Each script execution creates a Consist scenario header tagged
+`full-execution`, with Steps 1-4 recorded as child runs under that scenario.
+Step 4 is useful as a small configuration example: `forecast_year` is recorded
+as run config because it changes the forecast calculation and the forecast
+input files used by that step.
+By default, Consist writes state under the data root named by
+`ENVIRONMENT.file_path`, not under an individual scenario output directory. This
+keeps local serial runs in one provenance database:
+
+```text
+<data_root>/database/runs
+<data_root>/database/archive
+<data_root>/database/provenance.duckdb
+```
+
+The run log prints a pasteable `consist shell --trust-db --db-path ...` command
+for the active database. These default paths can be overridden with
+`SYNTHFIRM_CONSIST_RUN_DIR` and `SYNTHFIRM_CONSIST_DB_PATH`.
+Tracked steps use Consist cache reuse with
+`cache_hydration="inputs-missing"` and `validate_materialized_inputs=True`.
+That means Consist may skip a step when the declared inputs, config, and code
+identity match a previous completed run. If a later cache miss needs an earlier
+version of a file that SynthFirm has overwritten, Consist can restore the
+archived version when its recorded full-content hash proves the live file is
+stale. The tracked-step cache epoch is set to `2` so runs created before this
+archive-aware policy are not reused accidentally.
+
+After each tracked step, SynthFirm asks Consist to archive the declared
+single-file outputs under `<data_root>/database/archive/<run_id>/`. This is
+what makes the Step 4 same-path forecast pattern recoverable: the baseline
+`synthetic_firms`, `producer`, and `consumer` files are copied to a run-specific
+recovery root before Step 4 overwrites those live filenames with forecasted
+versions. Supporting tracked outputs such as `wholesale_cost_factor.csv` are
+archived the same way so later cache misses can recover the exact Step 2
+handoff file. The archive helper now returns Consist `ArchivedOutputs`, so the
+refreshed `.outputs` mapping can be handed straight to downstream step inputs.
+Output sets are still recorded as Consist `OutputSet` artifacts, and the SCTG
+partitions use capture-aware filename patterns so their numeric group suffix is
+queryable. This first cache-aware pass still archives the main single-file
+outputs only.
+
+Recorded artifact paths use Consist mounts. Files under `ENVIRONMENT.file_path`
+are recorded as `data://...`, and files under the SynthFirm checkout are
+recorded as `code://...`. When inspecting on the same machine, `--trust-db`
+lets the CLI use the stored mount roots. On another machine, pass explicit
+mounts such as `--mount data=/path/to/SynthFirm-data`.
+
+Inspect recorded runs with the Consist CLI:
+
+```bash
+consist runs --db-path <data_root>/database/provenance.duckdb
+consist show <run_id> --db-path <data_root>/database/provenance.duckdb
+consist artifacts <run_id> --db-path <data_root>/database/provenance.duckdb
+consist lineage <artifact_key> --db-path <data_root>/database/provenance.duckdb
+```
+
+SynthFirm enables Consist file-schema profiling for the tracked steps. During a
+run, Consist captures lightweight schemas for tabular inputs and outputs such as
+`synthetic_firms`, `producer`, and `consumer`. That makes the observed schema
+available immediately after the run:
+
+```bash
+consist artifacts <run_id> --db-path <data_root>/database/provenance.duckdb
+consist schema export --artifact-id <artifact_id> --db-path <data_root>/database/provenance.duckdb --out schemas/<schema_name>.py
+```
+
+Use `artifacts <run_id>` to find the artifact ID for the specific output you
+want to export. Exporting by artifact ID avoids ambiguity when similar artifact
+keys appear in multiple steps.
+
+The repository also includes curated schema classes in
+`utils/consist_schemas.py`. These started from Austin run schema stubs and add
+column descriptions plus conservative relationships for the main Step 1-4
+outputs. `utils.consist_tracking.create_consist_tracker` registers those
+schemas with the Consist tracker so they are available for Consist views. The
+Step 1-4 Consist specs attach the schemas to the main declared outputs with
+`ArtifactSpec`, including `synthetic_firms`, `producer`, `wholesaler`,
+`consumer`, forecasted firm/producer/consumer outputs, and the
+producer/consumer SCTG output sets. Untyped inputs and secondary outputs still
+rely on automatic file-schema profiling.
+
+To promote another artifact to a first-class schema:
+
+1. Run the step once with profiling enabled.
+2. Use `consist artifacts <run_id>` or the interactive shell to find the
+   artifact.
+3. Export or inspect a stub with `consist schema export --artifact-id ...` or
+   `schema_stub @<n>`.
+4. Add the reviewed SQLModel class to `utils/consist_schemas.py`, preserving
+   the observed CSV column names and adding only relationships or descriptions
+   that are clear from the model.
+5. Add the class to `SYNTHFIRM_CONSIST_SCHEMAS`.
+6. Attach it to the relevant `ArtifactSpec` or `OutputSet` in
+   `utils/consist_tracking.py`.
+
+Doing this gives the artifact a stable schema name, documented columns, and
+explicit relationships for Consist views and downstream run inspection. It also
+makes shared run archives easier to interpret because the important outputs
+carry more structure than a filename and an observed CSV profile.
+
+For interactive inspection, open the shell and run `artifacts <run_id>`, then
+`schema_profile @<n>` or `schema_stub @<n>` for the artifact reference you want
+to inspect:
+
+```bash
+consist shell --trust-db --db-path <data_root>/database/provenance.duckdb
+```
+
+Input hydration runs only when a step has a cache miss and needs to execute. A
+full all-hit replay can remain metadata-only, so recreating deleted terminal
+files after every step cache-hits should be handled with an explicit Consist
+output hydration or export step.
+
+When the rest of the pipeline is instrumented, treat the last tracked step that
+produces user-facing deliverables as the terminal materialization boundary.
+That step should declare every final file and final grouped directory as a
+Consist output, using `output_paths={...}` for named files and `OutputSet(...)`
+for grouped files. Intermediate steps can keep using
+`cache_hydration="inputs-missing"` so cache misses can restore their declared
+inputs before execution.
+
+Final deliverables need one additional rule: if the terminal step is a cache
+hit and its Python body is skipped, the integration must still ask Consist to
+put the cached deliverables back on disk. There are two acceptable patterns:
+
+- Use Consist's cached-output hydration policy for the terminal step, for
+  example `cache_hydration="outputs-requested"` with the final `output_paths`
+  and final `OutputSet` declarations.
+- Or, after the terminal step returns, call Consist's historical output
+  hydration API for the cache-hit run, selecting the final output keys and
+  hydrating them under the data root.
+
+In either pattern, the key idea is that the final products must be declared as
+Consist outputs at the terminal boundary. Cache hits then mean "skip
+recomputing, but still materialize the final deliverables," instead of
+"metadata only." The current Step 1-4 teaching slice does not do this for the
+whole SynthFirm model yet because later downstream outputs are still outside
+the tracked Consist boundary.
