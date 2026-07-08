@@ -14,7 +14,9 @@ def test_relative_file_path_resolves_from_config_directory(tmp_path):
     assert resolved == config_dir.resolve()
 
 
-def test_environment_variable_file_path_expands_from_config_directory(monkeypatch, tmp_path):
+def test_environment_variable_file_path_expands_from_config_directory(
+    monkeypatch, tmp_path
+):
     config_dir = tmp_path / "configs"
     data_root = tmp_path / "data-root"
     config_dir.mkdir()

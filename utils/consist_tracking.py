@@ -13,7 +13,16 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from consist import ArtifactSpec, CacheOptions, ExecutionOptions, OutputSet, Tracker
+from consist import (
+    ArchivedOutputs,
+    ArtifactSpec,
+    CacheOptions,
+    ExecutionOptions,
+    FilenamePattern,
+    IntCapture,
+    OutputSet,
+    Tracker,
+)
 from consist.types import ArtifactRef
 
 from utils.consist_schemas import (
@@ -107,6 +116,26 @@ def _cache_options() -> CacheOptions:
     )
 
 
+def _capture_sctg_output_set(
+    *,
+    output_root: Path,
+    output_head: Path,
+    kind: str,
+    schema: type[Any],
+) -> OutputSet:
+    """Build a capture-aware SCTG output set keyed by the numeric suffix."""
+    # The step writes files like `prods_sctg1.csv`, so the single `*` capture
+    # corresponds to the SCTG group number that we want Consist to index.
+    return OutputSet(
+        root=output_root,
+        include=FilenamePattern.glob(f"{output_head.name}*.csv").with_captures(
+            IntCapture(name="sctg_group", wildcard=1)
+        ),
+        kind=kind,
+        schema=schema,
+    )
+
+
 def get_consist_storage_paths(
     output_path: str | os.PathLike[str] | Path,
     *,
@@ -184,7 +213,7 @@ def archive_consist_run_outputs(
     recovery_root: str | os.PathLike[str] | Path,
     *,
     output_keys: Iterable[str],
-) -> dict[str, Path]:
+) -> ArchivedOutputs:
     """Archive declared single-file outputs for a completed Consist run.
 
     Parameters
@@ -202,15 +231,10 @@ def archive_consist_run_outputs(
 
     Returns
     -------
-    dict[str, pathlib.Path]
-        Mapping from output key to archived path returned by Consist. Cache-hit
-        runs return an empty mapping because their source run already owns the
-        recovery copy.
+    consist.ArchivedOutputs
+        Read-only mapping from output key to archived path together with the
+        refreshed artifact objects for downstream input binding.
     """
-    run = tracker.get_run(run_id)
-    if run is not None and run.meta and run.meta.get("cache_hit") is True:
-        return {}
-
     run_recovery_root = _as_path(recovery_root) / run_id
     return tracker.archive_run_outputs(
         run_id,
@@ -232,10 +256,7 @@ def build_consist_shell_command(db_path: str | os.PathLike[str] | Path) -> str:
     str
         Shell command that opens the database in Consist's interactive shell.
     """
-    return (
-        "consist shell --trust-db --db-path "
-        f"{shlex.quote(os.fspath(db_path))}"
-    )
+    return f"consist shell --trust-db --db-path {shlex.quote(os.fspath(db_path))}"
 
 
 def create_consist_tracker(
@@ -324,8 +345,7 @@ def build_synthfirm_config_payload(
     return {
         "source_name": _as_path(config_file).name,
         "sections": {
-            section: dict(config.items(section))
-            for section in config.sections()
+            section: dict(config.items(section)) for section in config.sections()
         },
     }
 
@@ -412,9 +432,7 @@ def build_step1_consist_spec(
         "mesozone_to_faf_file": _as_path(mesozone_to_faf_file),
         "c_n6_n6io_sctg_file": _as_path(c_n6_n6io_sctg_file),
         "employment_per_firm_file": _as_path(employment_per_firm_file),
-        "employment_per_firm_gapfill_file": _as_path(
-            employment_per_firm_gapfill_file
-        ),
+        "employment_per_firm_gapfill_file": _as_path(employment_per_firm_gapfill_file),
         "zip_to_tract_file": _as_path(zip_to_tract_file),
     }
     if assign_enterprises:
@@ -571,9 +589,9 @@ def build_step2_consist_spec(
             ),
         },
         "output_sets": {
-            "producer_by_sctg": OutputSet(
-                root=producer_head.parent,
-                include=f"{producer_head.name}*.csv",
+            "producer_by_sctg": _capture_sctg_output_set(
+                output_root=producer_head.parent,
+                output_head=producer_head,
                 kind="producer-by-sctg",
                 schema=ProducersBySctg,
             )
@@ -699,9 +717,9 @@ def build_step3_consist_spec(
             ),
         },
         "output_sets": {
-            "consumer_by_sctg": OutputSet(
-                root=consumer_head.parent,
-                include=f"{consumer_head.name}*.csv",
+            "consumer_by_sctg": _capture_sctg_output_set(
+                output_root=consumer_head.parent,
+                output_head=consumer_head,
                 kind="consumer-by-sctg",
                 schema=ConsumersBySctg,
             )
@@ -805,9 +823,9 @@ def build_step4_consist_spec(
             ),
         },
         "output_sets": {
-            "forecasted_consumer_by_sctg": OutputSet(
-                root=consumer_head.parent,
-                include=f"{consumer_head.name}*.csv",
+            "forecasted_consumer_by_sctg": _capture_sctg_output_set(
+                output_root=consumer_head.parent,
+                output_head=consumer_head,
                 kind="forecasted-consumer-by-sctg",
                 schema=ConsumersBySctg,
             )

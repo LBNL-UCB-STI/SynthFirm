@@ -3,9 +3,12 @@ import configparser
 import inspect
 
 from consist import (
+    ArchivedOutputs,
     ArtifactSpec,
     CacheOptions,
     ExecutionOptions,
+    FilenamePattern,
+    IntCapture,
     ref as consist_ref,
 )
 from consist.models.artifact_schema import ArtifactSchemaObservation
@@ -72,8 +75,7 @@ def test_consist_shell_command_quotes_db_path_with_spaces():
     )
 
     assert command == (
-        "consist shell --trust-db --db-path "
-        "'/tmp/SynthFirm outputs/provenance.duckdb'"
+        "consist shell --trust-db --db-path '/tmp/SynthFirm outputs/provenance.duckdb'"
     )
 
 
@@ -120,9 +122,7 @@ def test_consist_tracker_registers_teaching_slice_schemas(tmp_path):
         code_root=tmp_path,
     )
 
-    expected_schema_names = {
-        schema.__name__ for schema in SYNTHFIRM_CONSIST_SCHEMAS
-    }
+    expected_schema_names = {schema.__name__ for schema in SYNTHFIRM_CONSIST_SCHEMAS}
 
     assert expected_schema_names.issubset(tracker.registered_schemas)
 
@@ -192,17 +192,14 @@ def test_archive_consist_run_outputs_records_recovery_root(tmp_path):
     )
 
     archived_path = (
-        recovery_root
-        / result.run.id
-        / "outputs_Austin"
-        / "synthetic_firms.csv"
+        recovery_root / result.run.id / "outputs_Austin" / "synthetic_firms.csv"
     )
+    assert isinstance(archived, ArchivedOutputs)
     assert archived == {"synthetic_firms": archived_path.resolve()}
+    assert archived.outputs["synthetic_firms"].key == "synthetic_firms"
     assert archived_path.read_text(encoding="utf-8") == "id,value\n1,baseline\n"
     artifact = tracker.get_run_outputs(result.run.id)["synthetic_firms"]
-    assert artifact.recovery_roots == [
-        str((recovery_root / result.run.id).resolve())
-    ]
+    assert artifact.recovery_roots == [str((recovery_root / result.run.id).resolve())]
 
 
 def test_archive_consist_run_outputs_namespaces_same_path_outputs_by_run(tmp_path):
@@ -258,7 +255,9 @@ def test_archive_consist_run_outputs_namespaces_same_path_outputs_by_run(tmp_pat
     assert forecast_path.read_text(encoding="utf-8") == "id,value\n1,forecasted\n"
 
 
-def test_archive_consist_run_outputs_skips_cache_hit_runs(tmp_path):
+def test_archive_consist_run_outputs_returns_refreshed_outputs_for_cache_hit_runs(
+    tmp_path,
+):
     data_root = tmp_path / "data"
     output_path = data_root / "outputs_Austin"
     output_csv = output_path / "synthetic_firms.csv"
@@ -282,14 +281,13 @@ def test_archive_consist_run_outputs_skips_cache_hit_runs(tmp_path):
         output_path,
         storage_root=data_root,
     )
-    consist_tracking.archive_consist_run_outputs(
+    first_archive = consist_tracking.archive_consist_run_outputs(
         tracker,
         first.run.id,
         recovery_root,
         output_keys=["synthetic_firms"],
     )
 
-    output_csv.write_text("id,value\n1,forecasted\n", encoding="utf-8")
     replay = tracker.run(
         write_output,
         output_paths={"synthetic_firms": output_csv},
@@ -304,9 +302,11 @@ def test_archive_consist_run_outputs_skips_cache_hit_runs(tmp_path):
     )
 
     assert replay.cache_hit is True
-    assert archived == {}
+    assert isinstance(archived, ArchivedOutputs)
+    assert archived.outputs["synthetic_firms"].key == "synthetic_firms"
+    assert dict(first_archive)["synthetic_firms"] != dict(archived)["synthetic_firms"]
     archived_path = (
-        recovery_root / first.run.id / "outputs_Austin" / "synthetic_firms.csv"
+        recovery_root / replay.run.id / "outputs_Austin" / "synthetic_firms.csv"
     )
     assert archived_path.read_text(encoding="utf-8") == "id,value\n1,baseline\n"
 
@@ -492,7 +492,9 @@ def test_step2_consist_spec_includes_producer_by_sctg_output_set(tmp_path):
     )
     output_set = spec["output_sets"]["producer_by_sctg"]
     assert output_set.root == tmp_path / "nested"
-    assert output_set.include == "prods_sctg*.csv"
+    assert isinstance(output_set.include, FilenamePattern)
+    assert output_set.include.pattern == "prods_sctg*.csv"
+    assert output_set.include.captures == (IntCapture(name="sctg_group", wildcard=1),)
     assert output_set.schema is ProducersBySctg
     assert spec["config"]["synthfirm_config"] == synthfirm_config
 
@@ -641,7 +643,9 @@ def test_step3_consist_spec_includes_consumer_by_sctg_output_set(tmp_path):
     assert spec["output_paths"]["sample_consumer"].schema is SyntheticConsumers
     output_set = spec["output_sets"]["consumer_by_sctg"]
     assert output_set.root == tmp_path / "nested"
-    assert output_set.include == "consumers_sctg*.csv"
+    assert isinstance(output_set.include, FilenamePattern)
+    assert output_set.include.pattern == "consumers_sctg*.csv"
+    assert output_set.include.captures == (IntCapture(name="sctg_group", wildcard=1),)
     assert output_set.schema is ConsumersBySctg
     assert spec["config"]["synthfirm_config"] == synthfirm_config
     assert "wholesalecostfactor" not in spec["config"]
@@ -725,7 +729,9 @@ def test_step4_consist_spec_includes_forecast_year_config(tmp_path):
     assert spec["output_paths"]["forecasted_consumer"].schema is SyntheticConsumers
     output_set = spec["output_sets"]["forecasted_consumer_by_sctg"]
     assert output_set.root == tmp_path / "nested"
-    assert output_set.include == "consumers_sctg*.csv"
+    assert isinstance(output_set.include, FilenamePattern)
+    assert output_set.include.pattern == "consumers_sctg*.csv"
+    assert output_set.include.captures == (IntCapture(name="sctg_group", wildcard=1),)
     assert output_set.schema is ConsumersBySctg
     assert spec["execution_options"].input_binding == "paths"
     assert spec["cache_options"].cache_mode == "reuse"

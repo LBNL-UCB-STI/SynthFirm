@@ -381,8 +381,12 @@ what makes the Step 4 same-path forecast pattern recoverable: the baseline
 recovery root before Step 4 overwrites those live filenames with forecasted
 versions. Supporting tracked outputs such as `wholesale_cost_factor.csv` are
 archived the same way so later cache misses can recover the exact Step 2
-handoff file. Output sets are still recorded as Consist `OutputSet` artifacts,
-but this first cache-aware pass only archives the main single-file outputs.
+handoff file. The archive helper now returns Consist `ArchivedOutputs`, so the
+refreshed `.outputs` mapping can be handed straight to downstream step inputs.
+Output sets are still recorded as Consist `OutputSet` artifacts, and the SCTG
+partitions use capture-aware filename patterns so their numeric group suffix is
+queryable. This first cache-aware pass still archives the main single-file
+outputs only.
 
 Recorded artifact paths use Consist mounts. Files under `ENVIRONMENT.file_path`
 are recorded as `data://...`, and files under the SynthFirm checkout are
