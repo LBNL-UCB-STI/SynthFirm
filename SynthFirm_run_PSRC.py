@@ -211,6 +211,18 @@ def main():
         soundcast_db_file = os.path.join(input_path, config['CALIBRATION']['soundcast_db_file'])
         geography_table_name = config['CALIBRATION']['geography_table_name']
         cleaned_parcel_file = os.path.join(input_path, config['CALIBRATION']['cleaned_parcel_file'])
+        parcel_cbg_crosswalk = config['CALIBRATION'].get('parcel_cbg_crosswalk_file', '').strip()
+        census_2010_block_groups = config['CALIBRATION'].get(
+            'census_2010_block_group_file', ''
+        ).strip()
+        parcel_cbg_crosswalk_file = (
+            os.path.join(input_path, parcel_cbg_crosswalk)
+            if parcel_cbg_crosswalk else None
+        )
+        census_2010_block_group_file = (
+            os.path.join(input_path, census_2010_block_groups)
+            if census_2010_block_groups else None
+        )
         
     # load inputs  
     
@@ -452,7 +464,9 @@ def main():
         
         psrc_employment_calibration(psrc_parcel_file, soundcast_db_file, 
                                         geography_table_name, uncalibrated_mzemp_file, 
-                                        cleaned_parcel_file, mzemp_file)
+                                        cleaned_parcel_file, mzemp_file,
+                                        parcel_cbg_crosswalk_file,
+                                        census_2010_block_group_file)
         
 
     ##### Step 1 -  synthetic firm generation
@@ -691,4 +705,3 @@ def main():
     return
 if __name__ == '__main__':
 	main()
-

@@ -8,19 +8,167 @@ Created on Wed Feb  5 10:17:52 2025
 
 import pandas as pd
 import sqlite3
-# import geopandas as gps
+import geopandas as gpd
 # import matplotlib.pyplot as plt
 # import seaborn as sns
 import warnings
-# import os
+import os
 from pandas import read_csv
 import numpy as np
 
 warnings.filterwarnings("ignore")
 
+
+def _build_parcel_to_cbg2010_crosswalk(psrc_parcels, census_block_group_file,
+                                        crosswalk_file):
+    """Map current PSRC parcel points to the 2010 CBG system used by SynthFirm."""
+    required_columns = {'parcelid', 'xcoord_p', 'ycoord_p'}
+    missing_columns = required_columns.difference(psrc_parcels.columns)
+    if missing_columns:
+        raise ValueError(
+            'Cannot build the parcel-to-CBG2010 crosswalk; parcel input is missing '
+            f'{sorted(missing_columns)}.'
+        )
+
+    if not census_block_group_file or not os.path.exists(census_block_group_file):
+        raise FileNotFoundError(
+            'A Census 2010 block-group file is required to translate the 2023 '
+            'parcel geography to SynthFirm MESOZONEs.'
+        )
+
+    print('Building 2023 parcel-to-Census 2010 block-group crosswalk...')
+    block_groups = gpd.read_file(census_block_group_file)[['GEOID10', 'geometry']]
+    if block_groups.crs is None:
+        raise ValueError('The Census 2010 block-group file does not define a CRS.')
+
+    # Process in chunks to keep the one-time spatial join practical for all parcels.
+    crosswalk_parts = []
+    chunk_size = 100_000
+    for start in range(0, len(psrc_parcels), chunk_size):
+        parcel_chunk = psrc_parcels.iloc[start:start + chunk_size]
+        parcel_points = gpd.GeoDataFrame(
+            parcel_chunk[['parcelid']].copy(),
+            geometry=gpd.points_from_xy(parcel_chunk['xcoord_p'], parcel_chunk['ycoord_p']),
+            crs='EPSG:2285'
+        ).to_crs(block_groups.crs)
+
+        matched = gpd.sjoin(
+            parcel_points,
+            block_groups,
+            how='left',
+            predicate='intersects'
+        )
+        # A point on a block-group boundary can intersect two polygons. Keep one
+        # deterministic match because a parcel must have one SynthFirm MESOZONE.
+        matched = matched.drop_duplicates(subset='parcelid', keep='first')
+        crosswalk_parts.append(
+            matched[['parcelid', 'GEOID10']].rename(columns={
+                'parcelid': 'ParcelID',
+                'GEOID10': 'Census2010BlockGroup'
+            })
+        )
+        print(f'  matched {min(start + chunk_size, len(psrc_parcels)):,} / '
+              f'{len(psrc_parcels):,} parcels')
+
+    crosswalk = pd.concat(crosswalk_parts, ignore_index=True)
+    crosswalk['Census2010BlockGroup'] = (
+        crosswalk['Census2010BlockGroup'].astype('string').str.zfill(12)
+    )
+
+    unmatched = crosswalk['Census2010BlockGroup'].isna().sum()
+    if unmatched:
+        print(f'Warning: {unmatched:,} parcels did not intersect a 2010 block group.')
+    else:
+        print('All parcels matched to a Census 2010 block group.')
+
+    os.makedirs(os.path.dirname(crosswalk_file), exist_ok=True)
+    crosswalk.to_csv(crosswalk_file, index=False)
+    print(f'Parcel-to-CBG2010 crosswalk saved to {crosswalk_file}')
+    return crosswalk
+
+
+def _load_parcel_geography(psrc_parcels, soundcast_db_file, geography_table_name,
+                           parcel_cbg_crosswalk_file=None,
+                           census_block_group_file=None):
+    """Load legacy or 2023 PSRC geography in the common SynthFirm schema."""
+    with sqlite3.connect(soundcast_db_file) as db_con:
+        table_columns = {
+            row[1] for row in db_con.execute(
+                f'PRAGMA table_info("{geography_table_name}")'
+            )
+        }
+
+        if 'Census2010BlockGroup' in table_columns:
+            selected_columns = [
+                'ParcelID', 'CityName', 'Census2010Block',
+                'Census2010BlockGroup', 'Census2010Tract', 'FAZID', 'taz_p',
+                'District', 'district_name', 'CountyName', 'TAZ',
+                'BaseYear', 'GEOID10', 'place_name'
+            ]
+        else:
+            selected_columns = [
+                'ParcelID', 'CityName', 'CountyName', 'TAZ', 'District',
+                'district_name', 'BaseYear'
+            ]
+
+        missing_columns = set(selected_columns).difference(table_columns)
+        if missing_columns:
+            raise ValueError(
+                f'{geography_table_name} is missing required fields '
+                f'{sorted(missing_columns)}.'
+            )
+
+        quoted_columns = ', '.join(f'"{column}"' for column in selected_columns)
+        parcel_geography = pd.read_sql_query(
+            f'SELECT {quoted_columns} FROM "{geography_table_name}"',
+            db_con
+        )
+
+    # Legacy PSRC geography already includes the 2010 CBG identifiers used by
+    # SynthFirm. Preserve the prior join behavior for existing 2018/2050 runs.
+    if 'Census2010BlockGroup' in parcel_geography.columns:
+        return parcel_geography, ['parcelid', 'taz_p'], ['ParcelID', 'taz_p']
+
+    # Current geography uses 2020 Census IDs. Translate its parcel points back to
+    # the 2010 block-group MESOZONE system so the existing SynthFirm zone system,
+    # skims, and national inputs remain unchanged.
+    if not parcel_cbg_crosswalk_file:
+        raise ValueError(
+            f'{geography_table_name} has no Census2010BlockGroup column. Set '
+            'parcel_cbg_crosswalk_file and census_2010_block_group_file in [CALIBRATION].'
+        )
+
+    if os.path.exists(parcel_cbg_crosswalk_file):
+        print(f'Reusing parcel-to-CBG2010 crosswalk: {parcel_cbg_crosswalk_file}')
+        crosswalk = read_csv(parcel_cbg_crosswalk_file, dtype={
+            'ParcelID': 'int64',
+            'Census2010BlockGroup': 'string'
+        })
+    else:
+        crosswalk = _build_parcel_to_cbg2010_crosswalk(
+            psrc_parcels,
+            census_block_group_file,
+            parcel_cbg_crosswalk_file
+        )
+
+    parcel_geography = parcel_geography.merge(
+        crosswalk[['ParcelID', 'Census2010BlockGroup']],
+        on='ParcelID',
+        how='left',
+        validate='one_to_one'
+    )
+    parcel_geography['Census2010BlockGroup'] = (
+        parcel_geography['Census2010BlockGroup'].astype('string').str.zfill(12)
+    )
+    parcel_geography['FIPS'] = parcel_geography['Census2010BlockGroup'].str[:5]
+    return parcel_geography, ['parcelid'], ['ParcelID']
+
+
 def psrc_employment_calibration(psrc_parcel_file, soundcast_db_file, 
                                 geography_table_name, uncalibrated_mzemp_file, 
-                                cleaned_parcel_file, mzemp_file):
+                                cleaned_parcel_file, mzemp_file,
+                                parcel_cbg_crosswalk_file=None,
+                                census_block_group_file=None):
     
     print('Start calibrating employment counts within PSRC region!')
     # define synthfirm parameters
@@ -47,23 +195,15 @@ def psrc_employment_calibration(psrc_parcel_file, soundcast_db_file,
     # baseline_parcel_path = os.path.join(input_dir, 'landuse', analysis_year, parcel_file)
     psrc_parcels = pd.read_csv(psrc_parcel_file, sep = ' ')
     
-    ## start data loading
-    # soundcast_input_db = os.path.join(input_dir, 'db', db_file)
-    db_con = sqlite3.connect(soundcast_db_file)
-    
     # emp_ranking_file = os.path.join(uncalibrated_mzemp_file)
     emp_ranking = read_csv(uncalibrated_mzemp_file)
-    
-    db_cur = db_con.cursor()
-    
-    
-    parcel_geography = pd.read_sql_query("SELECT * FROM " + geography_table_name, db_con)
-    
-    parcel_geography = \
-    parcel_geography[['ParcelID','CityName', 'Census2010Block',
-           'Census2010BlockGroup', 'Census2010Tract', 'FAZID', 'taz_p', 
-                      'District', 'district_name', 'CountyName', 'TAZ', 
-                      'BaseYear', 'GEOID10', 'place_name']]
+    parcel_geography, parcel_merge_left, parcel_merge_right = _load_parcel_geography(
+        psrc_parcels,
+        soundcast_db_file,
+        geography_table_name,
+        parcel_cbg_crosswalk_file,
+        census_block_group_file
+    )
     
     
     # <codecell>
@@ -71,7 +211,7 @@ def psrc_employment_calibration(psrc_parcel_file, soundcast_db_file,
     # merge geography and create parcel employment data
     
     parcel_geography.loc[:, 'Census2010BlockGroup'] = \
-    parcel_geography.loc[:, 'Census2010BlockGroup'].astype(int).astype(str).str.zfill(12)
+    parcel_geography.loc[:, 'Census2010BlockGroup'].astype('string').str.zfill(12)
     parcel_geography.loc[:, 'State'] = \
     parcel_geography.loc[:, 'Census2010BlockGroup'].str[0:2] 
     parcel_geography.loc[:, 'County'] = \
@@ -85,9 +225,17 @@ def psrc_employment_calibration(psrc_parcel_file, soundcast_db_file,
     
     psrc_parcels = pd.merge(psrc_parcels,
                             parcel_geography,
-                            left_on = ['parcelid', 'taz_p'],
-                            right_on = ['ParcelID', 'taz_p'],
-                            how = 'left')
+                            left_on=parcel_merge_left,
+                            right_on=parcel_merge_right,
+                            how='left',
+                            validate='one_to_one')
+
+    missing_cbg = psrc_parcels['Census2010BlockGroup'].isna().sum()
+    if missing_cbg:
+        raise ValueError(
+            f'{missing_cbg:,} parcels could not be mapped to a Census 2010 block group. '
+            'Fix the parcel-to-CBG2010 crosswalk before running calibration.'
+        )
     
     psrc_parcels_job_only = psrc_parcels.loc[psrc_parcels['emptot_p'] > 0]
     print(len(psrc_parcels_job_only))
