@@ -19,6 +19,11 @@ import numpy as np
 warnings.filterwarnings("ignore")
 
 
+def _format_cbg2010(values):
+    """Format numeric legacy and crosswalk CBG values as 12-digit identifiers."""
+    return pd.to_numeric(values, errors='coerce').astype('Int64').astype('string').str.zfill(12)
+
+
 def _build_parcel_to_cbg2010_crosswalk(psrc_parcels, census_block_group_file,
                                         crosswalk_file):
     """Map current PSRC parcel points to the 2010 CBG system used by SynthFirm."""
@@ -71,8 +76,8 @@ def _build_parcel_to_cbg2010_crosswalk(psrc_parcels, census_block_group_file,
               f'{len(psrc_parcels):,} parcels')
 
     crosswalk = pd.concat(crosswalk_parts, ignore_index=True)
-    crosswalk['Census2010BlockGroup'] = (
-        crosswalk['Census2010BlockGroup'].astype('string').str.zfill(12)
+    crosswalk['Census2010BlockGroup'] = _format_cbg2010(
+        crosswalk['Census2010BlockGroup']
     )
 
     unmatched = crosswalk['Census2010BlockGroup'].isna().sum()
@@ -157,8 +162,8 @@ def _load_parcel_geography(psrc_parcels, soundcast_db_file, geography_table_name
         how='left',
         validate='one_to_one'
     )
-    parcel_geography['Census2010BlockGroup'] = (
-        parcel_geography['Census2010BlockGroup'].astype('string').str.zfill(12)
+    parcel_geography['Census2010BlockGroup'] = _format_cbg2010(
+        parcel_geography['Census2010BlockGroup']
     )
     parcel_geography['FIPS'] = parcel_geography['Census2010BlockGroup'].str[:5]
     return parcel_geography, ['parcelid'], ['ParcelID']
@@ -210,8 +215,9 @@ def psrc_employment_calibration(psrc_parcel_file, soundcast_db_file,
     
     # merge geography and create parcel employment data
     
-    parcel_geography.loc[:, 'Census2010BlockGroup'] = \
-    parcel_geography.loc[:, 'Census2010BlockGroup'].astype('string').str.zfill(12)
+    parcel_geography.loc[:, 'Census2010BlockGroup'] = _format_cbg2010(
+        parcel_geography['Census2010BlockGroup']
+    )
     parcel_geography.loc[:, 'State'] = \
     parcel_geography.loc[:, 'Census2010BlockGroup'].str[0:2] 
     parcel_geography.loc[:, 'County'] = \

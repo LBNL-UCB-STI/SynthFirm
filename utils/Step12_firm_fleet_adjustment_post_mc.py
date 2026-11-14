@@ -426,6 +426,71 @@ def firm_fleet_generator_post_mc(fleet_year, fleet_name, regulations, synthetic_
                 for_hire_truck.to_csv(result_dir + \
                                       '/for_hire_truck_shipment_' + sctg_code  + '_' + str(j) + '.csv.zip', index = False)
             j += 1
+
+    # Keep non-truck shipment records beside the fleet outputs for a complete
+    # all-mode scenario package. These records are not modified by fleet assignment.
+    non_truck_modes = {
+        'Rail/IMX': 'rail_imx',
+        'Air': 'air',
+        'Parcel': 'parcel',
+        'Other': 'other'
+    }
+    shipment_int_columns = [
+        'BuyerID', 'BuyerZone', 'SellerID', 'SellerZone',
+        'Commodity_SCTG', 'SCTG_Group', 'shipment_id',
+        'orig_FAFID', 'dest_FAFID'
+    ]
+    shipment_float_columns = [
+        'TruckLoad', 'UnitCost', 'probability', 'Distance', 'Travel_time'
+    ]
+    shipment_output_columns = [
+        'BuyerID', 'BuyerZone', 'BuyerNAICS', 'SellerID', 'SellerZone',
+        'SellerNAICS', 'TruckLoad', 'Commodity_SCTG', 'SCTG_Group',
+        'UnitCost', 'shipment_id', 'orig_FAFID', 'dest_FAFID',
+        'mode_choice', 'probability', 'Distance', 'Travel_time'
+    ]
+    for i in range(5):
+        sctg_code = 'sctg' + str(i + 1)
+        source_dir = os.path.join(output_path, sctg_code)
+        source_files = [file for file in os.listdir(source_dir) if file.endswith('.zip')]
+        chunk_size = 50
+        file_chunks = [source_files[i * chunk_size:(i + 1) * chunk_size]
+                       for i in range((len(source_files) + chunk_size - 1) // chunk_size)]
+
+        for j, chunk in enumerate(file_chunks):
+            mode_choice_frames = []
+            for file in chunk:
+                shipment_chunk = read_csv(os.path.join(source_dir, file))
+                if 'mode_choice' in shipment_chunk.columns:
+                    mode_choice_frames.append(shipment_chunk)
+
+            if not mode_choice_frames:
+                continue
+
+            all_modes = pd.concat(mode_choice_frames, ignore_index=True)
+            # Reindex before filtering, matching the existing truck export.
+            all_modes.loc[:, 'shipment_id'] = all_modes.reset_index().index + 1
+            for mode, file_label in non_truck_modes.items():
+                mode_output = all_modes.loc[
+                    all_modes['mode_choice'] == mode
+                ].copy()
+                if len(mode_output) > 0:
+                    # Match the truck-output schema while retaining the same
+                    # shipment characteristics selected by mode choice.
+                    mode_output.loc[:, shipment_int_columns] = mode_output.loc[
+                        :, shipment_int_columns
+                    ].astype(np.int64)
+                    mode_output.loc[:, shipment_float_columns] = mode_output.loc[
+                        :, shipment_float_columns
+                    ].astype(float)
+                    mode_output = mode_output.loc[:, shipment_output_columns]
+                    mode_output.to_csv(
+                        os.path.join(
+                            result_dir,
+                            f'{file_label}_shipment_{sctg_code}_{j}.csv.zip'
+                        ),
+                        index=False
+                    )
     
     # <codecell>
     # fill in columns that are not selected
